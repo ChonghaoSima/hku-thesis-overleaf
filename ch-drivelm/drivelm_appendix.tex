@@ -52,7 +52,7 @@ This section collects questions that may arise from reading Chapter~\ref{ch:driv
 
 \medskip\noindent\textbf{Q12.}~\emph{Why not use video inputs?}
 
-\noindent In autonomous driving, multi-frame inputs do not always lead to improved performance because of causal confusion~\cite{wen2021keyframefocused}, which has motivated the use of single frames in several prior works~\cite{wu2022trajectoryguided,Jaeger2023ICCV}. In the long term, however, multi-frame models are desirable. As a proof of concept, Table~\ref{drivelm:tab:llama} reports results for a multi-frame model adapted from LLaMA-Adapter V2~\cite{gao2023llamaadapterv2}; multi-frame inputs give a slight improvement.
+\noindent In autonomous driving, multi-frame inputs do not always lead to improved performance because of causal confusion~\cite{wen2021keyframefocused}, which has motivated the use of single frames in several prior works~\cite{wu2022tcp,jaeger2023hidden}. In the long term, however, multi-frame models are desirable. As a proof of concept, Table~\ref{drivelm:tab:llama} reports results for a multi-frame model adapted from LLaMA-Adapter V2~\cite{gao2023llamaadapterv2}; multi-frame inputs give a slight improvement.
 
 \medskip\noindent\textbf{Q13.}~\emph{What is the technical novelty of this work?}
 
@@ -66,7 +66,7 @@ This section details DriveLM-nuScenes: its composition, collection methodology a
 
 DriveLM-nuScenes comprises a training set of 4,072 frames and a validation set of 799 frames. It consists of scene-level descriptions and frame-level QAs, accompanied by 2D bounding boxes in the multi-view images of nuScenes. The scene-level description delineates the behaviour of the ego vehicle throughout the entire video clip. The frame-level QAs fall into three categories:
 \begin{itemize}
-  \item \textbf{Perception} covers questions about a thorough examination of the entire frame. Apart from several questions that are annotated manually, we design prompts to generate questions about the observable facets of the objects in the scene, using the ground truth of nuScenes~\cite{caesar2019nuscenes} and OpenLane-V2~\cite{wang2023openlanev2}.
+  \item \textbf{Perception} covers questions about a thorough examination of the entire frame. Apart from several questions that are annotated manually, we design prompts to generate questions about the observable facets of the objects in the scene, using the ground truth of nuScenes~\cite{caesar2020nuscenes} and OpenLane-V2~\cite{wang2023openlanev2}.
   \item \textbf{Prediction} covers questions about the future state of the key objects and of the ego vehicle in the current frame, and about the reasoning behind the prediction. Because these predictions are intricate and challenging, the answers are \emph{annotated manually}.
   \item \textbf{Planning} covers questions about the subsequent actions of the ego vehicle in the current frame. Planning is as challenging as prediction, so we design prompts for the reasoning process and \emph{annotate the answers manually}.
 \end{itemize}
@@ -94,7 +94,7 @@ The labelling is carried out by annotators with driving experience, who are give
 Annotators review the entire video clip to pinpoint key frames that are rich in scene information and potentially indicative of future state changes. At the same time, they label the behaviour of the ego vehicle throughout the video clip, which forms the basis of the scene-level description.
 
 \paragraph{Key object selection.}
-Annotators identify the objects in the key frames that are relevant to the driving of the ego vehicle, called key objects. To ensure accuracy, pre-annotated bounding boxes based on the ground-truth categories of nuScenes~\cite{caesar2019nuscenes} are provided. Annotators may also designate objects that are not present in the ground truth as key objects if they deem them significant.
+Annotators identify the objects in the key frames that are relevant to the driving of the ego vehicle, called key objects. To ensure accuracy, pre-annotated bounding boxes based on the ground-truth categories of nuScenes~\cite{caesar2020nuscenes} are provided. Annotators may also designate objects that are not present in the ground truth as key objects if they deem them significant.
 
 \paragraph{QA labelling.}
 There are two sets of questions: factual questions and open-ended questions. The answers to factual questions are generated with a rule-based method. The open-ended questions, which are carefully designed in advance, are answered manually by the annotators. Options are provided for most manually annotated questions, together with an ``Other -- Fill in the Blank'' option for flexibility. Free-form questions additionally allow annotators to ask their own questions about the current frame.
@@ -138,12 +138,12 @@ This section analyses the distribution of the QA categories of DriveLM-nuScenes 
 \paragraph{Task level.}
 DriveLM-nuScenes forms a benchmark that encompasses various aspects of autonomous driving and connects all stages of human driving logic. Fig.~\ref{drivelm:fig:data_distribution} and Fig.~\ref{drivelm:fig:nus_statis} show the distribution of question types at the task level, and Table~\ref{drivelm:tab:nus_qa} gives example QA templates for all $P_{1-3}$ stages.
 
-\begin{center}
+\medskip\noindent\begin{minipage}{\linewidth}
   \captionof{table}[Question templates of DriveLM-nuScenes]{\textbf{Question templates of DriveLM-nuScenes at the task level.} The categories correspond to those in Fig.~\ref{drivelm:fig:nus_statis}.}
   \label{drivelm:tab:nus_qa}
-\end{center}
+\end{minipage}
 \nopagebreak
-\begin{tcolorbox}[breakable, enhanced, colback=gray!10, colframe=black, arc=1mm, boxrule=0.5pt, fontupper=\small\linespread{1.05}\selectfont, parbox=false, before upper={\raggedright\setlength{\parskip}{3pt}}]
+\begin{tcolorbox}[breakable, enhanced, before skip=2pt, colback=gray!10, colframe=black, arc=1mm, boxrule=0.5pt, fontupper=\small\linespread{1.05}\selectfont, parbox=false, before upper={\raggedright\setlength{\parskip}{3pt}}]
 \textcolor{blue}{\textbf{Perception}}
 
 \textcolor{blue}{Surrounding Objects Identify}
@@ -335,7 +335,7 @@ Generating the data in the CARLA simulator allows scalable annotations without a
 
 \subsection{Expert Algorithm: PDM-Lite}\label{drivelm:app:pdm}
 
-Previous CARLA experts, such as the privileged rule-based expert used by TransFuser++~\cite{Jaeger2023ICCV}, can only solve the scenarios implemented in CARLA Leaderboard 1.0. PDM-Lite~\cite{Beißwenger2024PdmLite} is designed to tackle all 38 scenarios of Leaderboard 2.0. It consists of six stages, summarised in Fig.~\ref{drivelm:fig:pdm_lite}.
+Previous CARLA experts, such as the privileged rule-based expert used by TransFuser++~\cite{jaeger2023hidden}, can only solve the scenarios implemented in CARLA Leaderboard 1.0. PDM-Lite~\cite{beisswenger2024pdmlite} is designed to tackle all 38 scenarios of Leaderboard 2.0. It consists of six stages, summarised in Fig.~\ref{drivelm:fig:pdm_lite}.
 
 \begin{figure}[t]
   \centering
@@ -345,10 +345,12 @@ Previous CARLA experts, such as the privileged rule-based expert used by TransFu
 \end{figure}
 
 \paragraph{Path planning.}
-First, PDM-Lite creates a dense path of spatially equidistant points with an A* planning algorithm, given sparse target points (up to 200\,m apart) from the leaderboard module. The plan is based on the HD map of the town provided by CARLA. Information such as speed limits and distances to the next traffic light or stop sign is added to the different sections of the route to be traversed. To handle scenarios that require leaving the default path (\eg, \emph{Accident}, \emph{ConstructionObstacle}, \emph{ParkedObstacle}, \emph{VehicleOpensDoor}, \emph{AccidentTwoWays}, \emph{ConstructionObstacleTwoWays}, \emph{ParkedObstacleTwoWays}, \emph{VehicleOpensDoorTwoWays} and \emph{YieldToEmergencyVehicle}), a short segment of the route where the scenario will be spawned is shifted laterally towards an adjacent lane.
+\begin{sloppypar}
+First, PDM-Lite creates a dense path of spatially equidistant points with an A* planning algorithm, given sparse target points (up to 200\,m apart) from the leaderboard module. The plan is based on the HD map of the town provided by CARLA. Information such as speed limits and distances to the next traffic light or stop sign is added to the different sections of the route to be traversed. To handle scenarios that require leaving the default path, a short segment of the route where the scenario will be spawned is shifted laterally towards an adjacent lane. Examples of such scenarios are \mbox{\emph{Accident}}, \mbox{\emph{ConstructionObstacle}}, \mbox{\emph{ParkedObstacle}}, \mbox{\emph{VehicleOpensDoor}}, \mbox{\emph{AccidentTwoWays}}, \mbox{\emph{ConstructionObstacleTwoWays}}, \mbox{\emph{ParkedObstacleTwoWays}}, \mbox{\emph{VehicleOpensDoorTwoWays}} and \mbox{\emph{YieldToEmergencyVehicle}}.
+\end{sloppypar}
 
 \paragraph{Agent forecasting.}
-PDM-Lite forecasts the dynamic agents over a horizon of 2\,s with a temporal resolution of 20\,Hz. Since the paths and controls of the other actors are not known in advance, we assume that they maintain their previous controls and apply similar ones in the near future. Using a kinematic bicycle model with parameters taken from~\cite{Chen2021ICCVa}, PDM-Lite forecasts the motion of the other agents under this constant-action assumption, similar to the expert of~\cite{Jaeger2023ICCV}. Only actors closer than 50\,m to the ego agent are forecast.
+PDM-Lite forecasts the dynamic agents over a horizon of 2\,s with a temporal resolution of 20\,Hz. Since the paths and controls of the other actors are not known in advance, we assume that they maintain their previous controls and apply similar ones in the near future. Using a kinematic bicycle model with parameters taken from~\cite{Chen2021ICCVa}, PDM-Lite forecasts the motion of the other agents under this constant-action assumption, similar to the expert of~\cite{jaeger2023hidden}. Only actors closer than 50\,m to the ego agent are forecast.
 
 \paragraph{IDM target speed.}
 A target speed proposal is generated with the Intelligent Driver Model~\cite{treiber2000idm}. While the original IDM selects only one vehicle as the leading actor, we apply it iteratively to all vehicles, pedestrians, non-green traffic lights and stop signs that intersect the path ahead of the ego vehicle. Once the leading actors are selected, a target speed is determined for each of them using the parameters summarised in Table~\ref{drivelm:tab:pdm}. The minimum of these speeds is the final target speed proposal for that time step.
@@ -381,7 +383,7 @@ The trajectory with the proposed target speed is simulated for 2\,s at 20\,Hz by
 Having forecast the bounding boxes of all actors, we check for intersections between the bounding boxes of the simulated ego vehicle and those of other vehicles, and score the motion of the ego vehicle accordingly: if an intersection with a non-leading and non-rear-end vehicle is detected, the IDM target speed proposal is rejected and the target speed is set to zero.
 
 \paragraph{Controllers.}
-Controlling the vehicle requires three values: steering, throttle and brake. The steering value can be estimated directly from the location, velocity and path of the ego vehicle. We use a lateral PID controller for this, similar to~\cite{Jaeger2023ICCV}, which minimises the angle to a selected point along the path ahead. For throttle and brake, we employ a linear regression model on features extracted from the current speed and the target speed.
+Controlling the vehicle requires three values: steering, throttle and brake. The steering value can be estimated directly from the location, velocity and path of the ego vehicle. We use a lateral PID controller for this, similar to~\cite{jaeger2023hidden}, which minimises the angle to a selected point along the path ahead. For throttle and brake, we employ a linear regression model on features extracted from the current speed and the target speed.
 
 \paragraph{Results.}
 The performance of PDM-Lite is evaluated on the 20 official validation routes of Leaderboard 2.0. Table~\ref{drivelm:tab:pdm_results} presents the results of evaluations with three different seeds. Routes 0--9 and 10--19 are identical except for the weather conditions, which provides an additional measure of performance variance. Since PDM-Lite uses privileged information, its variance in performance is not due to the different weather parameters but to the random initialisation of the surrounding traffic.
@@ -427,7 +429,7 @@ The performance of PDM-Lite is evaluated on the 20 official validation routes of
 \subsection{Collection Methodology}\label{drivelm:app:carla_collection}
 
 \paragraph{Simulator settings.}
-We use the CARLA simulator (version 0.9.14) with Leaderboard 2.0~\cite{Dosovitskiy17} to generate the dataset. Leaderboard 2.0 introduces two new large maps along with a suite of new scenarios, which increases the diversity of the training and evaluation environments. Town 12 serves as the training town and Town 13 is reserved for evaluation. Each town covers an area of $10\times10$ square kilometres and encompasses varied environments such as rural, residential and urban landscapes that replicate real-world driving conditions. The CARLA team provides a total of 90 training routes, spanning 780.6 kilometres, and 20 evaluation routes, measuring 247.6 kilometres. Every route incorporates multiple driving scenarios. We segment these routes into shorter segments of approximately 150 metres and filter out routes that start and end at the same position. The traffic manager of Leaderboard 2.0 initialises random background traffic around the ego vehicle that consists exclusively of `car' entities. To enrich the dataset, we introduce additional vehicle classes, namely `trucks', `vans', `bicycles' and `motorcycles'. Moreover, we randomise the weather configuration of each training and evaluation route to mimic realistic driving conditions. Night-time settings are excluded because of inadequate illumination in certain regions of the maps: low-light conditions significantly impede the correctness of the automatic labelling, since information about the visibility of objects in the image is hard to obtain.
+We use the CARLA simulator (version 0.9.14) with Leaderboard 2.0~\cite{dosovitskiy2017carla} to generate the dataset. Leaderboard 2.0 introduces two new large maps along with a suite of new scenarios, which increases the diversity of the training and evaluation environments. Town 12 serves as the training town and Town 13 is reserved for evaluation. Each town covers an area of $10\times10$ square kilometres and encompasses varied environments such as rural, residential and urban landscapes that replicate real-world driving conditions. The CARLA team provides a total of 90 training routes, spanning 780.6 kilometres, and 20 evaluation routes, measuring 247.6 kilometres. Every route incorporates multiple driving scenarios. We segment these routes into shorter segments of approximately 150 metres and filter out routes that start and end at the same position. The traffic manager of Leaderboard 2.0 initialises random background traffic around the ego vehicle that consists exclusively of `car' entities. To enrich the dataset, we introduce additional vehicle classes, namely `trucks', `vans', `bicycles' and `motorcycles'. Moreover, we randomise the weather configuration of each training and evaluation route to mimic realistic driving conditions. Night-time settings are excluded because of inadequate illumination in certain regions of the maps: low-light conditions significantly impede the correctness of the automatic labelling, since information about the visibility of objects in the image is hard to obtain.
 
 \paragraph{Data collection.}
 We execute the expert on each of the routes and gather a comprehensive set of sensor data: (1) RGB images, (2) LiDAR point clouds, (3) semantic segmentation images, (4) depth maps and (5) bird's-eye-view (BEV) semantic segmentation. While DriveLM-Agent uses only the RGB images, retraining TransFuser++ requires the additional data for its auxiliary tasks. In addition, we extract privileged information from the simulator about the status of the static and dynamic objects in the scene:
@@ -473,7 +475,7 @@ The GPT Score is provided by ChatGPT. Traditional metrics mainly assess performa
 
 \begin{table}[t]
   \centering
-  \caption[Prompt for the GPT Score]{\textbf{Prompt for the GPT Score.} It differs from the prompt used in DriveGPT4~\cite{xu2023drivegpt4}, but the resulting score is similar.}
+  \caption[Prompt for the GPT Score]{\textbf{Prompt for the GPT Score.} It differs from the prompt used in DriveGPT4~\cite{xu2024drivegpt4}, but the resulting score is similar.}
   \label{drivelm:tab:gpt_score}
   \begin{tcolorbox}[colback=gray!10, colframe=black, width=\linewidth, arc=1mm, auto outer arc, boxrule=0.5pt, fontupper=\small]
     \raggedright
@@ -503,7 +505,7 @@ The final displacement error is the Euclidean distance between the predicted and
 \paragraph{Collision rate.}
 The collision rate is the ratio of the number of test frames in which the predicted trajectory collides with objects to the total number of test frames. The number reported in Table~\ref{drivelm:tab:arch} is the average of the collision rates at the 1st, 2nd and 3rd second.
 
-ADE, FDE and the collision rate are computed with the convention of UniAD~\cite{hu2023uniad}, not that of ST-P3~\cite{hu2022stp3}. For example, for the FDE and the collision rate at the 3rd second, the UniAD convention considers the error or collision rate at this time step only, whereas the ST-P3 convention averages them over 0.5, 1, 1.5, 2, 2.5 and 3 seconds; see the discussion in the UniAD repository\footnote{\url{https://github.com/OpenDriveLab/UniAD/commit/ffac1a69a6d01c9dca5cd2ed751007896df351f8}} for details. Moreover, errors reported on the full nuScenes validation set in prior work are not directly comparable with results on the DriveLM-nuScenes validation split, a challenging subset of it that consists only of keyframes with intention changes.
+ADE, FDE and the collision rate are computed with the convention of UniAD~\cite{hu2023uniad}, not that of ST-P3~\cite{hu2022stp3}. For example, for the FDE and the collision rate at the 3rd second, the UniAD convention considers the error or collision rate at this time step only, whereas the ST-P3 convention averages them over 0.5, 1, 1.5, 2, 2.5 and 3 seconds; see the discussion in the UniAD repository\footnote{\raggedright\url{https://github.com/OpenDriveLab/UniAD/commit/ffac1a69a6d01c9dca5cd2ed751007896df351f8}} for details. Moreover, errors reported on the full nuScenes validation set in prior work are not directly comparable with results on the DriveLM-nuScenes validation split, a challenging subset of it that consists only of keyframes with intention changes.
 
 \section{DriveLM-Agent}\label{drivelm:app:agent}
 
@@ -515,7 +517,7 @@ The content of the context differs between training and inference, following the
 
 \subsection{Trajectory Tokenisation}\label{drivelm:app:agent_tokenisation}
 
-To generate action sequences, \ie, future trajectories of the ego vehicle, directly with the language model used for building the graph, we adopt the method of RT-2~\cite{zitkovich2023rt}, which discretises and tokenises the continuous trajectory.
+To generate action sequences, \ie, future trajectories of the ego vehicle, directly with the language model used for building the graph, we adopt the method of RT-2~\cite{zitkovich2023rt2}, which discretises and tokenises the continuous trajectory.
 
 We first analyse the distribution of the future trajectories in the nuScenes dataset. To convert the continuous $(x,y)$ coordinate space into a discrete set of actions, we partition each coordinate axis into 256 intervals. This granularity ensures sufficient detail while keeping the number of tokens manageable for the language model.
 
@@ -552,26 +554,26 @@ Table~\ref{drivelm:tab:vqa_more_metrics} reports the setting of Table~\ref{drive
 
 \begin{table}[t]
   \centering
-  \caption[More VQA metrics on DriveLM-nuScenes]{\textbf{Graph-structured reasoning facilitates VQA with VLMs.} Completeness (Comp.) measures how many questions of a frame are answered correctly. The improvement trends are not consistent across the conventional metrics, so the GPT Score, which evaluates the performance more comprehensively, is used as the main metric.}
+  \caption[More VQA metrics on DriveLM-nuScenes]{\textbf{Graph-structured reasoning facilitates VQA with VLMs} (DriveLM-nuScenes). Completeness (Comp.) measures how many questions of a frame are answered correctly. The improvement trends are not consistent across the conventional metrics, so the GPT Score, which evaluates the performance more comprehensively, is used as the main metric.}
   \label{drivelm:tab:vqa_more_metrics}
   \begin{adjustbox}{max width=\textwidth}
-  \begin{tabular}{l|ccccccc|ccccccc}
+  \begin{tabular}{ll|ccccccc}
     \toprule
-    \multirow{3}{*}{\textbf{Context}} & \multicolumn{14}{c}{\textbf{DriveLM-nuScenes}} \\
-    \cmidrule(lr){2-15}
-    & \multicolumn{7}{c|}{Off-the-shelf BLIP-2} & \multicolumn{7}{c}{DriveLM-Agent} \\
-    & BLEU-4\,$\uparrow$ & METEOR\,$\uparrow$ & CIDEr\,$\uparrow$ & ROUGE-L\,$\uparrow$ & SPICE\,$\uparrow$ & GPT\,$\uparrow$ & Comp.\,$\uparrow$ & BLEU-4\,$\uparrow$ & METEOR\,$\uparrow$ & CIDEr\,$\uparrow$ & ROUGE-L\,$\uparrow$ & SPICE\,$\uparrow$ & GPT\,$\uparrow$ & Comp.\,$\uparrow$ \\
+    \textbf{Model} & \textbf{Context} & BLEU-4\,$\uparrow$ & METEOR\,$\uparrow$ & CIDEr\,$\uparrow$ & ROUGE-L\,$\uparrow$ & SPICE\,$\uparrow$ & GPT\,$\uparrow$ & Comp.\,$\uparrow$ \\
     \midrule
-    None & 0.022 & 3.317 & 0.1185 & 7.205 & 4.336 & 42.97 & 1.064 & 51.89 & 35.81 & 2.463 & 66.79 & 42.56 & 71.39 & 30.04 \\
-    Graph & 0.022 & 3.882 & 0.0771 & 7.397 & 7.710 & 45.21 & 0.859 & 53.09 & 36.19 & 2.786 & 65.58 & 49.54 & 72.51 & 31.66 \\
+    \multirow{3}{*}{Off-the-shelf BLIP-2} & None & 0.022 & 3.317 & 0.1185 & 7.205 & 4.336 & 42.97 & 1.064 \\
+    & Graph & 0.022 & 3.882 & 0.0771 & 7.397 & 7.710 & 45.21 & 0.859 \\
+    & \textit{GT} & \textit{0.022} & \textit{4.397} & \textit{0.0758} & \textit{8.033} & \textit{8.192} & \textit{41.10} & \textit{1.315} \\
     \midrule
-    \textit{GT} & \textit{0.022} & \textit{4.397} & \textit{0.0758} & \textit{8.033} & \textit{8.192} & \textit{41.10} & \textit{1.315} & \textit{53.06} & \textit{36.64} & \textit{3.069} & \textit{66.69} & \textit{50.29} & \textit{72.94} & \textit{32.41} \\
+    \multirow{3}{*}{DriveLM-Agent} & None & 51.89 & 35.81 & 2.463 & 66.79 & 42.56 & 71.39 & 30.04 \\
+    & Graph & 53.09 & 36.19 & 2.786 & 65.58 & 49.54 & 72.51 & 31.66 \\
+    & \textit{GT} & \textit{53.06} & \textit{36.64} & \textit{3.069} & \textit{66.69} & \textit{50.29} & \textit{72.94} & \textit{32.41} \\
     \bottomrule
   \end{tabular}
   \end{adjustbox}
 \end{table}
 
-\subsection{Stage-wise Ablation on Zero-shot Generalisation Across Sensor Configurations}\label{drivelm:app:waymo_ablation}
+\subsection{Stage-wise Context Ablation on Waymo}\label{drivelm:app:waymo_ablation}
 
 Table~\ref{drivelm:tab:waymo_supp} extends the zero-shot generalisation experiment of Table~\ref{drivelm:tab:arch} with more context settings. A key observation is that the higher the accuracy of the behaviour task, the better the performance of the motion task. With more context for the behaviour task, the accuracy improvement comes mainly from the speed accuracy, which in turn affects the FDE.
 

@@ -8,10 +8,10 @@ This appendix provides supplementary material for Chapter~\ref{ch:kai0}. Section
 This section collects questions that readers may raise, together with questions that reach beyond the scope of this work.
 
 \paragraph{Q1. What is the relationship between Stage Advantage and reinforcement learning?}
-Stage Advantage follows the paradigm of advantage-weighted regression (AWR)~\cite{peng2019advantage}, which can be seen as offline reinforcement learning (RL)~\cite{sutton1998reinforcement} in which the Monte Carlo reward is computed directly from data. Because such learned rewards show a large variance, advantage-weighted diffusion policies~\cite{frans2025diffusion}, and their large-scale validation in $\pi^{*}_{0.6}$~\cite{black2025pistar}, instead parameterise a Q-network learned from the demonstration data. Stage Advantage follows the paradigm of $\pi^{*}_{0.6}$ but improves on this baseline with numerically more stable advantage estimates, which in turn yield a better-performing policy.
+Stage Advantage follows the paradigm of advantage-weighted regression (AWR)~\cite{peng2019awr}, which can be seen as offline reinforcement learning (RL)~\cite{sutton1998reinforcement} in which the Monte Carlo reward is computed directly from data. Because such learned rewards show a large variance, advantage-weighted diffusion policies~\cite{frans2025diffusion}, and their large-scale validation in $\pi^{*}_{0.6}$~\cite{amin2026pistar06}, instead parameterise a Q-network learned from the demonstration data. Stage Advantage follows the paradigm of $\pi^{*}_{0.6}$ but improves on this baseline with numerically more stable advantage estimates, which in turn yield a better-performing policy.
 
 \paragraph{Q2. Why not use online RL such as PPO?}
-PPO~\cite{schulman2017PPO} and its adaptations to diffusion-based policies, such as DSRL~\cite{wagenmaker2025dsrl}, represent another trend in RL, referred to as online RL, which learns directly from interaction with the environment. These methods are fundamentally limited by sample inefficiency in the real world. Unlike in simulation, scaling physical experiments is constrained by the prohibitive costs of parallelisation and resetting, which constitute a major bottleneck. In contrast, AWR~\cite{peng2019advantage} incurs only a marginal labelling cost to bias the learning objective towards actions that make high progress, and it thereby maximises the utility of both human demonstrations and policy rollouts.
+PPO~\cite{schulman2017PPO} and its adaptations to diffusion-based policies, such as DSRL~\cite{wagenmaker2025dsrl}, represent another trend in RL, referred to as online RL, which learns directly from interaction with the environment. These methods are fundamentally limited by sample inefficiency in the real world. Unlike in simulation, scaling physical experiments is constrained by the prohibitive costs of parallelisation and resetting, which constitute a major bottleneck. In contrast, AWR~\cite{peng2019awr} incurs only a marginal labelling cost to bias the learning objective towards actions that make high progress, and it thereby maximises the utility of both human demonstrations and policy rollouts.
 
 \paragraph{Q3. Why choose $\pi_{0.5}$ as the primary baseline?}
 To identify a robust starting point, we conducted preliminary evaluations of several prominent VLA models, including X-VLA~\cite{zheng2025xvla}, GO-1~\cite{bu2025agibot_iros}, UniVLA~\cite{bu2025univla} and OpenVLA~\cite{kim2024openvla}. Despite claims of broad adaptability and robustness, these models failed to generalise to the experimental tasks. Even after extensive post-training with aligned hardware settings and exhaustive hyper-parameter tuning, with a satisfactorily converged training loss, the policies achieved negligible success rates across 30 distinct trials (10 trials per garment). These models were therefore excluded from the primary comparison, so that the analysis focuses on baselines capable of meaningful task completion.
@@ -20,10 +20,17 @@ To identify a robust starting point, we conducted preliminary evaluations of sev
 This is a critical direction for future work. Naive behaviour cloning treats all demonstrated actions equally, although many of them lack explicit utility. Training on such non-informative segments can bias the policy towards meaningless behaviours, resulting in local optima in which the robot repeats actions without making progress. Advantage weighting offers a mechanism to filter out these behaviours by emphasising actions that yield high returns. The current formulation, however, relies on a heuristic proxy, namely using temporal progress to label the advantage, which assumes that task completion is strictly monotonic. A more robust solution would replace this heuristic with an unsupervised advantage estimator capable of distinguishing truly instrumental actions from noise, independently of temporal linearity.
 
 \paragraph{Q5. How can good robot data be defined?}
-Empirically, data quality is a governing factor in policy performance, accounting for fluctuations in success rate between 20\% and 60\% under identical settings. We also observe a ``masking effect'': some algorithmic improvements yield significant gains on low-quality data but saturate or vanish when the policy is trained on high-quality demonstrations. Data quality appears to be central to the current trend of imitation learning, yet little of the literature discusses it seriously. To address this overlooked variable, we state \emph{replay-ability} as one of the most important principles of data validity. A trajectory is replay-able if its open-loop re-execution from a similar initial state leads to task completion, or at least to significant progress. This criterion not only filters out corrupted demonstrations but also serves as a diagnostic tool that exposes systematic hardware inconsistencies between the data collection environment ($P_{\text{train}}$) and the inference environment ($P_{\text{test}}$).
+Empirically, data quality is a governing factor in policy performance, accounting for fluctuations in success rate between 20\% and 60\% under identical settings. We also observe a ``masking effect'': some algorithmic improvements yield significant gains on low-quality data but saturate or vanish when the policy is trained on high-quality demonstrations. Data quality appears to be central to the current trend of imitation learning, yet little of the literature discusses it seriously. To address this overlooked variable, we state \emph{replay-ability} as one of the most important principles of data validity. A trajectory is replay-able if its open-loop re-execution from a similar initial state leads to task completion, or at least to significant progress. This criterion not only filters out corrupted demonstrations but also serves as a diagnostic tool that exposes systematic hardware inconsistencies between the data collection environment ($P_{\mathrm{train}}$) and the inference environment ($P_{\mathrm{test}}$).
 
 \paragraph{Q6. What are the common failure cases?}
 We observe two primary failure modes: (1)~\emph{spatial misalignment}, in which the policy fails to localise the correct grasping affordance, and (2)~\emph{policy stagnation}, in which the robot enters a ``dead loop'' of repetitive, non-productive actions. Both are illustrated in Fig.~\ref{kai0:fig:failure_case}. These failures reveal two fundamental deficiencies of current pre-trained models: a lack of fine-grained spatial understanding and insufficient long-horizon task planning. Model Arithmetic partly mitigates the former and Stage Advantage the latter, but both are extrinsic corrections. We argue that future pre-trained weights must possess stronger intrinsic capabilities for spatial grounding and sequential logic to resolve these issues fully.
+
+\begin{figure}[tb]
+  \centering
+  \includegraphics[width=\linewidth]{ch-kai0/images/failure_case_trim.pdf}
+  \caption[Failure cases on Task~A]{\textbf{Visualisation of failure cases on Task~A.} Categories of the failure instances recorded during evaluation, with the number of instances in each category.}
+  \label{kai0:fig:failure_case}
+\end{figure}
 
 \paragraph{Q7. What fundamentally distinguishes different robot foundation models?}
 Consistent with the failure modes above, the core distinction lies not in the zero-shot capabilities of the models but in their fine-tuning dynamics, specifically in their plasticity in acquiring new spatial understanding and task-planning skills during post-training. Some architectures, such as $\pi_0$ and $\pi_{0.5}$, show significantly higher adaptability than others, which suggests that their pre-trained weights provide a more robust initialisation for downstream learning. The field therefore needs new metrics that benchmark the intrinsic representational quality of foundation models, rather than relying solely on success rates in simplistic evaluation environments.
@@ -32,7 +39,7 @@ Consistent with the failure modes above, the core distinction lies not in the ze
 \section{Additional Related Work}\label{kai0:app:related}
 
 \subsection{Reinforcement Learning for Robustness}\label{kai0:app:related_rl}
-Reinforcement learning has become a prevalent approach for post-training VLA foundation policies to improve the robustness and precision of manipulation, with applications both in simulation~\cite{liu2023libero,mu2025robotwin,mees2022calvin,lu2025vla,li2025simplevla,chen2025tgrpo} and in the real world~\cite{luo2025hil-serl,xiao2025PLD,luo2024serl}. A central challenge is to fine-tune large pre-trained models without destabilising the learned representations. Advantage-conditioned approaches~\cite{black2025pistar,frans2025diffusion,kumar2019reward} allow optimisation of the full model by conditioning generation on estimated advantages, which avoids differentiating through the denoising processes of diffusion or flow matching~\cite{lei2025rl}. The effectiveness of such methods hinges on the quality of the advantage signal. A popular recipe uses vision-language models to score task progress~\cite{ma2024gvl,zhang2025rewind,zhai2025vlac,ghasemipour2025self}, recovers advantages from the scores as $A(s,a) = V(s') - V(s)$~\cite{black2025pistar} and uses them in advantage-weighted regression~\cite{wu2023elastic,kuba2023advantage}. This difference-of-values formulation, however, compounds independent estimation errors into noisy training signals. Moreover, without stage awareness the value function produces ambiguous predictions when visually similar states appear in different phases of a multi-stage task~\cite{black2025pistar,li2025gr}. Stage Advantage addresses both limitations. Instead of subtracting two noisy value predictions, it directly models the advantage as a single pairwise prediction $f_{\theta}(s, s')$, which yields lower-variance signals by construction. Instead of estimating progress under a single global objective, it conditions on the goal of the current stage, which explicitly resolves the multi-valued ambiguity and provides accurate, stage-aware supervision for long-horizon policy optimisation.
+Reinforcement learning has become a prevalent approach for post-training VLA foundation policies to improve the robustness and precision of manipulation, with applications both in simulation~\cite{liu2023libero,mu2025robotwin,mees2022calvin,lu2025vla,li2025simplevla,chen2025tgrpo} and in the real world~\cite{luo2025hilserl,xiao2025PLD,luo2024serl}. A central challenge is to fine-tune large pre-trained models without destabilising the learned representations. Advantage-conditioned approaches~\cite{amin2026pistar06,frans2025diffusion,kumar2019reward} allow optimisation of the full model by conditioning generation on estimated advantages, which avoids differentiating through the denoising processes of diffusion or flow matching~\cite{lei2025rl}. The effectiveness of such methods hinges on the quality of the advantage signal. A popular recipe uses vision-language models to score task progress~\cite{ma2024gvl,zhang2025rewind,zhai2025vlac,ghasemipour2025self}, recovers advantages from the scores as $A(s,a) = V(s') - V(s)$~\cite{amin2026pistar06} and uses them in advantage-weighted regression~\cite{wu2023elastic,kuba2023advantage}. This difference-of-values formulation, however, compounds independent estimation errors into noisy training signals. Moreover, without stage awareness the value function produces ambiguous predictions when visually similar states appear in different phases of a multi-stage task~\cite{amin2026pistar06,li2025gr}. Stage Advantage addresses both limitations. Instead of subtracting two noisy value predictions, it directly models the advantage as a single pairwise prediction $f_{\theta}(s, s')$, which yields lower-variance signals by construction. Instead of estimating progress under a single global objective, it conditions on the goal of the current stage, which explicitly resolves the multi-valued ambiguity and provides accurate, stage-aware supervision for long-horizon policy optimisation.
 
 \subsection{Control Methods}\label{kai0:app:related_control}
 Asynchronous inference reduces latency, but existing methods face significant implementation hurdles. SmolVLA~\cite{shukor2025smolvla} employs a naive chunk-switching strategy, which results in severe misalignment between prediction and execution and in unstable control. Similarly, the concurrent A2C2~\cite{sendai2025leave} addresses the misalignment by adding auxiliary correction heads, which necessitates architectural modifications. In contrast, \chiz augments asynchronous inference with temporal chunk-wise smoothing, which incurs negligible computational or architectural overhead.
@@ -41,7 +48,7 @@ Asynchronous inference reduces latency, but existing methods face significant im
 \section{Method Details}\label{kai0:app:method}
 
 \subsection{Origin of the Name}\label{kai0:app:name}
-The approach is grounded in the principle of \textbf{K}inetics \textbf{A}ligned to \textbf{I}ntelligence. ``Kinetics'' defines the operational domain, spanning training ($P_{\text{train}}$) and deployment ($P_{\text{test}}$), while ``Intelligence'' denotes the inductive bias encoded in the parameter space ($Q_{\text{model}}$). This initial iteration is designated KAI\textsubscript{0}. Noting the phonetic resemblance between ``KAI'' and the Greek letter $\chi$, the system is named \chiz, in tribute to the state-of-the-art $\pi$ series of policies.
+The approach is grounded in the principle of \textbf{K}inetics \textbf{A}ligned to \textbf{I}ntelligence. ``Kinetics'' defines the operational domain, spanning training ($P_{\mathrm{train}}$) and deployment ($P_{\mathrm{test}}$), while ``Intelligence'' denotes the inductive bias encoded in the parameter space ($Q_{\mathrm{model}}$). This initial iteration is designated KAI\textsubscript{0}. Noting the phonetic resemblance between ``KAI'' and the Greek letter $\chi$, the system is named \chiz, in tribute to the state-of-the-art $\pi$ series of policies.
 
 \subsection{Model Arithmetic}\label{kai0:app:ma}
 We combine 4 checkpoints with Model Arithmetic, each trained on a different subset of the training data. The checkpoints are weighted with inverse-loss weighting: the validation loss is computed as the mean prediction error on a held-out set, and checkpoints with lower loss receive proportionally higher weights. We additionally consider two baselines: a \emph{single-best} candidate, selected as the individual checkpoint with the lowest validation loss, and a \emph{full-data} candidate, trained on the complete dataset merged across all subsets.
@@ -155,11 +162,11 @@ Figure~\ref{kai0:fig:loss_curve_sa} compares the training loss curves. Stage Adv
 \section{Additional Ablations}\label{kai0:app:ablation}
 
 \subsection{Model Arithmetic on Tasks A and B}\label{kai0:app:ablation_ma}
-Figure~\ref{kai0:fig:app_soup} details the performance of Model Arithmetic on Tasks~A and~B. The results corroborate the primary finding: in most cases, MA outperforms both the single-best candidate and the full-data baseline. However, the correlation between selection by validation loss and performance is less consistent. We attribute this discrepancy to the variable quality of the OOD data, and we hypothesise that the validation loss is a reliable proxy for candidate selection only when the distribution of the OOD data sufficiently approximates $P_{\text{test}}$.
+Figure~\ref{kai0:fig:app_soup} details the performance of Model Arithmetic on Tasks~A and~B. The results corroborate the primary finding: in most cases, MA outperforms both the single-best candidate and the full-data baseline. However, the correlation between selection by validation loss and performance is less consistent. We attribute this discrepancy to the variable quality of the OOD data, and we hypothesise that the validation loss is a reliable proxy for candidate selection only when the distribution of the OOD data sufficiently approximates $P_{\mathrm{test}}$.
 
 \begin{figure}[tbp]
   \centering
-  \begin{subfigure}{0.8\linewidth}
+  \begin{subfigure}[t]{0.8\linewidth}
     \centering
     \includegraphics[width=\linewidth]{ch-kai0/images/souping_ff_compress.pdf}
     \caption{Model Arithmetic on Task~A}
@@ -167,7 +174,7 @@ Figure~\ref{kai0:fig:app_soup} details the performance of Model Arithmetic on Ta
   \end{subfigure}
 
   \medskip
-  \begin{subfigure}{0.8\linewidth}
+  \begin{subfigure}[t]{0.8\linewidth}
     \centering
     \includegraphics[width=\linewidth]{ch-kai0/images/souping_demoA_compress.pdf}
     \caption{Model Arithmetic on Task~B}
@@ -192,7 +199,7 @@ We evaluate the effect of predicting absolute versus delta joint states on perfo
 
 \begin{figure}[tbp]
   \centering
-  \begin{subfigure}{0.75\linewidth}
+  \begin{subfigure}[t]{0.8\linewidth}
     \centering
     \includegraphics[width=\linewidth]{ch-kai0/images/ff_abs_compress.pdf}
     \caption{Absolute joint}
@@ -200,7 +207,7 @@ We evaluate the effect of predicting absolute versus delta joint states on perfo
   \end{subfigure}
 
   \medskip
-  \begin{subfigure}{0.75\linewidth}
+  \begin{subfigure}[t]{0.8\linewidth}
     \centering
     \includegraphics[width=\linewidth]{ch-kai0/images/ff_delta_compress.pdf}
     \caption{Delta joint}
@@ -212,7 +219,7 @@ We evaluate the effect of predicting absolute versus delta joint states on perfo
 
 \begin{figure}[tbp]
   \centering
-  \begin{subfigure}{0.75\linewidth}
+  \begin{subfigure}[t]{0.8\linewidth}
     \centering
     \includegraphics[width=\linewidth]{ch-kai0/images/demoA_abs_compress.pdf}
     \caption{Absolute joint}
@@ -220,7 +227,7 @@ We evaluate the effect of predicting absolute versus delta joint states on perfo
   \end{subfigure}
 
   \medskip
-  \begin{subfigure}{0.75\linewidth}
+  \begin{subfigure}[t]{0.8\linewidth}
     \centering
     \includegraphics[width=\linewidth]{ch-kai0/images/demoA_delta_compress.pdf}
     \caption{Delta joint}
@@ -232,7 +239,7 @@ We evaluate the effect of predicting absolute versus delta joint states on perfo
 
 \begin{figure}[tbp]
   \centering
-  \begin{subfigure}{0.75\linewidth}
+  \begin{subfigure}[t]{0.8\linewidth}
     \centering
     \includegraphics[width=\linewidth]{ch-kai0/images/demoB_abs_compress.pdf}
     \caption{Absolute joint}
@@ -240,7 +247,7 @@ We evaluate the effect of predicting absolute versus delta joint states on perfo
   \end{subfigure}
 
   \medskip
-  \begin{subfigure}{0.75\linewidth}
+  \begin{subfigure}[t]{0.8\linewidth}
     \centering
     \includegraphics[width=\linewidth]{ch-kai0/images/demoB_delta_compress.pdf}
     \caption{Delta joint}
@@ -253,13 +260,6 @@ We evaluate the effect of predicting absolute versus delta joint states on perfo
 %-------------------------------------------------------------------------------
 \section{Failure Case Analysis}\label{kai0:app:failure}
 To answer Q6 (Section~\ref{kai0:app:questions}), we conducted a qualitative analysis that visualises and categorises all failure instances recorded during the evaluation on Task~A (Fig.~\ref{kai0:fig:failure_case}). The flattening stage proves to be the bottleneck of Task~A: owing to its high complexity, it accounts for the majority of policy failures (1010 of the 1026 categorised failure instances). DAgger and heuristic DAgger are therefore particularly effective on this task, because they naturally prioritise the collection of recovery data in this critical phase, where the robot is most prone to errors.
-
-\begin{figure}[tb]
-  \centering
-  \includegraphics[width=\linewidth]{ch-kai0/images/failure_case_trim.pdf}
-  \caption[Failure cases on Task~A]{\textbf{Visualisation of failure cases on Task~A.} Categories of the failure instances recorded during evaluation, with the number of instances in each category.}
-  \label{kai0:fig:failure_case}
-\end{figure}
 
 %-------------------------------------------------------------------------------
 \section{Data and Code Release}\label{kai0:app:license}
