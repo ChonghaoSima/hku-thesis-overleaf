@@ -20,7 +20,7 @@ To identify a robust starting point, we conducted preliminary evaluations of sev
 This is a critical direction for future work. Naive behaviour cloning treats all demonstrated actions equally, although many of them lack explicit utility. Training on such non-informative segments can bias the policy towards meaningless behaviours, resulting in local optima in which the robot repeats actions without making progress. Advantage weighting offers a mechanism to filter out these behaviours by emphasising actions that yield high returns. The current formulation, however, relies on a heuristic proxy, namely using temporal progress to label the advantage, which assumes that task completion is strictly monotonic. A more robust solution would replace this heuristic with an unsupervised advantage estimator capable of distinguishing truly instrumental actions from noise, independently of temporal linearity.
 
 \paragraph{Q5. How can good robot data be defined?}
-Empirically, data quality is a governing factor in policy performance, accounting for fluctuations in success rate between 20\% and 60\% under identical settings. We also observe a ``masking effect'': some algorithmic improvements yield significant gains on low-quality data but saturate or vanish when the policy is trained on high-quality demonstrations. Data quality appears to be central to the current trend of imitation learning, yet little of the literature discusses it seriously. To address this overlooked variable, we state \emph{replay-ability} as one of the most important principles of data validity. A trajectory is replay-able if its open-loop re-execution from a similar initial state leads to task completion, or at least to significant progress. This criterion not only filters out corrupted demonstrations but also serves as a diagnostic tool that exposes systematic hardware inconsistencies between the data collection environment ($P_{\mathrm{train}}$) and the inference environment ($P_{\mathrm{test}}$).
+Empirically, we observed that data quality is a governing factor in policy performance, accounting for fluctuations in success rate between 20\% and 60\% under identical settings. This is an observation reported by the authors, not a result supported by a controlled experiment in this thesis. We also observe a ``masking effect'': some algorithmic improvements yield substantial gains on low-quality data but saturate or vanish when the policy is trained on high-quality demonstrations. Data quality appears to be central to the current trend of imitation learning, yet little of the literature discusses it seriously. To address this overlooked variable, we state \emph{replay-ability} as one of the most important principles of data validity. A trajectory is replay-able if its open-loop re-execution from a similar initial state leads to task completion, or at least to significant progress. This criterion not only filters out corrupted demonstrations but also serves as a diagnostic tool that exposes systematic hardware inconsistencies between the data collection environment ($P_{\mathrm{train}}$) and the inference environment ($P_{\mathrm{test}}$).
 
 \paragraph{Q6. What are the common failure cases?}
 We observe two primary failure modes: (1)~\emph{spatial misalignment}, in which the policy fails to localise the correct grasping affordance, and (2)~\emph{policy stagnation}, in which the robot enters a ``dead loop'' of repetitive, non-productive actions. Both are illustrated in Fig.~\ref{kai0:fig:failure_case}. These failures reveal two fundamental deficiencies of current pre-trained models: a lack of fine-grained spatial understanding and insufficient long-horizon task planning. Model Arithmetic partly mitigates the former and Stage Advantage the latter, but both are extrinsic corrections. We argue that future pre-trained weights must possess stronger intrinsic capabilities for spatial grounding and sequential logic to resolve these issues fully.
@@ -33,7 +33,7 @@ We observe two primary failure modes: (1)~\emph{spatial misalignment}, in which 
 \end{figure}
 
 \paragraph{Q7. What fundamentally distinguishes different robot foundation models?}
-Consistent with the failure modes above, the core distinction lies not in the zero-shot capabilities of the models but in their fine-tuning dynamics, specifically in their plasticity in acquiring new spatial understanding and task-planning skills during post-training. Some architectures, such as $\pi_0$ and $\pi_{0.5}$, show significantly higher adaptability than others, which suggests that their pre-trained weights provide a more robust initialisation for downstream learning. The field therefore needs new metrics that benchmark the intrinsic representational quality of foundation models, rather than relying solely on success rates in simplistic evaluation environments.
+Consistent with the failure modes above, the core distinction lies not in the zero-shot capabilities of the models but in their fine-tuning dynamics, specifically in their plasticity in acquiring new spatial understanding and task-planning skills during post-training. Some architectures, such as $\pi_0$ and $\pi_{0.5}$, show markedly higher adaptability than others, which suggests that their pre-trained weights provide a more robust initialisation for downstream learning. The field therefore needs new metrics that benchmark the intrinsic representational quality of foundation models, rather than relying solely on success rates in simplistic evaluation environments.
 
 %-------------------------------------------------------------------------------
 \section{Additional Related Work}\label{kai0:app:related}
@@ -51,12 +51,12 @@ Asynchronous inference reduces latency, but existing methods face significant im
 The approach is grounded in the principle of \textbf{K}inetics \textbf{A}ligned to \textbf{I}ntelligence. ``Kinetics'' defines the operational domain, spanning training ($P_{\mathrm{train}}$) and deployment ($P_{\mathrm{test}}$), while ``Intelligence'' denotes the inductive bias encoded in the parameter space ($Q_{\mathrm{model}}$). This initial iteration is designated KAI\textsubscript{0}. Noting the phonetic resemblance between ``KAI'' and the Greek letter $\chi$, the system is named \chiz, in tribute to the state-of-the-art $\pi$ series of policies.
 
 \subsection{Model Arithmetic}\label{kai0:app:ma}
-We combine 4 checkpoints with Model Arithmetic, each trained on a different subset of the training data. The checkpoints are weighted with inverse-loss weighting: the validation loss is computed as the mean prediction error on a held-out set, and checkpoints with lower loss receive proportionally higher weights. We additionally consider two baselines: a \emph{single-best} candidate, selected as the individual checkpoint with the lowest validation loss, and a \emph{full-data} candidate, trained on the complete dataset merged across all subsets.
+We combine 4 checkpoints with Model Arithmetic, each trained on a different subset of the training data. The checkpoints are weighted with inverse-loss weighting: the validation loss is computed as the mean prediction error on a held-out set, and checkpoints with lower loss receive proportionally higher weights.\footnote{The main text (Section~\ref{kai0:sec:exp_ma}) reports greedy search as the most effective merging strategy, whereas this appendix describes inverse-loss weighting; the source paper does not reconcile the two.} We additionally consider two baselines: a \emph{single-best} candidate, selected as the individual checkpoint with the lowest validation loss, and a \emph{full-data} candidate, trained on the complete dataset merged across all subsets.
 
 \subsection{Stage Advantage}\label{kai0:app:sa}
 The advantage estimator is trained on pairs of frames sampled at arbitrary timestamps from the same episode. The supervision target is their relative progress, obtained by subtracting the progress of the two states as given by their timestamps within the episode. When training \chiz, the threshold is set to $\epsilon = 0.3$, following the hyper-parameter of $\pi^{*}_{0.6}$: training samples are ranked by their advantage values, the top $\epsilon$ fraction is labelled positive and the rest is treated as negative. Stages correspond to semantic sub-goals within each long-horizon task: two stages for Task~A (flattening and folding), four for Task~B (retrieving, flattening, folding and handover) and three for Task~C (retrieving, dressing the rack and hanging).
 
-\subsection{Train-Deploy Alignment}\label{kai0:app:tda}
+\subsection{Train--Deploy Alignment}\label{kai0:app:tda}
 Standard DAgger data are collected in three steps.
 \begin{enumerate}
   \item The environment is initialised and policy inference starts.
@@ -77,7 +77,7 @@ Heuristic DAgger simplifies this process by treating the failure state at the po
 
 \begin{table}[tb]
   \centering
-  \caption{Hyper-parameters for fine-tuning.}
+  \caption[Hyper-parameters for fine-tuning]{Hyper-parameters for fine-tuning. The demonstration hours and GPUs are the budget for post-training a heavily pre-trained $\pi_{0.5}$ policy, not for training a policy from scratch.}
   \label{kai0:tab:hyperparams}
   \begin{tabular}{lc}
     \toprule
@@ -180,7 +180,7 @@ Figure~\ref{kai0:fig:app_soup} details the performance of Model Arithmetic on Ta
     \caption{Model Arithmetic on Task~B}
     \label{kai0:fig:app_soup_b}
   \end{subfigure}
-  \caption[Ablation of Model Arithmetic on Tasks~A and~B]{\textbf{Ablation of Model Arithmetic on Tasks~A and~B.} Consistent with Task~C, MA variants outperform the single-best and full-data baselines in success rate and throughput in most cases. Notably, on Task~B the retry cost of all MA variants decreases significantly. These gains and stability improvements are maintained with OOD validation.}
+  \caption[Ablation of Model Arithmetic on Tasks~A and~B]{\textbf{Ablation of Model Arithmetic on Tasks~A and~B.} Consistent with Task~C, MA variants outperform the single-best and full-data baselines in success rate and throughput in most cases. Notably, on Task~B the retry cost of all MA variants decreases. These gains and stability improvements are maintained with OOD validation.}
   \label{kai0:fig:app_soup}
 \end{figure}
 
@@ -194,7 +194,7 @@ Figure~\ref{kai0:fig:app_sa_c} presents the ablation of Stage Advantage on Task~
   \label{kai0:fig:app_sa_c}
 \end{figure}
 
-\subsection{Train-Deploy Alignment on All Tasks}\label{kai0:app:ablation_tda}
+\subsection{Train--Deploy Alignment on All Tasks}\label{kai0:app:ablation_tda}
 We evaluate the effect of predicting absolute versus delta joint states on performance, as detailed in Fig.~\ref{kai0:fig:app_tda_a} (Task~A), Fig.~\ref{kai0:fig:app_tda_b} (Task~B) and Fig.~\ref{kai0:fig:app_tda_c} (Task~C). These experiments confirm the efficacy of temporal chunk-wise smoothing in most settings. Notably, Task~C is more sensitive to the action parameterisation (absolute \vs delta) than Tasks~A and~B, which we attribute to the high-precision dexterity required in the phase of inserting the hanger.
 
 \begin{figure}[tbp]
@@ -213,7 +213,7 @@ We evaluate the effect of predicting absolute versus delta joint states on perfo
     \caption{Delta joint}
     \label{kai0:fig:app_tda_a_delta}
   \end{subfigure}
-  \caption[Control strategies and augmentation on Task~A with two action representations]{\textbf{Ablation of control strategies and spatio-temporal augmentation on Task~A with different action representations.} The figure compares performance with absolute joint (a) and delta joint (b) control. Both action representations show consistent trends: temporal chunk-wise smoothing significantly boosts inference performance, and combining it with RTC further improves task success rates in most augmentation settings.}
+  \caption[Control strategies and augmentation on Task~A with two action representations]{\textbf{Ablation of control strategies and spatio-temporal augmentation on Task~A with different action representations.} The figure compares performance with absolute joint (a) and delta joint (b) control. Both action representations show consistent trends: temporal chunk-wise smoothing boosts inference performance, and combining it with RTC further improves task success rates in most augmentation settings.}
   \label{kai0:fig:app_tda_a}
 \end{figure}
 

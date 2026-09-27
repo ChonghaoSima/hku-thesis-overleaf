@@ -335,12 +335,12 @@ Generating the data in the CARLA simulator allows scalable annotations without a
 
 \subsection{Expert Algorithm: PDM-Lite}\label{drivelm:app:pdm}
 
-Previous CARLA experts, such as the privileged rule-based expert used by TransFuser++~\cite{jaeger2023hidden}, can only solve the scenarios implemented in CARLA Leaderboard 1.0. PDM-Lite~\cite{beisswenger2024pdmlite} is designed to tackle all 38 scenarios of Leaderboard 2.0. It consists of six stages, summarised in Fig.~\ref{drivelm:fig:pdm_lite}.
+Previous CARLA experts, such as the privileged rule-based expert used by TransFuser++~\cite{jaeger2023hidden}, can only solve the scenarios implemented in CARLA Leaderboard 1.0. PDM-Lite, a rule-based expert developed for this purpose by Bei{\ss}wenger~\cite{beisswenger2024pdmlite}, is designed to tackle all 38 scenarios of Leaderboard 2.0. It consists of six stages, summarised in Fig.~\ref{drivelm:fig:pdm_lite} and below; the full description is given in~\cite{beisswenger2024pdmlite}.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-drivelm/images/PDM-Lite.png}
-  \caption[The six stages of PDM-Lite]{\textbf{PDM-Lite.} The new planner, designed to handle all 38 scenarios of CARLA Leaderboard 2.0, has six stages, detailed in Appendix~\ref{drivelm:app:pdm}.}
+  \caption[The six stages of PDM-Lite]{\textbf{PDM-Lite}~\cite{beisswenger2024pdmlite}. The rule-based planner used to generate DriveLM-CARLA, designed to handle all 38 scenarios of CARLA Leaderboard 2.0, has six stages, detailed in Appendix~\ref{drivelm:app:pdm}.}
   \label{drivelm:fig:pdm_lite}
 \end{figure}
 
@@ -350,10 +350,10 @@ First, PDM-Lite creates a dense path of spatially equidistant points with an A* 
 \end{sloppypar}
 
 \paragraph{Agent forecasting.}
-PDM-Lite forecasts the dynamic agents over a horizon of 2\,s with a temporal resolution of 20\,Hz. Since the paths and controls of the other actors are not known in advance, we assume that they maintain their previous controls and apply similar ones in the near future. Using a kinematic bicycle model with parameters taken from~\cite{Chen2021ICCVa}, PDM-Lite forecasts the motion of the other agents under this constant-action assumption, similar to the expert of~\cite{jaeger2023hidden}. Only actors closer than 50\,m to the ego agent are forecast.
+PDM-Lite forecasts the dynamic agents over a horizon of 2\,s with a temporal resolution of 20\,Hz. Since the paths and controls of the other actors are not known in advance, PDM-Lite assumes that they maintain their previous controls and apply similar ones in the near future. Using a kinematic bicycle model with parameters taken from~\cite{Chen2021ICCVa}, PDM-Lite forecasts the motion of the other agents under this constant-action assumption, similar to the expert of~\cite{jaeger2023hidden}. Only actors closer than 50\,m to the ego agent are forecast.
 
 \paragraph{IDM target speed.}
-A target speed proposal is generated with the Intelligent Driver Model~\cite{treiber2000idm}. While the original IDM selects only one vehicle as the leading actor, we apply it iteratively to all vehicles, pedestrians, non-green traffic lights and stop signs that intersect the path ahead of the ego vehicle. Once the leading actors are selected, a target speed is determined for each of them using the parameters summarised in Table~\ref{drivelm:tab:pdm}. The minimum of these speeds is the final target speed proposal for that time step.
+A target speed proposal is generated with the Intelligent Driver Model~\cite{treiber2000idm}. While the original IDM selects only one vehicle as the leading actor, PDM-Lite applies it iteratively to all vehicles, pedestrians, non-green traffic lights and stop signs that intersect the path ahead of the ego vehicle. Once the leading actors are selected, a target speed is determined for each of them using the parameters summarised in Table~\ref{drivelm:tab:pdm}. The minimum of these speeds is the final target speed proposal for that time step.
 
 \begin{table}[t]
   \centering
@@ -380,10 +380,10 @@ A target speed proposal is generated with the Intelligent Driver Model~\cite{tre
 The trajectory with the proposed target speed is simulated for 2\,s at 20\,Hz by alternately applying the longitudinal controller (described below) and a kinematic bicycle model. The proposal is thereby converted into an expected sequence of ego-vehicle bounding boxes in closed loop.
 
 \paragraph{Scoring.}
-Having forecast the bounding boxes of all actors, we check for intersections between the bounding boxes of the simulated ego vehicle and those of other vehicles, and score the motion of the ego vehicle accordingly: if an intersection with a non-leading and non-rear-end vehicle is detected, the IDM target speed proposal is rejected and the target speed is set to zero.
+Having forecast the bounding boxes of all actors, PDM-Lite checks for intersections between the bounding boxes of the simulated ego vehicle and those of other vehicles, and scores the motion of the ego vehicle accordingly: if an intersection with a non-leading and non-rear-end vehicle is detected, the IDM target speed proposal is rejected and the target speed is set to zero.
 
 \paragraph{Controllers.}
-Controlling the vehicle requires three values: steering, throttle and brake. The steering value can be estimated directly from the location, velocity and path of the ego vehicle. We use a lateral PID controller for this, similar to~\cite{jaeger2023hidden}, which minimises the angle to a selected point along the path ahead. For throttle and brake, we employ a linear regression model on features extracted from the current speed and the target speed.
+Controlling the vehicle requires three values: steering, throttle and brake. The steering value can be estimated directly from the location, velocity and path of the ego vehicle. PDM-Lite uses a lateral PID controller for this, similar to~\cite{jaeger2023hidden}, which minimises the angle to a selected point along the path ahead. For throttle and brake, it employs a linear regression model on features extracted from the current speed and the target speed.
 
 \paragraph{Results.}
 The performance of PDM-Lite is evaluated on the 20 official validation routes of Leaderboard 2.0. Table~\ref{drivelm:tab:pdm_results} presents the results of evaluations with three different seeds. Routes 0--9 and 10--19 are identical except for the weather conditions, which provides an additional measure of performance variance. Since PDM-Lite uses privileged information, its variance in performance is not due to the different weather parameters but to the random initialisation of the surrounding traffic.
@@ -503,7 +503,7 @@ The average displacement error is the average L2 distance between the predicted 
 The final displacement error is the Euclidean distance between the predicted and the true end point at the last predicted step (the 3rd second).
 
 \paragraph{Collision rate.}
-The collision rate is the ratio of the number of test frames in which the predicted trajectory collides with objects to the total number of test frames. The number reported in Table~\ref{drivelm:tab:arch} is the average of the collision rates at the 1st, 2nd and 3rd second.
+The collision rate is the ratio of the number of test frames in which the predicted trajectory collides with objects to the total number of test frames. The number reported in Table~\ref{drivelm:tab:arch} is the average of the collision rates at the 1st, 2nd and 3rd second; the note to that table explains why the label of its Waymo column is uncertain.
 
 ADE, FDE and the collision rate are computed with the convention of UniAD~\cite{hu2023uniad}, not that of ST-P3~\cite{hu2022stp3}. For example, for the FDE and the collision rate at the 3rd second, the UniAD convention considers the error or collision rate at this time step only, whereas the ST-P3 convention averages them over 0.5, 1, 1.5, 2, 2.5 and 3 seconds; see the discussion in the UniAD repository\footnote{\raggedright\url{https://github.com/OpenDriveLab/UniAD/commit/ffac1a69a6d01c9dca5cd2ed751007896df351f8}} for details. Moreover, errors reported on the full nuScenes validation set in prior work are not directly comparable with results on the DriveLM-nuScenes validation split, a challenging subset of it that consists only of keyframes with intention changes.
 
@@ -585,7 +585,7 @@ Table~\ref{drivelm:tab:waymo_supp} extends the zero-shot generalisation experime
   \begin{tabular}{l|cc|ccc|cc}
     \toprule
     \multirow{2}{*}{\textbf{Method}} & \textbf{Behaviour} & \textbf{Motion} & \multicolumn{3}{c|}{\textbf{Behaviour ($B$)}} & \multicolumn{2}{c}{\textbf{Motion ($M$)}} \\
-    & \textbf{Context} & \textbf{Context} & Acc.\,$\uparrow$ & Speed\,$\uparrow$ & Steer\,$\uparrow$ & ADE\,$\downarrow$ & FDE\,$\downarrow$ \\
+    & \textbf{Context} & \textbf{Context} & Acc.\,$\uparrow$ & Speed\,$\uparrow$ & Steer\,$\uparrow$ & ADE\,$\downarrow$ & FDE$^{\dagger}$\,$\downarrow$ \\
     \midrule
     Command Mean & - & - & - & - & - & 7.98 & 11.41 \\
     UniAD-Single & - & - & - & - & - & 4.16 & 9.31 \\
@@ -601,6 +601,9 @@ Table~\ref{drivelm:tab:waymo_supp} extends the zero-shot generalisation experime
     \bottomrule
   \end{tabular}
   \end{adjustbox}
+  \par\smallskip
+  {\linespread{1.1}\footnotesize\raggedright
+  $^{\dagger}$\,The values in this column are identical to those in the Waymo Col.\ column of Table~\ref{drivelm:tab:arch}. The original paper labels them `FDE' in its supplementary table and `Col.' in its main table and does not reconcile the two labels; both are reproduced here as in the source.\par}
 \end{table}
 
 \subsection{More VLMs on DriveLM-nuScenes}\label{drivelm:app:more_vlms}

@@ -14,7 +14,7 @@ where $C=16$ is the number of classes in the benchmark, and $\text{TP}_c$, $\tex
 
 \paragraph{3D object detection.} Detection is evaluated with the official nuScenes metrics~\cite{caesar2020nuscenes}, namely the nuScenes detection score (NDS), mean average precision (mAP), average translation error (ATE), average scale error (ASE), average orientation error (AOE), average velocity error (AVE) and average attribute error (AAE).
 
-\paragraph{Motion planning.} For planning, we follow the metrics of ST-P3~\cite{hu2022stp3}. The L2 distance between the planned trajectory and the ground-truth trajectory measures the regression accuracy, and the collision rate with other vehicles and pedestrians measures the safety of the future actions.
+\paragraph{Motion planning.} For planning, we follow the metrics of ST-P3~\cite{hu2022stp3}. The L2 distance between the planned trajectory and the ground-truth trajectory measures the regression accuracy, and the collision rate with other vehicles and pedestrians measures the safety of the future actions. Both metrics are computed open-loop on logged nuScenes data: the planned trajectory is not executed, so the scene does not react to it.
 
 %-----------------------------------------------------------------------
 \section{Implementation Details of OccNet}\label{occnet:app:implementation}

@@ -10,8 +10,8 @@
 
   % modules
   \node[mod=perceive] (per) at (2.2,4.6) {\textbf{Perceive}\\[2pt] universal, queryable 3D (4D) representation\\[1pt] {\color{black!60} occupancy, BEV (Ch.~\ref{ch:occnet})}};
-  \node[mod=reason]   (rea) at (7.2,4.6) {\textbf{Reason (slow)}\\[2pt] explicit perception--prediction--planning steps, invoked when needed\\[1pt] {\color{black!60} DriveLM (Ch.~\ref{ch:drivelm}), ETA}};
-  \node[mod=act]      (act) at (12.2,4.6) {\textbf{Act (fast)}\\[2pt] planning-oriented policy that absorbs upstream errors\\[1pt] {\color{black!60} UniAD, Centaur, $\chi_0$}\\{\color{black!60}(Ch.~\ref{ch:centaur} and~\ref{ch:kai0})}};
+  \node[mod=reason]   (rea) at (7.2,4.6) {\textbf{Reason (slow)}\\[2pt] explicit perception--prediction--planning steps, invoked when needed\\[1pt] {\color{black!60} DriveLM (Ch.~\ref{ch:drivelm}), ETA$^{*}$}};
+  \node[mod=act]      (act) at (12.2,4.6) {\textbf{Act (fast)}\\[2pt] planning-oriented policy that absorbs upstream errors\\[1pt] {\color{black!60} UniAD$^{*}$, Centaur, $\chi_0$}\\{\color{black!60}(Ch.~\ref{ch:centaur} and~\ref{ch:kai0})}};
   \draw[flow, line width=1pt] (per) -- (rea);
   \draw[flow, line width=1pt] (rea) -- (act);
   \draw[flow, line width=1pt] (2.2,6.35) -- node[lab, right] {observations} (per.north);
@@ -22,7 +22,7 @@
   \draw[band=arch] (0.2,1.55) rectangle (14.2,2.65);
   \node[ttl=arch, anchor=west] at (0.4,2.3) {Competence monitor};
   \node[font=\scriptsize, anchor=west, text width=9.1cm] at (4.85,2.1)
-       {label-free signals of the agent's own reliability: uncertainty over behaviour modes (Cluster Entropy, Ch.~\ref{ch:centaur}), task progress and stage-wise value (Stage Advantage, Ch.~\ref{ch:kai0})};
+       {signals of the agent's own reliability: label-free uncertainty over behaviour modes (Cluster Entropy, Ch.~\ref{ch:centaur}); supervised stage-wise progress, used in training (Stage Advantage, Ch.~\ref{ch:kai0})};
   \draw[flow] (act.south) -- node[lab, right] {adapt at test time} (12.2,2.65);
   \draw[flow] (7.2,2.65) -- node[lab, right] {invoke slow reasoning} (rea.south);
   \draw[flow] (2.2,2.65) -- node[lab, right] {query / re-perceive} (per.south);
@@ -31,6 +31,6 @@
   \draw[band=bench] (0.2,0) rectangle (14.2,1.05);
   \node[ttl=bench, anchor=west] at (0.4,0.52) {Learning loop};
   \node[font=\scriptsize, anchor=west, text width=9.1cm] at (4.85,0.52)
-       {recovery data and train--deploy alignment (Ch.~\ref{ch:kai0}); benchmarks of residual failures (Ch.~\ref{ch:methodology}); towards self-directed goals and skills};
+       {recovery data and train--deploy alignment (Ch.~\ref{ch:kai0}); benchmarks of residual failures (Ch.~\ref{ch:methodology}); towards self-directed goals and skills$^{*}$ (hypothesised)};
   \draw[flow] (7.2,1.05) -- (7.2,1.55);
 \end{tikzpicture}

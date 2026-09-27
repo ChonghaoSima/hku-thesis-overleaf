@@ -6,12 +6,13 @@
   ]
   % ---------------- lanes ----------------
   \begin{scope}[on background layer]
+    \fill[black!4]    (-0.2,-1.05) rectangle (18.4,-0.25);
     \fill[perceive!5] (-0.2,-0.05) rectangle (18.4,3.0);
     \fill[reason!6]   (-0.2, 3.25) rectangle (18.4,4.85);
     \fill[act!6]      (-0.2, 5.1)  rectangle (18.4,6.45);
     \fill[arch!6]     (-0.2, 6.7)  rectangle (18.4,8.6);
     \foreach \x in {2.1,4.3,10.0,13.3,16.55}
-      \draw[black!25, dashed] (\x,-0.05) -- (\x,8.6);
+      \draw[black!25, dashed] (\x,-1.05) -- (\x,8.6);
   \end{scope}
   \node[lanelabel=perceive] at (-0.5,1.47) {Perceive};
   \node[lanelabel=reason]   at (-0.5,4.05) {Reason};
@@ -20,10 +21,11 @@
 
   % ---------------- year axis ----------------
   \foreach \x/\y in {1.0/2021, 3.2/2022, 7.15/2023, 11.65/2024, 14.9/2025, 17.45/2026}
-    \node[yr] at (\x,-0.4) {\y};
+    \node[yr] at (\x,-1.4) {\y};
 
   % ---------------- papers ----------------
-  \node[p=earlier] (lsh) at (1.0,4.05) {LSH-SMILE\\{\tiny NeurIPS'21}};
+  \node[p=earlier] (lsh) at (1.0,-0.65) {LSH-SMILE\\{\tiny NeurIPS'21}};
+  \node[font=\scriptsize\itshape, text=black!55, anchor=west] at (2.3,-0.65) {earlier work (Purdue University)};
   % perceive
   \node[p=perceive] (bevformer) at (3.2,2.5) {BEVFormer\\{\tiny ECCV'22}};
   \node[p=perceive, benchmark] (persformer) at (3.2,0.5) {PersFormer\\{\tiny + OpenLane}};
@@ -61,13 +63,13 @@
   \draw[dep] (drivelm.north east) to[out=45, in=190] node[edgelab, pos=0.55, above, sloped] {anchors} (centaur.west);
   \draw[dep] (openscene.east) to[out=0, in=240] node[edgelab, pos=0.8, below right] {NAVSIM} (centaur.south west);
   \draw[dep, dashed] (uniad.east) to[out=0, in=150] node[edgelab, pos=0.62, above, sloped] {rule-based guard} (centaur.north west);
-  \draw[dep] (agibot) -- (kai0);
+  \draw[dep, dashed] (agibot) -- (kai0);
   \draw[dep] (sdl.east) to[out=0, in=90] (kai0.north);
   \draw[dep, dashed] (centaur.north) to[out=90, in=200] (sdl.west);
 
   % ---------------- legend ----------------
-  \node[paper=legendgray, firstauthor=legendgray, text width=1.9cm, font=\tiny] at (1.4,-1.15) {led by the author};
-  \node[paper=legendgray, benchmark, text width=1.9cm, font=\tiny] at (4.0,-1.15) {releases data or benchmark};
-  \draw[dep] (6.0,-1.15) -- (7.1,-1.15) node[right, font=\tiny, text=black!70] {builds on};
-  \draw[dep, dashed] (9.2,-1.15) -- (10.3,-1.15) node[right, font=\tiny, text=black!70] {motivates or contrasts};
+  \node[paper=legendgray, firstauthor=legendgray, text width=1.9cm, font=\tiny] at (1.4,-2.1) {led by the author};
+  \node[paper=legendgray, benchmark, text width=1.9cm, font=\tiny] at (4.0,-2.1) {releases data or benchmark};
+  \draw[dep] (6.0,-2.1) -- (7.1,-2.1) node[right, font=\tiny, text=black!70] {builds on};
+  \draw[dep, dashed] (9.2,-2.1) -- (10.3,-2.1) node[right, font=\tiny, text=black!70] {motivates or contrasts};
 \end{tikzpicture}

@@ -1,34 +1,37 @@
 \begin{tikzpicture}[
-    node distance=0.55cm and 0.6cm,
-    q/.style={decision, text width=2.55cm},
-    a/.style={box, text width=3.3cm, font=\scriptsize, draw=#1, fill=#1!10},
+    node distance=0.42cm and 0.6cm,
+    q/.style={decision, text width=2.6cm, inner sep=0pt},
+    a/.style={box, text width=3.5cm, font=\scriptsize, draw=#1, fill=#1!10},
     yes/.style={font=\scriptsize\bfseries, text=act!80!black},
     no/.style={font=\scriptsize\bfseries, text=reality},
   ]
   \node[box, draw=reality, fill=reality!8, text width=3.6cm, font=\scriptsize] (start)
        {\textbf{A failure is observed in the field}\\(or anticipated from the long tail)};
   \node[q, below=of start] (q1) {Can it be measured reproducibly?};
-  \node[a=bench, right=1.1cm of q1] (a1) {\textbf{Formalise and benchmark first}\\task, data, metric, challenge\\(OpenOcc, DriveLM-Data, \texttt{navsafe})};
+  \node[a=bench, right=1.0cm of q1] (a1) {\textbf{Formalise and benchmark first}\\task, data, metric, challenge\\(OpenOcc, DriveLM-Data, \texttt{navsafe})};
   \node[q, below=of q1] (q2) {Is the needed information missing from the representation?};
-  \node[a=perceive, right=1.1cm of q2] (a2) {\textbf{Enrich the representation}\\boxes $\rightarrow$ occupancy; lanes $\rightarrow$ topology\\(Chapter~\ref{ch:occnet})};
-  \node[q, below=of q2] (q3) {Does the decision need knowledge beyond the training labels?};
-  \node[a=reason, right=1.1cm of q3] (a3) {\textbf{Add structured reasoning}\\perception $\rightarrow$ prediction $\rightarrow$ planning graph\\(Chapter~\ref{ch:drivelm})};
-  \node[q, below=of q3] (q4) {Does it appear only after deployment?};
-  \node[a=act, right=1.1cm of q4] (a4) {\textbf{Self-correct at deployment}\\test-time training; train--deploy alignment\\(Chapters~\ref{ch:centaur} and~\ref{ch:kai0})};
-  \node[box, below=of q4, text width=3.6cm, font=\scriptsize, draw=arch, fill=arch!8] (eval)
-       {\textbf{Evaluate at the highest affordable fidelity}\\(L0--L3, Fig.~\ref{fig:method:ladder}); open-source; host a challenge};
+  \node[a=perceive, right=1.0cm of q2] (a2) {\textbf{Enrich the representation}\\boxes $\rightarrow$ occupancy (Chapter~\ref{ch:occnet})};
+  \node[q, below=of q2] (q3) {Does the decision need knowledge beyond the labels?};
+  \node[a=reason, right=1.0cm of q3] (a3) {\textbf{Add structured reasoning}\\perception $\rightarrow$ prediction $\rightarrow$ planning (Chapter~\ref{ch:drivelm})};
+  \node[q, below=of q3] (q4) {Is the situation under-covered by the data?};
+  \node[a=bench, right=1.0cm of q4] (a4) {\textbf{Scale or curate data}\\more, verified, recovery-rich data (AgiBot World$^{*}$)};
+  \node[q, below=of q4] (q5) {Does it arise only in closed loop, after deployment?};
+  \node[a=act, right=1.0cm of q5] (a5) {\textbf{Self-correct at test time}\\label-free uncertainty (Chapter~\ref{ch:centaur})};
+  \node[q, below=of q5] (q6) {Do training and execution conditions differ?};
+  \node[a=arch, right=1.0cm of q6] (a6) {\textbf{Align training with deployment}\\recovery data, timing, smoothing (Chapter~\ref{ch:kai0})};
+  \node[box, below=of q6, text width=3.8cm, font=\scriptsize, draw=arch, fill=arch!8] (eval)
+       {\textbf{Evaluate at the highest affordable fidelity}\\(L0--L3, Fig.~\ref{fig:method:ladder}); release; open to the community};
 
   \draw[flow] (start) -- (q1);
   \draw[flow] (q1) -- node[no, above] {no} (a1);
   \draw[flow] (q1) -- node[yes, left] {yes} (q2);
-  \draw[flow] (q2) -- node[yes, above] {yes} (a2);
-  \draw[flow] (q2) -- node[no, left] {no} (q3);
-  \draw[flow] (q3) -- node[yes, above] {yes} (a3);
-  \draw[flow] (q3) -- node[no, left] {no} (q4);
-  \draw[flow] (q4) -- node[yes, above] {yes} (a4);
-  \draw[flow] (q4) -- node[no, left] {no} (eval);
+  \foreach \i/\j in {2/3, 3/4, 4/5, 5/6}
+    \draw[flow] (q\i) -- node[no, left] {no} (q\j);
+  \foreach \i in {2,3,4,5,6}
+    \draw[flow] (q\i) -- node[yes, above] {yes} (a\i);
+  \draw[flow] (q6) -- node[no, left] {no} (eval);
   \draw[flow] (a1.north) |- (start.east);
-  \foreach \n in {a2,a3,a4}
+  \foreach \n in {a2,a3,a4,a5,a6}
     \draw[flow] (\n.east) -- ++(0.4,0) |- (eval.east);
-  \draw[flow, dashed] (eval.west) -- ++(-0.6,0) |- node[pos=0.25, left, font=\scriptsize, align=center, text=black!70] {residual\\failures} (start.west);
+  \draw[flow, dashed] (eval.west) -- ++(-0.7,0) |- node[pos=0.25, left, font=\scriptsize, align=center, text=black!70] {residual\\failures;\\several levers\\may apply} (start.west);
 \end{tikzpicture}

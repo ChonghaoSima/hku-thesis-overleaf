@@ -7,6 +7,53 @@
 
 \newcommand{\chiz}{$\chi_{0}$\xspace}
 
+% HKU title page and a labelled signature line for the declaration.
+\makeatletter
+\renewcommand{\maketitle}{%
+  \begin{singlespace}
+  \begin{center}
+    {\Huge\bfseries \@title\par}
+    \vspace{1.3cm}
+    {\@crest\par}
+    \vspace{1.1cm}
+    {\large by\par}
+    \vspace{0.4cm}
+    {\Large\bfseries \@author\par}
+    \vspace{0.15cm}
+    {\chinesename\par}
+    \vspace{0.35cm}
+    {\large B.S. (Huazhong University of Science and Technology)\par}
+    \vfill
+    {\large A thesis submitted in partial fulfilment of the requirements for\\[2pt]
+     the Degree of Doctor of Philosophy\\[2pt]
+     at The University of Hong Kong\par}
+    \vspace{1.2cm}
+    {\large \@degreedate\par}
+  \end{center}
+  \end{singlespace}
+}
+\renewenvironment{declaration}{%
+  \cleardoublepage
+  \setsinglecolumn
+  \chapter*{\centering \Large Declaration}
+  \thispagestyle{empty}
+}{%
+  \vfill
+  \noindent Signed: \underline{\hbox to 60mm{}}\\[0.6em]
+  \noindent\@author\\
+  \noindent\@degreedate
+}
+\makeatother
+
+% Opening box of each core chapter: the candidate's role and reuse permissions.
+\newtcolorbox{contribution}{enhanced, breakable, colback=lightgray, colframe=bench,
+  boxrule=0.6pt, arc=2pt, left=6pt, right=6pt, top=4pt, bottom=4pt,
+  fontupper=\small\linespread{1.2}\selectfont, title={Statement of contribution},
+  fonttitle=\small\bfseries, coltitle=white, colbacktitle=bench}
+
+% Facts that only the candidate can confirm; must be resolved before submission.
+\newcommand{\authorcheck}[1]{\textcolor{reality}{\textbf{[Author to confirm:} #1\textbf{]}}}
+
 % TikZ figures are drawn for single spacing; the body text uses \linespread{1.5}.
 \newcommand{\tikzfig}[2][\textwidth]{{\linespread{1}\selectfont\resizebox{#1}{!}{\input{#2}}}}
 
