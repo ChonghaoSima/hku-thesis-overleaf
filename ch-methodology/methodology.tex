@@ -1,0 +1,188 @@
+\chapter{Research Methodology}\label{ch:methodology}
+
+The four core chapters of this thesis study different problems: 3D occupancy perception, language-based reasoning, test-time adaptation of driving policies, and robust robot manipulation. They were, however, produced by a common way of working. This chapter makes that way of working explicit. It describes the research paradigm (Section~\ref{sec:method:paradigm}), the conceptual framework through which the ``curse of reality'' is analysed (Section~\ref{sec:method:framework}), the research process that recurs across the eighteen publications of the author (Sections~\ref{sec:method:cycle} and~\ref{sec:method:lineage}), the design principles distilled from them (Section~\ref{sec:method:principles}), the evaluation methodology (Section~\ref{sec:method:evaluation}), and the practices adopted for reproducibility and validity (Sections~\ref{sec:method:practice} and~\ref{sec:method:validity}).
+
+The chapter has two purposes. First, it justifies the methodological choices of Chapters~\ref{ch:occnet}--\ref{ch:kai0}, so that those chapters can concentrate on technical content. Second, it offers the methodology itself as a contribution: a reusable procedure for turning a failure observed in the real world into a research contribution that the community can build on.
+
+% ==============================================================================
+\section{Research Paradigm}\label{sec:method:paradigm}
+
+Research on physical agents is, in large part, a design science~\cite{simon1996sciences,hevner2004design}. The objects of study are artefacts (representations, models, datasets and evaluation protocols), and knowledge is produced by building such artefacts and testing them against the environment they are meant to operate in. A claim such as ``3D occupancy is a better scene representation than 3D boxes for planning'' cannot be settled by argument alone; it is settled by constructing both representations, training systems on them, and measuring how the systems behave on data that reflect the real world. This thesis adopts that paradigm and, within it, two commitments that guided every project.
+
+\paragraph{Commitment 1: benchmarks accelerate the research cycle.} A research question becomes tractable for a community only when it is measurable: when there is a task definition, a public dataset and a metric that many groups can use. The author has therefore treated the construction of benchmarks, and of public challenges around them, as research contributions in their own right, not as a preliminary to the ``real'' work. Of the eighteen publications summarised in Table~\ref{tab:method:papers}, eight release a dataset, a benchmark split or a data platform.
+
+\paragraph{Commitment 2: a good module must scale to real-world use.} A method that works only at a small scale, only with privileged information, or only at a computational cost that no deployed system can afford does not solve the problem it claims to solve. Every method in this thesis is therefore judged on whether it can be trained on large data, whether it uses inputs that are available at deployment, and whether its cost fits the deployment budget. This commitment explains, for example, the preference for camera-based perception that can exploit LiDAR at training time only~\cite{huang2023vcd}, the single test-time gradient step of Chapter~\ref{ch:centaur}, and the explicit resource budget (about 20 hours of demonstrations per task and eight A100 GPUs) of Chapter~\ref{ch:kai0}.
+
+% ==============================================================================
+\section{Conceptual Framework: the Curse of Reality}\label{sec:method:framework}
+
+\subsection{Formulation}
+
+Consider a physical agent with policy $\pi$ that maps observations $o$ to actions $a$. The policy is learned from data drawn from a training distribution $p_{\mathrm{train}}(o,a)$, typically demonstrations of an expert, and is deployed in an environment that induces a distribution $p_{\mathrm{deploy}}(o,a)$. Two facts make deployment hard. First, the real world is open: rare events are individually improbable but collectively frequent, so that $p_{\mathrm{deploy}}$ always places mass where $p_{\mathrm{train}}$ has little or none. For autonomous vehicles this has been called the \emph{curse of rarity}~\cite{liu2024curse}. Second, a physical agent acts in closed loop: its own actions determine the states it visits next. A policy trained only on expert states drifts into states the expert never visited, and its errors compound over time~\cite{ross2011dagger}. Together these two facts constitute what this thesis calls the \emph{curse of reality}: whatever data an agent is trained on, the world it is deployed in keeps presenting conditions it has not seen.
+
+\subsection{Four kinds of shift along the perceive--reason--act loop}
+
+The curse of reality is too broad to attack directly. The framework adopted here decomposes it along the perceive--reason--act loop into four kinds of shift, each of which appears concretely in the author's work (Fig.~\ref{fig:method:shift}).
+
+\begin{figure}[t]
+  \centering
+  \tikzfig{ch-methodology/figures/shift_taxonomy}
+  \caption[The curse of reality decomposed along the perceive--reason--act loop]{The curse of reality decomposed along the perceive--reason--act loop. Each kind of shift produces characteristic symptoms at deployment, calls for a different methodological lever, and is studied in one core chapter of this thesis.}
+  \label{fig:method:shift}
+\end{figure}
+
+\paragraph{Perceptual shift: what is out there?} The objects and structures an agent meets are not drawn from a closed list, and their shapes are not boxes. Roads are not flat: in the OpenLane benchmark, only about 20\% of frames vary by less than \SI{0.5}{\metre} in height, and more than half vary by over \SI{1}{\metre}~\cite{chen2022persformer}. Irregular vehicles such as trucks, trailers and construction vehicles are poorly described by bounding boxes; describing them with occupancy instead of voxelised boxes improves their segmentation by 2.21 mIoU at \SI{0.5}{\metre} resolution and by 3.51 mIoU at \SI{0.25}{\metre}~\cite{sima2023occnet}. Sensing conditions also shift: a camera-based detector loses much of its accuracy from day to night~\cite{li2023bevdevils}, and a fusion detector must survive the partial failure of a sensor~\cite{gao2023sdf}.
+
+\paragraph{Semantic shift: what does it mean?} Even when every object is perceived, the situation may be new: an unusual interaction, a rare combination of agents, or a sensor configuration the model was not trained on. Chapter~\ref{ch:drivelm} shows that a driving policy that answers correctly in familiar scenes can fail on unseen object categories. In a CARLA split containing pedestrians that were absent from training, the behaviour accuracy of an end-to-end model dropped from 59.63 to 4.59, and asking the model one explicit question about pedestrians raised it to 27.04~\cite{sima2024drivelm}. The follow-up audit DriveBench further showed that vision-language models can keep most of their score even when the image is removed entirely, which signals that they answer from textual priors rather than from the scene~\cite{xie2025vlms}.
+
+\paragraph{Behavioural shift: what will my action cause?} In closed loop, errors compound and rare, safety-critical states arise that demonstrations rarely contain. The conventional remedy is to guard a learned planner with hand-designed rules, yet such guards trade safety against progress: on NAVSIM, the hand-designed occupancy-based optimisation of UniAD lowers its driving score from 83.4 to 75.2, and rule-based fallback layers push the score of a strong planner down to about 63--66 (Chapter~\ref{ch:centaur}). On the safety-critical \texttt{navsafe} split introduced in Chapter~\ref{ch:centaur}, even the best learned planner reaches 74.14 against 94.65 for human driving.
+
+\paragraph{Deployment shift: does training match use?} Finally, the conditions under which a policy is trained differ from those under which it is executed. Chapter~\ref{ch:kai0} formalises this for robot manipulation as a mismatch between three distributions: the distribution of human demonstrations $P_{\mathrm{train}}$, the distribution the policy can represent $Q_{\mathrm{model}}$, and the distribution of trajectories actually executed on hardware $P_{\mathrm{test}}$. It identifies three resulting failure mechanisms (coverage deficiency, temporal mismatch and failure cascade) and reports that data quality alone moves success rates between 20\% and 60\% under otherwise identical settings~\cite{sima2026kai0}.
+
+\subsection{Methodological levers}
+
+Each kind of shift calls for a different response, which this thesis calls a methodological lever. Perceptual shift is addressed by representations that do not presuppose a closed world (Chapter~\ref{ch:occnet}). Semantic shift is addressed by making the reasoning from perception to action explicit and checkable, so that general knowledge can be brought to bear on unfamiliar situations (Chapter~\ref{ch:drivelm}). Behavioural shift is addressed by letting the policy correct itself at deployment time, using signals it can compute without labels (Chapter~\ref{ch:centaur}). Deployment shift is addressed by aligning what the policy learns with how it is executed, under an explicit resource budget (Chapter~\ref{ch:kai0}). A fifth lever cuts across all four: measurement. None of the other levers can be pulled, or its effect verified, without a benchmark that exposes the corresponding shift. The next section describes how measurement and method were combined in practice.
+
+% ==============================================================================
+\section{The Research Process: a Benchmark-Driven Cycle}\label{sec:method:cycle}
+
+Across the author's publications, research proceeded through a recurring cycle of six stages (Fig.~\ref{fig:method:cycle}). The cycle is descriptive, in that it summarises what was done, and prescriptive, in that the author recommends it for research on physical agents.
+
+\begin{figure}[t]
+  \centering
+  \tikzfig{ch-methodology/figures/research_cycle}
+  \caption[The benchmark-driven research cycle]{The benchmark-driven research cycle followed throughout this thesis. Grey annotations give concrete artefacts from the author's publications at each stage. The cycle closes when residual failures observed at deployment motivate the next round of formalisation.}
+  \label{fig:method:cycle}
+\end{figure}
+
+\paragraph{Stage 1: observe.} Research starts from a failure observed, or anticipated, in the field rather than from a gap in a leaderboard. Examples in this thesis are obstacles that bounding boxes cannot describe (Chapter~\ref{ch:occnet}), driving decisions that cannot be explained or that break under a change of sensor set-up (Chapter~\ref{ch:drivelm}), rare safety-critical scenes (Chapter~\ref{ch:centaur}), and robot policies that fail after hours of operation because demonstrations were inconsistent (Chapter~\ref{ch:kai0}).
+
+\paragraph{Stage 2: formalise.} The failure is turned into a task with a representation and a metric: semantic occupancy with voxel-level mIoU and flow (Chapter~\ref{ch:occnet}); graph visual question answering with language, behaviour and motion metrics (Chapter~\ref{ch:drivelm}); the PDM score of NAVSIM together with a safety-critical split (Chapter~\ref{ch:centaur}); and real-world task success over long, uninterrupted runs (Chapter~\ref{ch:kai0}). The formalisation fixes what counts as progress, so it deserves as much care as the method.
+
+\paragraph{Stage 3: benchmark.} Data are then collected or re-annotated at a scale that makes the task meaningful, usually with an automatic labelling pipeline followed by human verification. The benchmarks built in this way include OpenLane (200K frames, over 880K 3D lanes)~\cite{chen2022persformer}; OpenLane-V2 (2,000 scenes, 2.1M instances and 1.9M relations for road topology)~\cite{wang2023openlanev2}; OpenOcc (34,149 frames, over 1.4 billion annotated voxels)~\cite{sima2023occnet}; OpenScene (more than 120 hours of driving with occupancy labels)~\cite{sima2023openscene}; DriveLM-nuScenes (4,871 frames with 91.4 question--answer pairs per frame) and DriveLM-CARLA (about 1.6M question--answer pairs)~\cite{sima2024drivelm}; the \texttt{navsafe} split (229 safety-critical frames in 10 categories, Chapter~\ref{ch:centaur}); and AgiBot World (1,001,552 trajectories, 2,976.4 hours, 217 tasks)~\cite{bu2025agibot_iros}.
+
+\paragraph{Stage 4: baseline.} A simple, unified and scalable baseline is built on the benchmark. It serves two purposes: it shows that the task is solvable, and it gives the community a reference point. Deliberately simple baselines are a recurring choice, for example the BLIP-2-based DriveLM-Agent of Chapter~\ref{ch:drivelm}; strong unified ones are another, for example BEVFormer, which reached 56.9 NDS on the nuScenes test set, 9.0 points above the previous state of the art~\cite{li2022bevformer}, and UniAD, which chained all driving sub-tasks towards planning~\cite{hu2023uniad}.
+
+\paragraph{Stage 5: community.} Code, data and models are released, and public challenges are organised on top of the benchmark. The author co-organised the 3D Occupancy Prediction challenge at CVPR 2023 and the ``Driving with Language'' track of the Autonomous Grand Challenge at CVPR 2024, which attracted 152 teams from 14 countries and 978 submissions. OpenScene provided the data for the end-to-end driving and world-model tracks at CVPR 2024 and for the NAVSIM track at CVPR 2025, and AgiBot World hosted its own challenge in 2025. A challenge is not an end in itself: it stress-tests the benchmark design, exposes shortcuts, and produces the strongest baselines faster than any single group could.
+
+\paragraph{Stage 6: deploy and self-correct.} Finally, methods are tested in closed loop or in the real world, and made to correct themselves under the shift they meet there: by test-time training (Chapter~\ref{ch:centaur}), by aligning training with deployment (Chapter~\ref{ch:kai0}), or by splitting computation between a slow, knowledgeable model and a fast, reactive one~\cite{hamdan2025eta}.
+
+\paragraph{Closing the loop.} The residual failures found at Stage 6 feed the next iteration. Several iterations are visible in the author's work. OpenLane was extended by OpenLane-V2 from lane lines to road topology, whose ground truth in turn generated the traffic-element questions of DriveLM. OpenOcc and the CVPR 2023 occupancy challenge led to OpenScene, which supplies the data of the NAVSIM benchmark on which Chapter~\ref{ch:centaur} is evaluated. DriveLM-Data and its challenge were audited by DriveBench~\cite{xie2025vlms}, whose finding that 78.6\% of DriveLM behaviour answers are ``Going Straight'' and that models can score without images motivates more balanced data and more grounded metrics. In manipulation, the data-scaling platform AgiBot World was followed by \chiz, which asked whether robustness could instead be obtained under a small, explicit resource budget.
+
+% ==============================================================================
+\section{Research Lineage}\label{sec:method:lineage}
+
+Table~\ref{tab:method:papers} summarises all eighteen publications of the author, and Fig.~\ref{fig:method:lineage} shows how they build on one another. Three observations stand out. First, the work moves along the perceive--reason--act loop over time, from 3D perception (2022--2023) to language-based reasoning (2023--2025) and to acting under shift (2025--2026). Second, each move is prepared by an artefact from the previous stage: the BEV representation of BEVFormer underlies both OccNet and UniAD; OpenScene supplies the data on which Centaur is evaluated; and UniAD is the driving baseline of DriveLM, whose driving-direction categories in turn anchor the uncertainty measure of Centaur. Third, benchmarks (dashed outlines) are spread across all pillars rather than concentrated at the start, which reflects the cycle of Section~\ref{sec:method:cycle}: each new pillar begins with a new way of measuring.
+
+\begin{figure}[t]
+  \centering
+  \tikzfig{ch-methodology/figures/lineage}
+  \caption[Research lineage of the author's publications]{Research lineage of the author's publications, arranged by year and by pillar of the perceive--reason--act loop. Solid arrows indicate that a work builds on another (architecture, data or evaluation protocol); dashed arrows indicate that a work is motivated by, or contrasts with, another. Thick outlines mark the works led by the author that form the core chapters; dashed outlines mark works that release data or a benchmark.}
+  \label{fig:method:lineage}
+\end{figure}
+
+\begin{table}[p]
+  \centering
+  \caption[The author's publications and their role in the research cycle]{The author's publications, their pillar, their role in the research cycle of Fig.~\ref{fig:method:cycle}, the aspect of the curse of reality they address, and the author's role. ``Led'' denotes first, co-first or co-project-lead authorship.}
+  \label{tab:method:papers}
+  \footnotesize
+  \renewcommand{\arraystretch}{1.15}
+  \begin{tabularx}{\textwidth}{@{}p{2.95cm}p{1.75cm}p{2.0cm}X p{1.55cm}@{}}
+    \toprule
+    Work (venue) & Pillar & Role in cycle & Aspect of reality addressed & Author \\
+    \midrule
+    LSH-SMILE~\cite{sima2021lshsmile} (NeurIPS'21) & earlier & method & cost of simulating and learning physical dynamics & first \\
+    PersFormer, OpenLane~\cite{chen2022persformer} (ECCV'22) & perceive & benchmark, method & non-flat roads; 3D lanes from a single camera & co-first \\
+    BEVFormer~\cite{li2022bevformer} (ECCV'22) & perceive & baseline & multi-camera 3D perception under occlusion & co-author \\
+    BEV survey~\cite{li2023bevdevils} (T-PAMI'23) & perceive & study, recipe & sensor configurations; practical recipe (Waymo 2022, 1st) & co-first \\
+    UniAD~\cite{hu2023uniad} (CVPR'23) & architecture & baseline & error accumulation in modular stacks & co-author \\
+    SDF~\cite{gao2023sdf} (IROS'23) & perceive & method & information loss in fusion; sensor failure & co-author \\
+    OpenLane-V2~\cite{wang2023openlanev2} (NeurIPS'23) & perceive & benchmark & road topology beyond lane lines & co-author \\
+    \textbf{OccNet, OpenOcc}~\cite{sima2023occnet} (ICCV'23) & perceive & benchmark, method & irregular and open-set obstacles & \textbf{led} (Ch.~\ref{ch:occnet}) \\
+    \textbf{OpenScene}~\cite{sima2023openscene} (2023) & perceive & benchmark & scale and diversity of occupancy data & \textbf{led} (Ch.~\ref{ch:occnet}) \\
+    VCD~\cite{huang2023vcd} (NeurIPS'23) & perceive & method & LiDAR available at training time only & co-author \\
+    \textbf{DriveLM}~\cite{sima2024drivelm} (ECCV'24) & reason & benchmark, baseline & unseen objects and sensor set-ups; explainability & \textbf{led} (Ch.~\ref{ch:drivelm}) \\
+    Hint-AD~\cite{ding2024hint} (CoRL'24) & reason & method & explanations aligned with the driving model & co-author \\
+    DriveBench~\cite{xie2025vlms} (ICCV'25) & reason & study, benchmark & reliability of VLM answers and metrics & co-author \\
+    ETA~\cite{hamdan2025eta} (ICCV'25) & reason & method & latency of large models in the loop & co-author \\
+    \textbf{Centaur}~\cite{sima2024centaur} (2025) & act & method, stress split & rare safety-critical scenes at deployment & \textbf{led} (Ch.~\ref{ch:centaur}) \\
+    AgiBot World~\cite{bu2025agibot_iros} (IROS'25) & act & platform, data & scale and quality of robot data & co-author \\
+    Self-directed learning~\cite{chen2025robot} (2025) & architecture & perspective & improvement beyond imitation & co-author \\
+    \textbf{$\chi_0$}~\cite{sima2026kai0} (2026) & act & method, system & inconsistent demonstrations; train--deploy mismatch & \textbf{led} (Ch.~\ref{ch:kai0}) \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% ==============================================================================
+\section{Design Principles}\label{sec:method:principles}
+
+Five design principles recur across the methods in Table~\ref{tab:method:papers}. They are stated here together with the evidence that supports them and, where it exists, the evidence that qualifies them.
+
+\paragraph{DP1: represent the world without closing it.} Representations should not presuppose a fixed set of categories or shapes. The progression from 3D boxes to bird's-eye-view features~\cite{li2022bevformer}, from lane lines to topology graphs~\cite{wang2023openlanev2}, and from boxes to semantic occupancy~\cite{sima2023occnet} follows this principle. Occupancy also transfers across tasks: in Chapter~\ref{ch:occnet}, planning on occupancy instead of boxes or BEV segmentation reduces collisions by 15--58\%. The qualification is cost: dense 3D representations are expensive to annotate, which is precisely why the benchmark effort of OpenScene was needed.
+
+\paragraph{DP2: make reasoning explicit and checkable.} When a decision depends on knowledge that the training labels do not contain, the reasoning from perception to action should be exposed as intermediate steps that can be supervised and inspected. DriveLM structures driving as a graph of perception, prediction and planning questions~\cite{sima2024drivelm}, and Hint-AD aligns explanations with the intermediate outputs of the driving model~\cite{ding2024hint}. The evidence is nuanced: in Chapter~\ref{ch:drivelm}, graph context helps most under distribution shift (zero-shot transfer to Waymo, unseen pedestrians) but not in-domain, and DriveBench shows that language outputs can look competent without being grounded~\cite{xie2025vlms}. Explicit reasoning is therefore a tool for generalisation, not a guarantee of it.
+
+\paragraph{DP3: optimise for the final task.} Every module should be judged by its contribution to acting well. UniAD made this the organising principle of an end-to-end driving system~\cite{hu2023uniad}, and its ablations showed that planning benefits only when motion forecasting and occupancy prediction are both present. The same principle appears in the planning experiments that validate occupancy (Chapter~\ref{ch:occnet}) and in the behaviour and motion questions that end every DriveLM graph (Chapter~\ref{ch:drivelm}).
+
+\paragraph{DP4: close the loop at deployment.} Because training data can never cover the deployment distribution, a deployed system should keep correcting itself. Hand-designed guards are brittle, as the NAVSIM results of Section~\ref{sec:method:framework} show. Chapter~\ref{ch:centaur} instead adapts the planner with one gradient step on a label-free uncertainty measure, raising the driving score on NAVSIM from 90.3 to 92.6. Chapter~\ref{ch:kai0} closes the loop on the training side, by collecting recovery data with heuristic DAgger and aligning the timing of training and execution, and runs a garment-manipulation system for 24 hours without interruption. The perspective of~\cite{chen2025robot} generalises this principle into self-directed learning, which is discussed in Chapter~\ref{ch:discussion}.
+
+\paragraph{DP5: respect the resource budget.} Methods must fit the data, compute and latency budget of deployment. This principle appears as efficiency in simulation~\cite{sima2021lshsmile}, as a tenfold reduction of the nuPlan data volume in OpenScene~\cite{sima2023openscene}, as the fast and slow split of ETA, which reaches a driving score of 69.53 at \SI{50}{\milli\second} per step against 64.22 at \SI{931}{\milli\second} for the previous best~\cite{hamdan2025eta}, and, most explicitly, in the resource-aware design of \chiz (Chapter~\ref{ch:kai0}). It is qualified by the scaling results of AgiBot World, where more and better data did pay off~\cite{bu2025agibot_iros}; the two views are reconciled in Chapter~\ref{ch:discussion}.
+
+% ==============================================================================
+\section{Evaluation Methodology}\label{sec:method:evaluation}
+
+\subsection{A ladder of evaluation fidelity}
+
+Evaluating a physical agent involves a trade-off between fidelity to reality and cost. This thesis uses four levels of fidelity (Fig.~\ref{fig:method:ladder}). At level L0, models are evaluated open-loop on logged data with per-frame metrics such as mIoU, mAP, question-answering scores or trajectory displacement error. L0 is cheap and reproducible but blind to the policy's own mistakes; for planning in particular, open-loop metrics on nuScenes can be matched by models that exploit the ego vehicle's own state without perceiving the scene~\cite{zhai2023rethinking,li2024ego}. At level L1, pseudo-simulation scores a planned trajectory by rolling it out non-reactively and checking it against rules for collisions, drivable area, progress and comfort; NAVSIM~\cite{dauner2024navsim} is the benchmark used in Chapter~\ref{ch:centaur}. At level L2, closed-loop simulation lets other agents react and lets errors compound; DriveLM-CARLA and the CARLA simulator~\cite{dosovitskiy2017carla} are used in Chapter~\ref{ch:drivelm}. At level L3, the policy is deployed on physical hardware and judged by task success and recovery over long runs, as in Chapter~\ref{ch:kai0}.
+
+\begin{figure}[t]
+  \centering
+  \tikzfig[0.92\textwidth]{ch-methodology/figures/evaluation_ladder}
+  \caption[A ladder of evaluation fidelity]{A ladder of evaluation fidelity. Higher levels expose the policy more to the consequences of its own actions, at a higher cost per evaluation. The right-hand column lists where each level is used in this thesis.}
+  \label{fig:method:ladder}
+\end{figure}
+
+The guiding rule is to evaluate each claim at the highest level of fidelity that is affordable for it, and to state the level explicitly. Perception claims (Chapter~\ref{ch:occnet}) are made at L0 but are complemented by a planning experiment that asks whether the representation helps downstream. Reasoning claims (Chapter~\ref{ch:drivelm}) are made at L0 on nuScenes and at L2 on CARLA. Planning claims (Chapter~\ref{ch:centaur}) are made at L1, and manipulation claims (Chapter~\ref{ch:kai0}) at L3.
+
+\subsection{Testing for shift, not only for accuracy}
+
+Because the subject of this thesis is robustness under shift, in-distribution accuracy is necessary but never sufficient. Each core chapter therefore includes at least one evaluation designed to expose shift: irregular object categories and occupancy-based planning in Chapter~\ref{ch:occnet}; zero-shot transfer across sensor configurations (nuScenes to Waymo) and unseen object categories in Chapter~\ref{ch:drivelm}; a safety-critical split built from the periphery of the test distribution in Chapter~\ref{ch:centaur}; and arbitrary initial states and uninterrupted operation over many hours in Chapter~\ref{ch:kai0}.
+
+\subsection{Validity of metrics and statistical practice}
+
+Metrics are themselves artefacts that can fail. DriveBench showed that language-based driving metrics can reward answer templates rather than grounded reasoning~\cite{xie2025vlms}, which is why DriveLM reports behaviour and motion metrics alongside language metrics, and why the CVPR 2024 challenge combined a GPT-based score with language, matching and accuracy terms. Where results are noisy, they are reported over multiple seeds: Centaur's leaderboard entry, for example, is the mean over three seeds (92.10 $\pm$ 0.33). Real-robot results are reported over repeated trials, and compute and data budgets are reported alongside performance so that the cost of a result is visible.
+
+% ==============================================================================
+\section{From a Failure to a Contribution}\label{sec:method:decision}
+
+The framework and the cycle can be combined into a decision procedure for choosing which lever to pull when a new failure is observed (Fig.~\ref{fig:method:decision}). The first question is whether the failure can be measured reproducibly; if not, the first contribution is a benchmark. The next questions locate the failure in the loop: whether the information needed to avoid it is missing from the representation (enrich the representation), whether the decision requires knowledge beyond the training labels (add structured reasoning), and whether the failure appears only after deployment (self-correct at deployment). Whatever the lever, the result is evaluated at the highest affordable fidelity, released, and exposed to the community, and the residual failures start the procedure again. Reading the core chapters through this procedure explains their order: Chapter~\ref{ch:occnet} answers the representation question, Chapter~\ref{ch:drivelm} the reasoning question, and Chapters~\ref{ch:centaur} and~\ref{ch:kai0} the deployment question, while every chapter begins by answering the measurement question.
+
+\begin{figure}[t]
+  \centering
+  \tikzfig[0.9\textwidth]{ch-methodology/figures/lever_decision}
+  \caption[From an observed failure to a research contribution]{From an observed failure to a research contribution: a decision procedure distilled from the author's work. Each ``yes'' branch corresponds to one methodological lever and one core chapter; every branch ends with evaluation, release and exposure to the community, whose residual failures restart the procedure.}
+  \label{fig:method:decision}
+\end{figure}
+
+% ==============================================================================
+\section{Reproducibility and Research Practice}\label{sec:method:practice}
+
+Openness is the mechanism through which Commitment 1 operates, so it is treated as part of the method. The code of the core chapters and most co-authored works is publicly released, together with datasets, development kits, evaluation servers or leaderboards. The benchmarks in this thesis are derived from established public datasets and simulators, including nuScenes~\cite{caesar2020nuscenes}, the Waymo Open Dataset~\cite{sun2020waymo}, nuPlan~\cite{caesar2021nuplan} and CARLA~\cite{dosovitskiy2017carla}, and are redistributed under the licences of their sources. New annotations were produced by automatic pipelines followed by human verification, and the annotation protocols are documented in the corresponding chapters. Hyper-parameters, hardware and training budgets are reported in each chapter and its appendix.
+
+% ==============================================================================
+\section{Threats to Validity}\label{sec:method:validity}
+
+Several threats qualify the conclusions of this thesis, and each is revisited where it applies.
+
+\paragraph{Construct validity.} Benchmarks are proxies of reality, and metrics are proxies of what matters. Occupancy mIoU does not measure safety; the PDM score of NAVSIM is computed from non-reactive rollouts; language metrics may reward style over substance. The thesis mitigates this by pairing proxy metrics with downstream or closed-loop evaluations, but cannot eliminate it.
+
+\paragraph{Internal validity.} Automatically generated labels contain errors, and a benchmark designed by the authors of a method may favour that method. Human verification of labels, public release of benchmarks, and challenges in which other teams compete on the same data are the main safeguards.
+
+\paragraph{External validity.} Results obtained in simulation or on specific datasets may not transfer to other vehicles, cities, robots or tasks. The zero-shot and safety-critical evaluations of the core chapters probe transfer directly, and the real-robot evaluation of Chapter~\ref{ch:kai0} removes the simulation gap for manipulation, though only for the tasks and hardware studied.
+
+\paragraph{Conclusion validity.} Leaderboard comparisons are subject to random variation and to the ``benchmark lottery'' of which tasks and datasets are chosen~\cite{dehghani2021benchmark}. Reporting several seeds, several benchmarks and ablations, rather than a single number, reduces but does not remove this risk.
+
+% ==============================================================================
+\section{Chapter Summary}\label{sec:method:summary}
+
+This chapter has described the methodology behind the thesis. The curse of reality was decomposed into perceptual, semantic, behavioural and deployment shift, each matched by a methodological lever and a core chapter. Research proceeded through a benchmark-driven cycle that begins with a failure in the field, turns it into a measurable task and a public benchmark, establishes a simple and scalable baseline, engages the community through open release and challenges, and ends with deployment and self-correction, whose residual failures start the next iteration. Five design principles and a ladder of evaluation fidelity complete the methodology. The next four chapters apply it, starting with the perception end of the loop: how a physical agent should represent the 3D world it sees.

@@ -1,14 +1,79 @@
-\documentclass{article}
-\usepackage{graphicx} % Required for inserting images
+\let\mypdfximage\pdfximage
+\def\pdfximage{\immediate\mypdfximage}
 
-\title{hku-thesis-overleaf}
-\author{🎠Chonghao Sima}
-\date{September 2026}
+\documentclass[a4paper,12pt,default,numbered,print]{Classes_final/PhDThesisPSnPDF}
+
+\input{Preamble_final/packages}
+\input{Preamble_final/preamble}
+\input{thesis_macros}
+
+\makeatletter
+\DeclareRobustCommand\onedot{\futurelet\@let@token\@onedot}
+\def\@onedot{\ifx\@let@token.\else.\null\fi\xspace}
+\makeatother
+
+\title{Taming the Curse of Reality: \\ Towards Robust Physical Agents \\ from Perception to Action}
+\author{Chonghao Sima}
+\dept{School of Computing and Data Science}
+\university{The University of Hong Kong}
+\crest{\includegraphics[width=0.25\textwidth]{Classes_final/HKUcolour}}
+
+\newcommand{\chinesename}{\includegraphics[height=1.3em]{Classes_final/name_sima.pdf}}
+
+\renewcommand{\submissiontext}{This dissertation is submitted for}
+\degreename{Doctor of Philosophy}
+\degreedate{September, 2026}
+\subject{Autonomous driving and embodied AI}
+\keywords{{Autonomous Driving} {Embodied AI} {3D Occupancy} {Vision-Language Models} {Test-Time Training} {Robot Manipulation}}
+
+\ifdefineAbstract
+ \includeonly{Abstract/abstract}
+\else
+\fi
 
 \begin{document}
+\frontmatter
 
+\begin{titlepage}
 \maketitle
+\end{titlepage}
 
-\section{Introduction}
+\include{Dedication/dedication}
+\include{Declaration/declaration}
+\include{Acknowledgement/acknowledgement}
+\include{Abstract/abstract}
+\include{Publications/publications}
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+\mainmatter
+
+\include{ch-introduction/introduction}
+\include{ch-background/background}
+\include{ch-methodology/methodology}
+\include{ch-occnet/occnet}
+\include{ch-drivelm/drivelm}
+\include{ch-centaur/centaur}
+\include{ch-kai0/kai0}
+\include{ch-discussion/discussion}
+\include{ch-conclusion/conclusion}
+
+\appendix
+\include{ch-occnet/occnet_appendix}
+\include{ch-drivelm/drivelm_appendix}
+\include{ch-centaur/centaur_appendix}
+\include{ch-kai0/kai0_appendix}
+
+\backmatter
+
+\begin{spacing}{1}
+\bibliographystyle{unsrtnat}
+\cleardoublepage
+\bibliography{references}
+\end{spacing}
+
+\printthesisindex
 
 \end{document}

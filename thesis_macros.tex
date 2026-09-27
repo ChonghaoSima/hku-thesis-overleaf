@@ -1,15 +1,14 @@
-% Shared macros for the thesis. Loaded after the template preamble.
+% Shared macros for the thesis. Loaded after Preamble_final/preamble.tex,
+% which already defines \eg, \ie, \etal, \etc, \vs, \wrt, \cf, \argmax, \argmin,
+% \norm, \abs, \B and the \fref/\Tref/\sref family.
 
-% ---------- common abbreviations ----------
-\providecommand{\eg}{e.g.,\xspace}
-\providecommand{\ie}{i.e.,\xspace}
-\providecommand{\etal}{et al.\xspace}
-\providecommand{\etc}{etc.\xspace}
-\providecommand{\wrt}{w.r.t.\xspace}
-\providecommand{\vs}{vs.\xspace}
-\providecommand{\cf}{cf.\xspace}
+\usetikzlibrary{positioning, arrows.meta, shapes.geometric, shapes.misc, calc, fit,
+  backgrounds, decorations.pathreplacing, decorations.pathmorphing}
 
 \newcommand{\chiz}{$\chi_{0}$\xspace}
+
+% TikZ figures are drawn for single spacing; the body text uses \linespread{1.5}.
+\newcommand{\tikzfig}[2][\textwidth]{{\linespread{1}\selectfont\resizebox{#1}{!}{\input{#2}}}}
 
 % ---------- pillar colours (used consistently in every figure) ----------
 \definecolor{perceive}{HTML}{2F6DB5}
@@ -19,6 +18,8 @@
 \definecolor{bench}{HTML}{5A6B7B}
 \definecolor{reality}{HTML}{B03A48}
 \definecolor{lightgray}{HTML}{F2F2F2}
+\colorlet{earlier}{black!50}
+\colorlet{legendgray}{black!60}
 
 % ---------- TikZ styles shared by the research flowcharts ----------
 \tikzset{
@@ -38,3 +39,6 @@
   decision/.style={diamond, aspect=2.2, draw=black!70, thick, fill=lightgray,
                    align=center, font=\scriptsize, inner sep=1pt},
 }
+
+% Avoid stretching vertical space around large floats.
+\raggedbottom

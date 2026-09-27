@@ -1,0 +1,36 @@
+% Packages shared by main.tex and tools/compile_chapter.sh.
+% Loaded before Preamble_final/preamble.tex. The class already loads natbib
+% (numbers, sort&compress), hyperref, geometry and lmodern.
+\usepackage{booktabs}
+\usepackage{threeparttable}
+\usepackage[dvipsnames,table]{xcolor}
+\usepackage{pifont}
+\usepackage{bm}
+\usepackage[ruled,vlined]{algorithm2e}
+\usepackage{adjustbox}
+\usepackage[skins,breakable]{tcolorbox}
+\usepackage{listings}
+\usepackage{mathtools}
+\usepackage{enumitem}
+\usepackage{wrapfig}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{soul}
+\usepackage{bbding}
+\usepackage{multicol}
+\usepackage{diagbox}
+
+\lstset{
+  language=Python,
+  basicstyle=\ttfamily\scriptsize,
+  frame=lines,
+  framesep=2mm,
+  numbers=left,
+  numberstyle=\tiny,
+  keywordstyle=\color{blue},
+  commentstyle=\color{gray},
+  stringstyle=\color{magenta},
+  breaklines=true,
+  showstringspaces=false,
+  tabsize=4
+}

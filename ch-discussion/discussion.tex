@@ -1,0 +1,76 @@
+\chapter{Discussion}\label{ch:discussion}
+
+The core chapters each answered a focused question with a specific method, benchmark and set of experiments. This chapter steps back and interprets their findings together. Section~\ref{sec:disc:rq} answers the four research questions posed in Chapter~\ref{ch:intro}, including the architectural question RQ4, which no single chapter addresses. Section~\ref{sec:disc:method} reflects on the benchmark-driven methodology of Chapter~\ref{ch:methodology}: what it delivered and where it fell short. Section~\ref{sec:disc:limits} states the limitations of the thesis, and Section~\ref{sec:disc:ethics} discusses its broader implications.
+
+% ==============================================================================
+\section{Answering the Research Questions}\label{sec:disc:rq}
+
+\subsection{RQ1: how should a physical agent represent the 3D world?}
+
+Chapter~\ref{ch:occnet} argued that a physical agent should describe its surroundings by 3D semantic occupancy rather than by lists of boxes, and the evidence supports this in three ways. First, occupancy describes what boxes cannot: irregular vehicles are segmented better when supervised with occupancy than with voxelised boxes, and the gap widens as resolution increases. Second, occupancy is not an end in itself but a general interface: the same representation improves semantic scene completion, supports LiDAR segmentation from cameras, serves as a pre-training target for detection, and, most importantly for the argument of this thesis, reduces collisions in planning by 15--58\% compared with planning on boxes or BEV segmentation. Third, the representation could be scaled: the OpenScene redistribution of nuPlan turned occupancy from a 5.5-hour academic benchmark into more than 120 hours of supervision that the community has used for end-to-end driving and world-model challenges.
+
+Two qualifications follow. The geometric part of occupancy is category-free, but its semantic part is not: OpenOcc still labels voxels with a fixed set of classes, so an unseen object is occupied space without a meaning. And occupancy is expensive to annotate densely, which is precisely why the benchmark and data effort was necessary. The answer to RQ1 is therefore that the representation of a physical agent should be \emph{geometrically open}, \emph{queryable by downstream tasks}, and \emph{cheap enough to supervise at scale}; occupancy meets the first two conditions directly and the third only through deliberate investment in data.
+
+\subsection{RQ2: can structured reasoning with vision-language models help a driving agent generalise?}
+
+Chapter~\ref{ch:drivelm} gave a qualified yes. Organising driving as a graph of perception, prediction and planning questions, and conditioning behaviour on the answers, did not help in-domain: on nuScenes, the variant without reasoning context predicted behaviour most accurately (61.45 against 57.49 for graph context) and with the lowest displacement error (1.39 against 1.74). It helped under shift. In zero-shot transfer to the Waymo sensor configuration, graph context gave the best result on every metric, with a displacement error of 2.63 against 4.16 for the end-to-end baseline, and on CARLA scenes with pedestrians unseen during training, one explicit question about pedestrians raised behaviour accuracy from 4.59 to 27.04.
+
+This pattern is itself the main finding: explicit reasoning is a tool for the long tail, not for the average case. It also exposes two costs. The first is latency: the reasoning agent ran at 0.16 frames per second, orders of magnitude too slow for control, which motivated the fast-and-slow design of ETA, where a large model reasons one step ahead while a small model reacts, reaching a closed-loop driving score of 69.53 at \SI{50}{\milli\second} per step~\cite{hamdan2025eta}. The second is reliability: DriveBench showed that vision-language models can retain most of their score with the image removed, and that 78.6\% of DriveLM behaviour answers are ``Going Straight''~\cite{xie2025vlms}. Language makes reasoning inspectable, but inspection is only valuable if the reasoning is grounded in the scene. The answer to RQ2 is therefore that structured reasoning improves generalisation where training data are silent, provided it is grounded, evaluated on balanced data, and invoked selectively rather than on every frame.
+
+\subsection{RQ3: how can a learned policy stay reliable under shift?}
+
+For driving (RQ3a), Chapter~\ref{ch:centaur} showed that a deployed planner can correct itself without rules or labels. Minimising Cluster Entropy, an uncertainty measure over the planner's own behaviour modes, with a single test-time gradient step raised the NAVSIM driving score from 90.3 to 92.6 and the time-to-collision sub-score from 93.9 to 98.0. The comparison with conventional safeguards is instructive: the hand-designed occupancy-based optimisation of UniAD lowers its NAVSIM score from 83.4 to 75.2, and rule-based fallback layers reduce a strong planner to about 63--66, because rules that make the vehicle cautious also make it stop making progress. Learned self-correction improves safety without that trade-off. It does not, however, close the gap on the hardest cases: on the safety-critical \texttt{navsafe} split, Centaur reaches 74.14 against 94.65 for human driving.
+
+For manipulation (RQ3b), Chapter~\ref{ch:kai0} located the problem not in the amount of data or computation but in inconsistency between the distribution of demonstrations, what the policy can represent, and what is executed on hardware. Addressing these inconsistencies with Model Arithmetic, Stage Advantage and Train--Deploy Alignment gave a success rate nearly 250\% higher than $\pi_{0.5}$ with about 20 hours of data per task and eight A100 GPUs, and allowed the system to run for 24 hours without interruption. This finding appears to contradict the data-scaling results of AgiBot World, where pre-training on more, and verified, robot data improved both in-distribution and out-of-distribution success~\cite{bu2025agibot_iros}. The two are better read as complementary: scale buys \emph{coverage} of the deployment distribution, whereas alignment buys \emph{consistency} between how a policy is trained and how it is used. The same study that reports the benefit of scale also reports that verified data outperform larger unverified data, and \chiz reports that data quality alone moves success rates between 20\% and 60\%. The answer to RQ3 is therefore that reliability under shift requires closing the loop between training and deployment, either online, by adapting on the agent's own uncertainty, or offline, by aligning data, model and execution, and that neither more data nor more rules substitutes for it.
+
+\subsection{RQ4: what architecture lets a physical agent correct itself?}
+
+The findings above can be assembled into an answer to the architectural question. Fig.~\ref{fig:disc:anatomy} summarises it as the anatomy of a self-correcting physical agent, with five elements, each supported by evidence from this thesis.
+
+\begin{figure}[t]
+  \centering
+  \tikzfig{ch-discussion/figures/self_correcting}
+  \caption[Anatomy of a self-correcting physical agent]{Anatomy of a self-correcting physical agent, synthesised from the findings of this thesis. A universal representation feeds a fast, planning-oriented policy directly and a slow, explicit reasoner selectively. A competence monitor computes label-free signals of the agent's reliability and uses them to adapt the policy at test time, to invoke slow reasoning, or to request more perception. A learning loop feeds residual failures back into data, alignment and benchmarks.}
+  \label{fig:disc:anatomy}
+\end{figure}
+
+\paragraph{A universal, queryable representation.} Downstream modules should read the scene from a representation that does not presuppose which objects matter (Chapter~\ref{ch:occnet}), and they should be trained towards the final task so that upstream errors can be absorbed downstream, as the planning-oriented design of UniAD demonstrated~\cite{hu2023uniad}.
+
+\paragraph{Two speeds of decision.} Explicit reasoning helps under shift but is slow (Chapter~\ref{ch:drivelm}). An architecture should therefore pair a fast policy, which acts on every step, with a slow reasoner, which is consulted when the situation is unfamiliar or thinks ahead asynchronously, as in ETA~\cite{hamdan2025eta}.
+
+\paragraph{A competence monitor.} The agent needs a label-free signal of its own reliability. Cluster Entropy in Chapter~\ref{ch:centaur} and stage-wise progress in Chapter~\ref{ch:kai0} are two instances: one measures disagreement among the agent's own behaviour modes, the other measures whether the task is advancing as it should. Such a signal can decide when to adapt, when to reason slowly, and when to gather more information.
+
+\paragraph{Adaptation at deployment.} The monitor must be connected to a mechanism that changes behaviour: a test-time update of the policy (Chapter~\ref{ch:centaur}) or a recovery behaviour learned from corrective data (Chapter~\ref{ch:kai0}). Hand-designed fallbacks are the degenerate case of this mechanism, and the evidence of Chapter~\ref{ch:centaur} suggests that learned adaptation dominates them.
+
+\paragraph{A learning loop that outlives deployment.} Residual failures should flow back into data, into the alignment of training with execution, and into new benchmarks, as in the research cycle of Chapter~\ref{ch:methodology}. The perspective of~\cite{chen2025robot} pushes this element furthest: a robot that identifies its own goals, acquires skills to reach them, and monitors progress with a learned value function would run the learning loop without a human in it. Neither Centaur nor \chiz reaches that point, since both still depend on demonstrations, but both implement a piece of it: Centaur learns from its own uncertainty without labels, and \chiz uses stage-wise value to decide which behaviour to reinforce.
+
+The answer to RQ4 is therefore not a single network design but a set of functional requirements: represent openly, decide at two speeds, monitor competence, adapt at deployment, and keep learning from residual failures.
+
+% ==============================================================================
+\section{Reflections on the Methodology}\label{sec:disc:method}
+
+The benchmark-driven cycle of Chapter~\ref{ch:methodology} delivered what it promised in one respect: it multiplied the effort spent on each problem beyond what one group could provide. The ``Driving with Language'' challenge attracted 152 teams, OpenScene became the data source of later benchmarks and challenges, and the author's lanes, topology and occupancy benchmarks were each extended by the next project. Three lessons, however, qualify this success.
+
+\paragraph{Benchmarks carry the biases of their construction.} DriveBench's audit of DriveLM-Data found strong answer imbalance and showed that models could score without looking at the image~\cite{xie2025vlms}; open-loop planning metrics on nuScenes were shown by others to be solvable from the ego vehicle's own state~\cite{zhai2023rethinking,li2024ego}. A benchmark built to expose one shift can hide another. In hindsight, balanced answer distributions, input-ablation baselines (``what does a model score without the image?'') and dedicated shift splits should be part of a benchmark's first release rather than of a later audit; the \texttt{navsafe} split of Chapter~\ref{ch:centaur} is an example of building the stress test in from the start.
+
+\paragraph{Fidelity must be matched to the claim.} Claims about perception were made at the open-loop level, claims about planning at the pseudo-simulation level, and only claims about manipulation at the real-world level. This matching was deliberate, but it means that the driving results of this thesis have not been validated on a vehicle. The ladder of Fig.~\ref{fig:method:ladder} is useful precisely because it makes this gap visible.
+
+\paragraph{Scale and consistency are both resources.} The thesis began with a strong emphasis on scale: larger benchmarks, larger models, larger challenges. Its final chapter found that, for real-world manipulation, the consistency of data, model and execution mattered more than their amount. The methodology should therefore treat data quality and alignment as first-class objects of measurement, alongside dataset size.
+
+% ==============================================================================
+\section{Limitations}\label{sec:disc:limits}
+
+The conclusions of this thesis are subject to the following limitations, in addition to the threats to validity discussed in Section~\ref{sec:method:validity}.
+
+\begin{itemize}[leftmargin=*, itemsep=3pt]
+  \item \textbf{Domains.} The thesis studies two kinds of physical agents, road vehicles and bimanual manipulators, and within manipulation only garment-handling tasks. Other embodiments, such as legged or aerial robots, may face shifts that are not covered by the taxonomy of Chapter~\ref{ch:methodology}.
+  \item \textbf{Evaluation fidelity for driving.} No driving result in this thesis was obtained on a real vehicle in closed loop. NAVSIM approximates closed-loop behaviour with non-reactive rollouts, and CARLA introduces a simulation gap.
+  \item \textbf{Semantic openness.} Occupancy removes the closed-world assumption from geometry but not from semantics, and the reasoning of DriveLM relies on a vision-language model whose knowledge and failure modes are inherited from its pre-training data.
+  \item \textbf{Guarantees.} Test-time training and train--deploy alignment improve average behaviour and robustness, but they provide no formal safety guarantee, and an adaptation step could in principle make the policy worse on a given input.
+  \item \textbf{Resources.} Several results depend on large pre-trained models and on multi-GPU training, which limits their reproducibility for groups with fewer resources, even though Chapter~\ref{ch:kai0} makes the budget explicit.
+\end{itemize}
+
+% ==============================================================================
+\section{Broader Implications}\label{sec:disc:ethics}
+
+Robust physical agents promise safer roads and useful robots, but they also concentrate responsibility in systems whose behaviour under rare conditions is hard to predict. Two implications of this thesis bear on that tension. First, explainability is not the same as reliability: an agent that explains its decisions in fluent language may still be answering from priors rather than from what it sees, so explanations should be audited as rigorously as actions. Second, self-correction at deployment changes the object that is certified: a policy that adapts online is no longer the policy that was tested. Regulation and testing practice for physical agents will need to account for adaptive behaviour, for instance by bounding the size of test-time updates or by monitoring competence signals such as those proposed in this thesis. Finally, the benchmarks released in this thesis are derived from public datasets collected in a small number of cities; performance on them should not be taken as evidence of performance in regions or conditions they do not represent.

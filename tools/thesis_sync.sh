@@ -39,8 +39,7 @@ log() { echo "[$(date '+%F %T')] $*" >>"$LOG_FILE"; }
 
 build_pdf() {
   command -v latexmk >/dev/null 2>&1 || { log "build: latexmk not found, skipped"; return 0; }
-  if (cd "$REPO_DIR" && timeout 1200 latexmk -pdf -interaction=nonstopmode -halt-on-error \
-        -outdir=build main.tex >"$STATE_DIR/build.log" 2>&1); then
+  if bash "$REPO_DIR/tools/build_thesis.sh" >"$STATE_DIR/build.log" 2>&1; then
     log "build: ok"
   else
     log "build: FAILED (see $STATE_DIR/build.log); syncing sources anyway"

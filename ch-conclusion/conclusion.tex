@@ -1,0 +1,34 @@
+\chapter{Conclusion and Future Work}\label{ch:conclusion}
+
+% ==============================================================================
+\section{Summary of the Thesis}\label{sec:concl:summary}
+
+This thesis set out to make physical agents robust to the conditions that the real world presents but their training data do not contain, a problem it called the curse of reality. Following the perceive--reason--act loop, it addressed the problem at each stage.
+
+For perception, Chapter~\ref{ch:occnet} proposed to describe driving scenes by 3D semantic occupancy. The OccNet model, the OpenOcc benchmark and the large-scale OpenScene data showed that occupancy describes irregular objects that boxes cannot, transfers to several downstream tasks, and makes planning safer.
+
+For reasoning, Chapter~\ref{ch:drivelm} introduced Graph Visual Question Answering, the DriveLM datasets and a vision-language baseline, and found that explicit, graph-structured reasoning improves generalisation to new sensor configurations and unseen objects, though not in familiar situations, where it mainly adds latency.
+
+For acting, Chapter~\ref{ch:centaur} showed that an end-to-end driving planner can correct itself at deployment by test-time training on Cluster Entropy, outperforming rule-based safeguards on NAVSIM, and Chapter~\ref{ch:kai0} showed that real-world manipulation becomes robust when the inconsistencies between demonstrations, model and execution are addressed, even with a modest budget of data and computation.
+
+Across these chapters, Chapter~\ref{ch:methodology} distilled the benchmark-driven methodology behind the author's eighteen publications, and Chapter~\ref{ch:discussion} synthesised the findings into five requirements for a self-correcting physical agent: an open, queryable representation; fast and slow decision paths; a label-free competence monitor; adaptation at deployment; and a learning loop that feeds residual failures back into data and benchmarks.
+
+% ==============================================================================
+\section{Future Directions}\label{sec:concl:future}
+
+The limitations discussed in Section~\ref{sec:disc:limits} point to five directions for future research.
+
+\paragraph{From occupancy to open, predictive world representations.} Occupancy made the geometry of the scene category-free; the next step is to make its semantics open-vocabulary and its time axis predictive, so that an agent can represent not only unseen objects but also how the scene is likely to evolve. Occupancy forecasting and generative world models, for which OpenScene already provides training data, are natural vehicles for this step.
+
+\paragraph{Grounded and efficient reasoning.} The reasoning studied in Chapter~\ref{ch:drivelm} helps under shift but is slow and can be ungrounded. Future systems should decide \emph{when} to reason, using competence signals of the kind proposed in Chapter~\ref{ch:centaur}, and should be trained and evaluated on balanced data with input-ablation controls, so that fluent answers cannot substitute for looking at the scene.
+
+\paragraph{From test-time training to lifelong adaptation.} Centaur adapts with a single gradient step on a short buffer. Extending this to continual adaptation over days of deployment raises open questions about stability, forgetting, and how to bound the effect of an update so that adaptation remains verifiable.
+
+\paragraph{Self-directed learning for robots.} \chiz still depends on human demonstrations and on human-triggered recovery data. The perspective of~\cite{chen2025robot} outlines the alternative: robots that identify their own sub-goals, acquire skills to reach them, and monitor their progress with learned value functions, improving without resets or engineered rewards. The Stage Advantage of Chapter~\ref{ch:kai0} is a first, supervised step in this direction.
+
+\paragraph{Benchmarks for the long tail.} The benchmark-driven methodology of this thesis relies on benchmarks that expose the conditions that matter. Rare events are, by definition, scarce in recorded data. Generative simulation, pseudo-simulation with synthetic perturbations, and real-world challenges with standardised hardware are promising ways to measure robustness where it is needed most, and to keep the research cycle of Chapter~\ref{ch:methodology} turning.
+
+% ==============================================================================
+\section{Closing Remarks}\label{sec:concl:closing}
+
+The real world will always contain conditions that no dataset has recorded. The work in this thesis suggests that this is not a reason to give up on learned physical agents, but a reason to build them differently: to measure the shifts they will face before designing methods for them, to represent the world without closing it, to reason explicitly where data are silent, and to let agents correct themselves where training ends. The curse of reality cannot be lifted; it can, however, be tamed.

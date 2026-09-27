@@ -1,33 +1,30 @@
 \begin{tikzpicture}[
-    hdr/.style={font=\footnotesize\bfseries, text=black!75, align=center},
-    cell/.style={box, text width=#1, minimum height=1.25cm, font=\scriptsize},
-    cell/.default=2.6cm,
-    row/.style={node distance=0.35cm},
+    hdr/.style={font=\footnotesize\bfseries, text=black!75, align=center, text width=#1},
+    cell/.style={box, text width=#1, minimum height=1.45cm, font=\scriptsize},
   ]
   % column headers
-  \node[hdr, text width=2.3cm] (h1) at (0,0)     {Shift in the\\perceive--reason--act loop};
-  \node[hdr, text width=2.9cm] (h2) at (3.05,0)  {Symptom in deployment};
-  \node[hdr, text width=2.9cm] (h3) at (6.35,0)  {Methodological lever};
-  \node[hdr, text width=2.6cm] (h4) at (9.55,0)  {Instance in this thesis};
+  \node[hdr=2.6cm] at (0,0)     {Shift};
+  \node[hdr=3.3cm] at (3.35,0)  {Symptom at deployment};
+  \node[hdr=3.5cm] at (7.1,0)   {Methodological lever};
+  \node[hdr=3.0cm] at (10.75,0) {Instance in this thesis};
 
-  % rows: y positions
   \foreach \y/\c/\shift/\symptom/\lever/\inst in {
-      -1.15/perceive/{\textbf{Perceptual}\\``what is out there?''}/{open-set and irregular objects; geometry beyond boxes; sensor and weather change}/{\textbf{Universal 3D representation}\\occupancy instead of closed-set boxes}/{Ch.~\ref{ch:occnet}: Scene as Occupancy, OpenOcc, OpenScene},
-      -2.65/reason/{\textbf{Semantic}\\``what does it mean?''}/{long-tail scenarios; novel compositions; unexplained decisions}/{\textbf{Structured reasoning}\\graph of perception--prediction--planning questions}/{Ch.~\ref{ch:drivelm}: DriveLM (Graph VQA)},
-      -4.15/act/{\textbf{Behavioural}\\``what will my action cause?''}/{closed-loop covariate shift; rare safety-critical states}/{\textbf{Test-time self-correction}\\minimise uncertainty online, no labels}/{Ch.~\ref{ch:centaur}: Centaur (test-time training)},
-      -5.65/arch/{\textbf{Deployment}\\``does training match use?''}/{inconsistent demonstrations; train--deploy mismatch; limited compute}/{\textbf{Train--deploy alignment}\\resource-aware robust policy learning}/{Ch.~\ref{ch:kai0}: $\chi_0$ (robust manipulation)}%
+      -1.2/perceive/{\textbf{Perceptual}\\``what is out there?''}/{open-set and irregular objects; geometry beyond boxes; sensor and weather change}/{\textbf{Universal 3D representation}\\occupancy, not closed-set boxes}/{Chapter~\ref{ch:occnet}\\Scene as Occupancy, OpenOcc, OpenScene},
+      -2.9/reason/{\textbf{Semantic}\\``what does it mean?''}/{long-tail scenarios; novel compositions; unexplained decisions}/{\textbf{Structured reasoning}\\perception--prediction--planning graph}/{Chapter~\ref{ch:drivelm}\\DriveLM (Graph VQA)},
+      -4.6/act/{\textbf{Behavioural}\\``what will my action cause?''}/{closed-loop covariate shift; rare safety-critical states}/{\textbf{Test-time self-correction}\\label-free uncertainty minimisation}/{Chapter~\ref{ch:centaur}\\Centaur (test-time training)},
+      -6.3/arch/{\textbf{Deployment}\\``does training match use?''}/{inconsistent demonstrations; train--deploy mismatch; limited compute}/{\textbf{Train--deploy alignment}\\resource-aware policy learning}/{Chapter~\ref{ch:kai0}\\$\chi_0$ (robust manipulation)}%
     }{
-    \node[cell=2.3cm, draw=\c, fill=\c!14] (a) at (0,\y)    {\shift};
-    \node[cell=2.9cm]                      (b) at (3.05,\y) {\symptom};
-    \node[cell=2.9cm, draw=\c, fill=\c!6]  (c) at (6.35,\y) {\lever};
-    \node[cell=2.6cm, draw=\c, line width=1.1pt] (d) at (9.55,\y) {\inst};
+    \node[cell=2.6cm, draw=\c, fill=\c!14] (a) at (0,\y)     {\shift};
+    \node[cell=3.3cm]                      (b) at (3.35,\y)  {\symptom};
+    \node[cell=3.5cm, draw=\c, fill=\c!6]  (c) at (7.1,\y)   {\lever};
+    \node[cell=3.0cm, draw=\c, line width=1.1pt] (d) at (10.75,\y) {\inst};
     \draw[flow] (a) -- (b);
     \draw[flow] (b) -- (c);
     \draw[flow] (c) -- (d);
   }
-  % left bracket: training vs deployment distribution
+  % brace: training vs deployment distribution
   \draw[reality, very thick, decorate, decoration={brace, amplitude=6pt, mirror}]
-       (-1.35,-0.55) -- (-1.35,-6.25)
+       (-1.75,-0.45) -- (-1.75,-7.05)
        node[midway, left=8pt, rotate=90, anchor=south, font=\footnotesize, text=reality]
        {$p_{\mathrm{train}}(o, a) \neq p_{\mathrm{deploy}}(o, a)$};
 \end{tikzpicture}

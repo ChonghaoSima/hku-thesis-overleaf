@@ -1,0 +1,73 @@
+\begin{tikzpicture}[
+    p/.style={paper=#1, text width=1.62cm, minimum height=0.8cm},
+    lanelabel/.style={rotate=90, font=\scriptsize\bfseries, text=#1},
+    yr/.style={font=\footnotesize\bfseries, text=black!60},
+    edgelab/.style={font=\tiny, text=black!60},
+  ]
+  % ---------------- lanes ----------------
+  \begin{scope}[on background layer]
+    \fill[perceive!5] (-0.2,-0.05) rectangle (18.4,3.0);
+    \fill[reason!6]   (-0.2, 3.25) rectangle (18.4,4.85);
+    \fill[act!6]      (-0.2, 5.1)  rectangle (18.4,6.45);
+    \fill[arch!6]     (-0.2, 6.7)  rectangle (18.4,8.6);
+    \foreach \x in {2.1,4.3,10.0,13.3,16.55}
+      \draw[black!25, dashed] (\x,-0.05) -- (\x,8.6);
+  \end{scope}
+  \node[lanelabel=perceive] at (-0.5,1.47) {Perceive};
+  \node[lanelabel=reason]   at (-0.5,4.05) {Reason};
+  \node[lanelabel=act]      at (-0.5,5.77) {Act};
+  \node[lanelabel=arch]     at (-0.5,7.65) {Architecture};
+
+  % ---------------- year axis ----------------
+  \foreach \x/\y in {1.0/2021, 3.2/2022, 7.15/2023, 11.65/2024, 14.9/2025, 17.45/2026}
+    \node[yr] at (\x,-0.4) {\y};
+
+  % ---------------- papers ----------------
+  \node[p=earlier] (lsh) at (1.0,4.05) {LSH-SMILE\\{\tiny NeurIPS'21}};
+  % perceive
+  \node[p=perceive] (bevformer) at (3.2,2.5) {BEVFormer\\{\tiny ECCV'22}};
+  \node[p=perceive, benchmark] (persformer) at (3.2,0.5) {PersFormer\\{\tiny + OpenLane}};
+  \node[p=perceive] (survey) at (5.3,2.5) {BEV Survey\\{\tiny T-PAMI'23}};
+  \node[p=perceive] (sdf) at (5.3,1.5) {SDF\\{\tiny IROS'23}};
+  \node[p=perceive] (vcd) at (5.3,0.5) {VCD\\{\tiny NeurIPS'23}};
+  \node[p=perceive, firstauthor=perceive, benchmark] (occnet) at (7.25,2.5) {OccNet\\{\tiny + OpenOcc}};
+  \node[p=perceive, benchmark] (olv2) at (7.25,0.5) {OpenLane-V2\\{\tiny NeurIPS'23}};
+  \node[p=perceive, firstauthor=perceive, benchmark] (openscene) at (9.1,1.5) {OpenScene\\{\tiny 2023}};
+  % architecture
+  \node[p=arch] (uniad) at (7.2,7.65) {UniAD\\{\tiny CVPR'23}};
+  \node[p=arch] (sdl) at (15.7,7.65) {Self-directed\\learning {\tiny 2025}};
+  % reason
+  \node[p=reason, firstauthor=reason, benchmark] (drivelm) at (11.0,4.05) {DriveLM\\{\tiny ECCV'24}};
+  \node[p=reason] (hintad) at (12.5,3.7) {Hint-AD\\{\tiny CoRL'24}};
+  \node[p=reason, benchmark] (drivebench) at (14.1,4.4) {DriveBench\\{\tiny ICCV'25}};
+  \node[p=reason] (eta) at (15.7,3.7) {ETA\\{\tiny ICCV'25}};
+  % act
+  \node[p=act, firstauthor=act] (centaur) at (14.1,5.77) {Centaur\\{\tiny 2025}};
+  \node[p=act, benchmark] (agibot) at (15.7,5.77) {AgiBot World\\{\tiny IROS'25}};
+  \node[p=act, firstauthor=act] (kai0) at (17.45,5.77) {$\chi_0$\\{\tiny 2026}};
+
+  % ---------------- edges ----------------
+  \draw[dep] (bevformer) -- (survey);
+  \draw[dep] (bevformer) to[bend left=12] (occnet);
+  \draw[dep] (bevformer) -- (sdf);
+  \draw[dep] (bevformer.north) to[out=90, in=180] (uniad.west);
+  \draw[dep] (survey.south west) to[out=225, in=135] (vcd.north west);
+  \draw[dep] (persformer) -- (olv2);
+  \draw[dep] (occnet) -- (openscene);
+  \draw[dep] (olv2.east) to[out=0, in=235] (drivelm.south west);
+  \draw[dep] (uniad.east) to[out=0, in=110] (drivelm.north);
+  \draw[dep] (uniad.east) to[out=-5, in=120] (hintad.north);
+  \draw[dep] (drivelm) -- (drivebench);
+  \draw[dep] (drivelm.north east) to[out=45, in=190] node[edgelab, pos=0.55, above, sloped] {anchors} (centaur.west);
+  \draw[dep] (openscene.east) to[out=0, in=240] node[edgelab, pos=0.8, below right] {NAVSIM} (centaur.south west);
+  \draw[dep, dashed] (uniad.east) to[out=0, in=150] node[edgelab, pos=0.62, above, sloped] {rule-based guard} (centaur.north west);
+  \draw[dep] (agibot) -- (kai0);
+  \draw[dep] (sdl.east) to[out=0, in=90] (kai0.north);
+  \draw[dep, dashed] (centaur.north) to[out=90, in=200] (sdl.west);
+
+  % ---------------- legend ----------------
+  \node[paper=legendgray, firstauthor=legendgray, text width=1.9cm, font=\tiny] at (1.4,-1.15) {led by the author};
+  \node[paper=legendgray, benchmark, text width=1.9cm, font=\tiny] at (4.0,-1.15) {releases data or benchmark};
+  \draw[dep] (6.0,-1.15) -- (7.1,-1.15) node[right, font=\tiny, text=black!70] {builds on};
+  \draw[dep, dashed] (9.2,-1.15) -- (10.3,-1.15) node[right, font=\tiny, text=black!70] {motivates or contrasts};
+\end{tikzpicture}
