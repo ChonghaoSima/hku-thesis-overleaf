@@ -1,0 +1,40 @@
+% Shared macros for the thesis. Loaded after the template preamble.
+
+% ---------- common abbreviations ----------
+\providecommand{\eg}{e.g.,\xspace}
+\providecommand{\ie}{i.e.,\xspace}
+\providecommand{\etal}{et al.\xspace}
+\providecommand{\etc}{etc.\xspace}
+\providecommand{\wrt}{w.r.t.\xspace}
+\providecommand{\vs}{vs.\xspace}
+\providecommand{\cf}{cf.\xspace}
+
+\newcommand{\chiz}{$\chi_{0}$\xspace}
+
+% ---------- pillar colours (used consistently in every figure) ----------
+\definecolor{perceive}{HTML}{2F6DB5}
+\definecolor{reason}{HTML}{D9822B}
+\definecolor{act}{HTML}{3C9D4E}
+\definecolor{arch}{HTML}{7D4F9E}
+\definecolor{bench}{HTML}{5A6B7B}
+\definecolor{reality}{HTML}{B03A48}
+\definecolor{lightgray}{HTML}{F2F2F2}
+
+% ---------- TikZ styles shared by the research flowcharts ----------
+\tikzset{
+  >={Stealth[length=2.4mm]},
+  box/.style={draw, rounded corners=3pt, thick, align=center, inner sep=4pt,
+              font=\small, fill=white},
+  pillar/.style={box, draw=#1, fill=#1!10, text=black},
+  stage/.style={box, minimum width=2.9cm, minimum height=1.05cm, draw=#1, fill=#1!12},
+  paper/.style={draw=#1, fill=#1!12, rounded corners=2pt, thick, align=center,
+                font=\scriptsize, inner sep=2.5pt, minimum width=1.55cm},
+  firstauthor/.style={line width=1.4pt, fill=#1!30},
+  benchmark/.style={dashed},
+  flow/.style={->, thick, draw=black!70},
+  dep/.style={->, draw=black!45, line width=0.6pt},
+  note/.style={font=\scriptsize\itshape, text=black!70, align=center},
+  lane/.style={fill=#1!5, draw=#1!40, rounded corners=4pt},
+  decision/.style={diamond, aspect=2.2, draw=black!70, thick, fill=lightgray,
+                   align=center, font=\scriptsize, inner sep=1pt},
+}

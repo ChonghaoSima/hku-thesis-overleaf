@@ -1,0 +1,21 @@
+\begin{tikzpicture}[
+    step/.style={draw=#1, fill=#1!12, thick, rounded corners=2pt, align=left,
+                 font=\scriptsize, text width=4.9cm, minimum height=1.05cm, inner sep=4pt},
+    tag/.style={font=\scriptsize\bfseries, text=#1},
+    use/.style={font=\scriptsize, align=left, text width=3.9cm, text=black!75},
+  ]
+  \node[step=perceive, anchor=south west] (l0) at (0,0)      {\textbf{L0 Open-loop on logged data}\\per-frame metrics: mIoU, mAP, VQA scores, L2 error};
+  \node[step=reason,   anchor=south west] (l1) at (1.2,1.3)  {\textbf{L1 Pseudo-simulation}\\non-reactive rollout scored by rules (NAVSIM PDMS)};
+  \node[step=act,      anchor=south west] (l2) at (2.4,2.6)  {\textbf{L2 Closed-loop simulation}\\reactive agents, compounding errors (CARLA)};
+  \node[step=reality,  anchor=south west] (l3) at (3.6,3.9)  {\textbf{L3 Real-world deployment}\\physical trials, success rate, recovery};
+
+  \node[use, right=0.35cm of l0] {Ch.~\ref{ch:occnet} occupancy, planning with occupancy; Ch.~\ref{ch:drivelm} DriveLM-nuScenes};
+  \node[use, right=0.35cm of l1] {Ch.~\ref{ch:centaur} Centaur on NAVSIM};
+  \node[use, right=0.35cm of l2] {Ch.~\ref{ch:drivelm} DriveLM-CARLA};
+  \node[use, right=0.35cm of l3] {Ch.~\ref{ch:kai0} $\chi_0$ real-robot garment manipulation};
+
+  \draw[->, very thick, black!60] (-0.45,0) -- (-0.45,5.2)
+        node[midway, left, rotate=90, anchor=south, font=\scriptsize] {fidelity to reality, cost per evaluation};
+  \draw[->, very thick, black!60] (0,-0.35) -- (8.3,-0.35)
+        node[midway, below, font=\scriptsize] {increasing exposure to the policy's own mistakes};
+\end{tikzpicture}
