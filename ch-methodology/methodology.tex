@@ -31,7 +31,7 @@ Each factor of this formulation defines one kind of shift, and each kind appears
 
 \begin{figure}[t]
   \centering
-  \tikzfig{ch-methodology/figures/shift_taxonomy}
+  \includegraphics[width=\textwidth]{ch-methodology/figures/shift_taxonomy.pdf}
   \caption[The curse of reality decomposed into four kinds of shift]{The curse of reality decomposed into four kinds of shift, each corresponding to one factor of Eq.~\eqref{eq:method:train} and its deployment counterpart. Each kind of shift produces characteristic symptoms at deployment, calls for a different methodological lever, and is studied in one core chapter.}
   \label{fig:method:shift}
 \end{figure}
@@ -55,7 +55,7 @@ Looking back over the author's publications, the research can be described as a 
 
 \begin{figure}[t]
   \centering
-  \tikzfig{ch-methodology/figures/research_cycle}
+  \includegraphics[width=\textwidth]{ch-methodology/figures/research_cycle.pdf}
   \caption[The benchmark-driven research cycle]{The benchmark-driven research cycle reconstructed from the author's publications. Grey annotations give concrete artefacts at each stage; works marked $^{*}$ are co-authored rather than led by the author. The cycle closes when residual failures motivate the next round of formalisation.}
   \label{fig:method:cycle}
 \end{figure}
@@ -104,12 +104,12 @@ Looking back over the author's publications, the research can be described as a 
 % ==============================================================================
 \section{Research Lineage}\label{sec:method:lineage}
 
-Table~\ref{tab:method:papers} summarises the eighteen publications to which the author contributed, and Fig.~\ref{fig:method:lineage} shows how they build on one another. Three observations stand out. First, the work moves along the perceive--reason--act loop over time, from 3D perception (2022--2023) to language-based reasoning (2023--2025) and to acting under shift (2025--2026). Second, each move is prepared by an artefact from the previous stage: the BEV representation of BEVFormer underlies both OccNet and UniAD; OpenScene supplies the data on which Centaur is evaluated; and UniAD is the driving baseline of DriveLM, whose driving-direction categories in turn anchor the uncertainty measure of Centaur. Third, benchmarks (dashed outlines) appear in every pillar rather than only at the start: each new pillar began with a new way of measuring. The figure mixes works that the author led with co-authored ones; only the former are presented as the author's contributions in this thesis.
+Table~\ref{tab:method:papers} summarises the eighteen publications to which the author contributed, and Fig.~\ref{fig:method:lineage} shows how they build on one another. Three observations stand out. First, the work moves along the perceive--reason--act loop over time, from 3D perception (2022--2023) to language-based reasoning (2023--2025) and to acting under shift (2025--2026). Second, each move is prepared by an artefact from the previous stage: the BEV representation of BEVFormer underlies both OccNet and UniAD; OpenScene supplies the data on which Centaur is evaluated; and UniAD is the driving baseline of DriveLM, whose driving-direction categories in turn anchor the uncertainty measure of Centaur. Third, benchmarks (square markers) appear in every pillar rather than only at the start: each new pillar began with a new way of measuring. The figure mixes works that the author led with co-authored ones; only the former are presented as the author's contributions in this thesis.
 
 \begin{figure}[t]
   \centering
-  \tikzfig{ch-methodology/figures/lineage}
-  \caption[Research lineage of the author's publications]{Research lineage of the publications to which the author contributed, arranged by year and by pillar of the perceive--reason--act loop. Solid arrows indicate that a work builds on another (architecture, data or evaluation protocol); dashed arrows indicate that a work is motivated by, or contrasts with, another. Thick outlines mark the works led by the author that form the core chapters; dashed outlines mark works that release data or a benchmark.}
+  \includegraphics[width=\textwidth]{ch-methodology/figures/lineage.pdf}
+  \caption[Research lineage of the author's publications]{Research lineage of the publications to which the author contributed, arranged by year and by pillar of the perceive--reason--act loop. Solid arrows indicate that a work builds on another (architecture, data or evaluation protocol); dashed arrows indicate that a work is motivated by, or contrasts with, another; arrows take the colour of the pillar of the source work. Dark bold outlines mark the works led by the author that form the core chapters; a square marks works that release data or a benchmark.}
   \label{fig:method:lineage}
 \end{figure}
 
@@ -169,7 +169,7 @@ Evaluating a physical agent involves a trade-off between fidelity to reality and
 
 \begin{figure}[t]
   \centering
-  \tikzfig[0.92\textwidth]{ch-methodology/figures/evaluation_ladder}
+  \includegraphics[width=0.92\textwidth]{ch-methodology/figures/evaluation_ladder.pdf}
   \caption[A ladder of evaluation fidelity]{A ladder of evaluation fidelity. Higher levels expose the policy more to the consequences of its own actions, at a higher cost per evaluation. The right-hand column lists where each level is used in this thesis; closed-loop simulation (L2) was used only to validate the rule-based expert that generates DriveLM-CARLA.}
   \label{fig:method:ladder}
 \end{figure}
@@ -189,9 +189,9 @@ Metrics are themselves artefacts that can fail. DriveBench showed that language-
 
 The framework and the cycle can be combined into a decision procedure for choosing which lever to pull when a new failure is observed (Fig.~\ref{fig:method:decision}). The first question is whether the failure can be measured reproducibly; if not, the first contribution is a benchmark. The next questions locate the failure: whether the information needed to avoid it is missing from the representation (enrich the representation); whether the decision requires knowledge beyond the training labels (add structured reasoning); whether the situation is under-covered by the training data (scale or curate data); whether the failure arises only in closed loop after deployment (self-correct at test time); and whether training and execution conditions differ (align training with deployment). Several levers may apply to one failure, in which case the procedure is re-entered. Whatever the lever, the result is evaluated at the highest affordable fidelity, released, and exposed to the community, and the residual failures start the procedure again. Reading the core chapters through this procedure explains their order: Chapter~\ref{ch:occnet} answers the representation question, Chapter~\ref{ch:drivelm} the reasoning question, and Chapters~\ref{ch:centaur} and~\ref{ch:kai0} the two deployment questions, while each begins by answering the measurement question.
 
-\begin{figure}[p]
+\begin{figure}[!tb]
   \centering
-  \tikzfig[0.86\textwidth]{ch-methodology/figures/lever_decision}
+  \includegraphics[width=0.86\textwidth]{ch-methodology/figures/lever_decision.pdf}
   \caption[From an observed failure to a research contribution]{From an observed failure to a research contribution: a decision procedure distilled from the author's work. Each ``yes'' branch corresponds to one methodological lever; the representation, reasoning, test-time and alignment levers are the subjects of Chapters~\ref{ch:occnet}--\ref{ch:kai0}, and the data lever is illustrated by the co-authored AgiBot World ($^{*}$). Every branch ends with evaluation, release and exposure to the community, whose residual failures restart the procedure.}
   \label{fig:method:decision}
 \end{figure}

@@ -394,17 +394,7 @@ OpenOcc showed that occupancy can be learned from cameras and exploited across t
 
 \begin{figure}[t]
   \centering
-  \begin{tikzpicture}[node distance=5mm and 8mm]
-    \node[pillar=bench, font=\footnotesize, text width=2.9cm] (nuplan) {\textbf{nuPlan}\\[1pt]1,521 logs, 120+\,h\\four cities\\raw sensor data\\$>$20\,TB};
-    \node[pillar=perceive, font=\footnotesize, text width=3.9cm, right=of nuplan] (os) {\textbf{OpenScene}\\[1pt]2\,Hz, $>$10$\times$ smaller\\8 cameras + LiDAR\\3D boxes, occupancy\\(0.5\,m voxels), flow};
-    \node[pillar=act, font=\footnotesize, text width=5.2cm, right=of os] (e2e) {\textbf{End-to-End Driving at Scale}\\[1pt]NAVSIM, PDM Score\\CVPR 2024\\NAVSIM-v2 track, CVPR 2025};
-    \node[pillar=perceive, font=\footnotesize, text width=5.2cm, above=of e2e] (occ) {\textbf{Occupancy prediction}\\[1pt]mIoU, OccNet-based baseline};
-    \node[pillar=arch, font=\footnotesize, text width=5.2cm, below=of e2e] (wm) {\textbf{Predictive World Model}\\[1pt]ViDAR, Chamfer distance\\CVPR 2024};
-    \draw[flow] (nuplan) -- (os);
-    \draw[flow] (os.east) -- (occ.west);
-    \draw[flow] (os.east) -- (e2e.west);
-    \draw[flow] (os.east) -- (wm.west);
-  \end{tikzpicture}
+  \includegraphics{ch-occnet/figures/openscene_usage.pdf}
   \caption[OpenScene and its downstream use]{\textbf{OpenScene and its downstream use.} OpenScene redistributes nuPlan at 2\,Hz with occupancy and flow labels. It provides the data for large-scale occupancy prediction, for the end-to-end driving and predictive world-model tracks of the CVPR 2024 Autonomous Grand Challenge, and for the NAVSIM-v2 track of its CVPR 2025 edition.}
   \label{occnet:fig:openscene_usage}
 \end{figure}

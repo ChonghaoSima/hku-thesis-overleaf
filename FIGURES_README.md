@@ -1,6 +1,6 @@
 # 修改论文图片 / 流程图：给 agent 的操作手册
 
-本文件说明如何修改司马崇昊 HKU 博士论文 *Taming the Curse of Reality: Towards Robust Physical Agents from Perception to Action* 中的任何图片（TikZ 流程图或论文插图），并保证改完仍能编译、与正文一致、能同步到 Overleaf / GitHub / HDFS。
+本文件说明如何修改司马崇昊 HKU 博士论文 *Taming the Curse of Reality: Towards Robust Physical Agents from Perception to Action* 中的任何图片（PPT 概念图或论文插图），并保证改完仍能编译、与正文一致、能同步到 Overleaf / GitHub / HDFS。
 
 ---
 
@@ -11,7 +11,7 @@
 仓库：https://github.com/ChonghaoSima/hku-thesis-overleaf （公开仓库；主文件 main.tex）
 开始前先完整阅读仓库根目录的 FIGURES_README.md，并严格按其中的流程操作：
 1) 在第 3 节的图表清单里找到要改的图对应的源文件；
-2) 按第 4、5 节的规范修改（流程图改 TikZ 源文件，插图替换 images/ 下的文件）；
+2) 按第 4、5 节的规范修改（概念图改 figures/ 下的 PPTX 源文件并重新导出同名 PDF，插图替换 images/ 下的文件）；
 3) 不得违反第 6 节列出的事实约束（章节对应、评测保真度、合作作品标注、数字）；
 4) 按第 7 节编译并逐页渲染检查，确认 build ok、0 个未定义引用、0 个超宽行；
 5) 按第 8 节提交；只改与图有关的文件，不要改导言区、类文件和其他章节正文。
@@ -55,7 +55,7 @@
   # PDF 在 build/chapters/<key>/test_<key>.pdf；其他章节的交叉引用会显示为 ??，属正常
   ```
 
-  流程图所在的第 1、3、8 章没有单章脚本，用全文编译。
+  概念图所在的第 1、3、8 章没有单章脚本，用全文编译。
 
 ---
 
@@ -63,20 +63,20 @@
 
 图号以 `build/main.pdf` 为准。标签（label）在正文中用 `Fig.~\ref{标签}` 引用。
 
-### 3.1 TikZ 流程图（可直接改源码）
+### 3.1 PPT 概念图（PPTX 源文件 + 导出的 PDF）
 
-| 图号 | 标签 | 源文件 | 内容 |
+| 图号 | 标签 | 源文件（同名 `.pptx` 为可编辑源文件，`.pdf` 为插入正文的导出件） | 内容 |
 |---|---|---|---|
-| 1.1 | `fig:intro:overview` | `ch-introduction/figures/thesis_overview.tex` | 论文总览：现实世界 → 感知/推理/行动三栏（RQ1–3，第 4–7 章）→ RQ4 架构带 → 第 2/3/9 章 |
-| 3.1 | `fig:method:shift` | `ch-methodology/figures/shift_taxonomy.tex` | 四类偏移（感知/语义/行为/部署）→ 部署时症状 → 方法论杠杆 → 对应章节 |
-| 3.2 | `fig:method:cycle` | `ch-methodology/figures/research_cycle.tex` | benchmark-driven 研究循环六阶段，中心为 curse of reality，灰字为各阶段的代表作品 |
-| 3.3 | `fig:method:lineage` | `ch-methodology/figures/lineage.tex` | 18 篇论文谱系：横轴年份，纵向四条泳道（Perceive/Reason/Act/Architecture）+ 早期工作行；实线=基于，虚线=启发/对比 |
-| 3.4 | `fig:method:ladder` | `ch-methodology/figures/evaluation_ladder.tex` | 评测保真度阶梯 L0–L3 及各章所处层级 |
-| 3.5 | `fig:method:decision` | `ch-methodology/figures/lever_decision.tex` | 从现场失败到研究贡献的决策流程（6 个问题 → 6 个杠杆 → 评测与开放） |
-| 4.8 | `occnet:fig:openscene_usage` | `ch-occnet/occnet.tex` 中内联的 `tikzpicture`（约第 397 行） | OpenScene 与其下游用途 |
-| 8.1 | `fig:disc:anatomy` | `ch-discussion/figures/self_correcting.tex` | 自我纠错物理智能体的结构（表示/慢推理/快行动 + 能力监控 + 学习回路） |
+| 1.1 | `fig:intro:overview` | `ch-introduction/figures/thesis_overview.{pptx,pdf}` | 论文总览：现实世界 → 感知/推理/行动三栏（RQ1–3，第 4–7 章）→ RQ4 架构带 → 第 2/3/9 章 |
+| 3.1 | `fig:method:shift` | `ch-methodology/figures/shift_taxonomy.{pptx,pdf}` | 四类偏移（感知/语义/行为/部署）→ 部署时症状 → 方法论杠杆 → 对应章节 |
+| 3.2 | `fig:method:cycle` | `ch-methodology/figures/research_cycle.{pptx,pdf}` | benchmark-driven 研究循环六阶段，中心为 curse of reality，灰字为各阶段的代表作品 |
+| 3.3 | `fig:method:lineage` | `ch-methodology/figures/lineage.{pptx,pdf}` | 18 篇论文谱系：横轴年份，纵向四条泳道（Perceive/Reason/Act/Architecture）+ 早期工作行；实线=基于，虚线=启发/对比，箭头颜色=出发论文的泳道；深色粗外框=作者主导，右上角 ■=发布数据或基准 |
+| 3.4 | `fig:method:ladder` | `ch-methodology/figures/evaluation_ladder.{pptx,pdf}` | 评测保真度阶梯 L0–L3 及各章所处层级 |
+| 3.5 | `fig:method:decision` | `ch-methodology/figures/lever_decision.{pptx,pdf}` | 从现场失败到研究贡献的决策流程（6 个问题 → 6 个杠杆 → 评测与开放） |
+| 4.8 | `occnet:fig:openscene_usage` | `ch-occnet/figures/openscene_usage.{pptx,pdf}` | OpenScene 与其下游用途 |
+| 8.1 | `fig:disc:anatomy` | `ch-discussion/figures/self_correcting.{pptx,pdf}` | 自我纠错物理智能体的结构（表示/慢推理/快行动 + 能力监控 + 学习回路） |
 
-这些图在正文中通过 `\tikzfig[宽度]{路径}` 插入，例如 `ch-methodology/methodology.tex` 中的 `\tikzfig{ch-methodology/figures/research_cycle}`。
+这些图在正文中通过 `\includegraphics` 插入导出的 PDF，例如 `ch-methodology/methodology.tex` 中的 `\includegraphics[width=\textwidth]{ch-methodology/figures/research_cycle.pdf}`。PDF 按最终显示宽度导出，LaTeX 中基本不缩放：全宽图为 15.375 cm（`\textwidth`），3.4 为 `0.92\textwidth`，3.5 为 `0.86\textwidth`，4.8 按自然宽度（14.43 cm）插入。旧版 TikZ 源文件已删除，需要时可从 git 历史找回。
 
 ### 3.2 论文插图（PDF/JPG/PNG，来自已发表论文）
 
@@ -104,16 +104,15 @@
 
 ---
 
-## 4. 改 TikZ 流程图的规范
+## 4. 改 PPT 概念图的规范
 
-1. **只改 `figures/*.tex` 里的 `tikzpicture`**（第 4.8 图例外，它内联在 `ch-occnet/occnet.tex`）。图注（caption）和标签在引用它的章节文件里，内容变化时要同步改图注。
-2. **插入方式必须用 `\tikzfig[宽度]{路径}`**（定义在 `thesis_macros.tex`）。它会把图按单倍行距排版并缩放到给定宽度（默认 `\textwidth`，约 15.4 cm）。正文是 1.5 倍行距（`\linespread{1.5}`），直接 `\input` TikZ 会让节点文字行距变大、互相重叠。
-3. **字号**：文档是 12pt，`\scriptsize` = 8pt、`\tiny` = 6pt，比 10pt 文档大约 15%。画布宽度建议 13–18 cm，由 `\tikzfig` 缩放；画布越宽，最终字越小，缩放后有效字号不要低于约 6pt。节点文字放不下时，优先加宽 `text width` 或画布，而不是缩小字号。
-4. **颜色**（`thesis_macros.tex` 中定义，全篇统一）：`perceive`（蓝，感知）、`reason`（橙，推理）、`act`（绿，行动）、`arch`（紫，架构）、`bench`（灰蓝，基准/数据）、`reality`（红，现实世界）、`lightgray`、`earlier`、`legendgray`。
-   - 样式会在颜色后追加混色（如 `fill=#1!12`），所以**不要把 `black!60` 这类混合色直接传给样式**，会报 `Undefined color`。先 `\colorlet{新名字}{black!60}` 再使用。
-5. **可用的共享样式**：`box`、`pillar=颜色`、`stage=颜色`、`paper=颜色`、`firstauthor=颜色`、`benchmark`（虚线框）、`flow`（主箭头）、`dep`（细箭头）、`note`、`lane=颜色`、`decision`（菱形判断框）。已加载的库：`positioning, arrows.meta, shapes.geometric, shapes.misc, calc, fit, backgrounds, decorations.pathreplacing, decorations.pathmorphing`；另有 `pgfplots`（`compat=1.18`）。
-6. **章节号不要写死**：节点里用 `Chapter~\ref{ch:occnet}` 这类引用。各章标签为 `ch:intro, ch:background, ch:methodology, ch:occnet, ch:drivelm, ch:centaur, ch:kai0, ch:discussion, ch:conclusion`，附录为 `app:occnet, app:drivelm, app:centaur, app:kai0`。
-7. **合作作品标注**：凡图中出现作者参与但非主导的工作，名称后加 `$^{*}$`，并在图注中说明（现有图注写法：“Works marked $^{*}$ are co-authored rather than led by the author.”）。
+1. **PPTX 是唯一源文件**：在 PowerPoint 里打开 `figures/<名字>.pptx` 修改（形状、文字、箭头都是原生对象），然后“另存为 PDF”覆盖同目录的 `figures/<名字>.pdf`。不要改幻灯片尺寸：它等于图在论文里的显示宽度（见第 3.1 节）；确需改尺寸时同步改 `\includegraphics` 的宽度。图注（caption）和标签在引用它的章节文件里，内容变化时要同步改图注。
+2. **导出检查**：`python3 -c "import fitz;print(fitz.open('x.pdf')[0].rect)"`，宽度（pt）÷ 72 × 2.54 应等于显示宽度（cm）；字体要嵌入（PowerPoint 导出的 PDF 默认嵌入）。
+3. **视觉规范（v2）**：字体为等线（DengXian，Office 自带），数学符号用 Times New Roman 斜体，合作作品的星号用 Arial 的 `*`（等线的星号在字高中间）。组件：深色阶段标题（`#2F3B47`，白字）与灰色块状箭头、实色类别横幅、浅色卡片（约 9% 浅色填充、约 55% 浓度的细边框）配灰色 “Ch.” 标签、◆ 方法 / ■ 基准标记、圆形编号徽章、浅色标题条、圆角的回路箭头。
+4. **字号**：按最终尺寸，正文不小于 7 pt，标题 8–9.5 pt。文字放不下时优先加宽框或画布，而不是缩小字号（图 3.3 的论文胶囊为 6.5 pt，是唯一的例外）。
+5. **颜色**（与 `thesis_macros.tex` 一致，全篇统一，并已设为每个 PPTX 的主题色，在 PowerPoint 颜色菜单第一行可直接选）：`perceive` `#2F6DB5`（蓝，感知）、`reason` `#D9822B`（橙，推理）、`act` `#3C9D4E`（绿，行动）、`arch` `#7D4F9E`（紫，架构）、`bench` `#5A6B7B`（灰蓝，基准/数据）、`reality` `#B03A48`（红，现实世界）。
+6. **章节号写死在 PPT 里**（如 “Chapter 4”、“Ch. 6”），PPT 不能自动引用。章节顺序变化时要逐一改 PPT 并重新导出。
+7. **合作作品标注**：凡图中出现作者参与但非主导的工作，名称后加 `*`，并在图注中说明（现有图注写法：“Works marked $^{*}$ are co-authored rather than led by the author.”）。图 3.3 例外：用深色粗外框标出作者主导的工作。
 
 ---
 
@@ -154,14 +153,14 @@ bash tools/build_thesis.sh
    ```
 
    注意：**不要**用 `pdftotext` 输出整篇再按换页符 `\f` 切分来算页码，这样会错位约 6 页。
-3. 检查项：文字不溢出框、框与框不重叠、箭头不穿过其他框、缩放后文字清晰、配色与全篇一致、图注与图内容一致。
+3. 检查项：文字不溢出框、框与框不重叠、箭头不穿过其他框、文字清晰（不小于 7 pt）、配色与全篇一致、图注与图内容一致。
 4. 若改了图注或标签，确认 List of Figures（目录后的图目录）里的短图注（`\caption[短图注]{长图注}`）同步更新。
 
 ---
 
 ## 8. 提交
 
-- 只提交与图有关的改动（`figures/*.tex`、`images/*`、以及对应章节中的图注），提交信息写清楚改了哪张图，例如：`Revise Fig. 3.3 (lineage): move ETA to Architecture lane`。
+- 只提交与图有关的改动（`figures/*.pptx` 与 `figures/*.pdf`、`images/*`、以及对应章节中的图注），提交信息写清楚改了哪张图，例如：`Revise Fig. 3.3 (lineage): move ETA to Architecture lane`。
 - 在其他机器：`git add -A && git commit -m "..." && git push origin main`（需要写权限）；或在 Overleaf 修改后 Push 到 GitHub。
 - 在作者开发机：提交后可等待守护进程下一轮自动推送，或执行 `tools/thesis_sync.sh once` 立即同步（同时更新 HDFS 上的 PDF）。
 - 不要修改：`Classes_final/`、`Preamble_final/`、`thesis_macros.tex` 中已有的颜色和样式定义（可以新增）、`references.bib`、各章正文（除图注外）、`tools/`。确有必要时，先在提交说明里写明原因。
