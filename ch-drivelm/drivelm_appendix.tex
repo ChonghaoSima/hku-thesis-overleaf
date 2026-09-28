@@ -1,6 +1,6 @@
 \chapter{Supplementary Material for Chapter~\ref{ch:drivelm}}\label{app:drivelm}
 
-This appendix supplements Chapter~\ref{ch:drivelm}. Section~\ref{drivelm:app:questions} discusses motivating questions that may arise from the chapter. Sections~\ref{drivelm:app:nuscenes} and~\ref{drivelm:app:carla} detail the composition, collection and statistics of DriveLM-nuScenes and DriveLM-CARLA, including the PDM-Lite expert. Section~\ref{drivelm:app:metrics} defines DriveLM-Metrics, and Section~\ref{drivelm:app:agent} describes the context scheme and the trajectory tokenisation of DriveLM-Agent. Section~\ref{drivelm:app:exp} gives implementation details and additional experiments, Section~\ref{drivelm:app:qualitative} shows qualitative results, and Section~\ref{drivelm:app:impact} discusses the broader impact of the work.
+This appendix supplements Chapter~\ref{ch:drivelm}. Section~\ref{drivelm:app:questions} discusses motivating questions that may arise from the chapter. Sections~\ref{drivelm:app:nuscenes} and~\ref{drivelm:app:carla} detail the composition, collection and statistics of DriveLM-nuScenes and DriveLM-CARLA, including the PDM-Lite expert. Section~\ref{drivelm:app:metrics} defines DriveLM-Metrics, and Section~\ref{drivelm:app:agent} describes the context scheme and the trajectory tokenisation of DriveLM-Agent. Section~\ref{drivelm:app:exp} gives implementation details and additional experiments, and Section~\ref{drivelm:app:impact} discusses the broader impact of the work. Prompt templates, question templates and qualitative examples are available in the original paper~\cite{sima2024drivelm} and its repository.
 
 \section{Motivating Questions}\label{drivelm:app:questions}
 
@@ -103,23 +103,11 @@ There are two sets of questions: factual questions and open-ended questions. The
 Besides establishing clear criteria and applying automatic checks at each annotation step, we conduct rigorous manual quality checks. The final data are organised into batches, each comprising 8 video clips together with their scene-level descriptions, the key frames and key objects selected from these clips, and the QAs of each key frame. Quality inspectors receive explicit standards on which to base their assessment of data eligibility. For manually annotated data, if the accuracy of the annotations in a batch falls below expectations, we compile feedback on the issues encountered and ask the annotators to re-annotate the entire batch. For data generated from the ground truth, the inspectors manually adjust inconsistent or unreasonable QAs.
 
 \paragraph{Post-processing.}
-Because the annotators are Chinese speakers, the labelled data are translated into English. We first establish mappings between Chinese and English with a vocabulary. Texts that cannot be mapped are translated with GPT-3.5, and the GPT outputs are then checked and corrected manually. We also provide a version augmented by GPT-3.5, using the prompt in Table~\ref{drivelm:tab:refine}.
-
-\begin{table}[t]
-  \centering
-  \caption[Prompt for the GPT-refined version of DriveLM-nuScenes]{\textbf{Prompt for the GPT-refined version of DriveLM-nuScenes.} This pattern was selected from 50 different prompts to perform the refinement.}
-  \label{drivelm:tab:refine}
-  \begin{tcolorbox}[colback=gray!10, colframe=black, width=\linewidth, arc=1mm, auto outer arc, boxrule=0.5pt, fontupper=\small]
-    \raggedright
-    \texttt{\textcolor{blue}{Messages} = [}\par\smallskip
-    \texttt{\{"role": "system", "content": f"""}You are an English improver.\texttt{"""\},}\par\smallskip
-    \texttt{\{"role": "user", "content": f"""}I have a question and answer that I need you to help me modify and embellish, please make a few simple changes to the content in written language and keep the meaning same, you only need to answer the changes to: \texttt{\{\textcolor{blue}{QA}\}"""\}]}
-  \end{tcolorbox}
-\end{table}
+Because the annotators are Chinese speakers, the labelled data are translated into English. We first establish mappings between Chinese and English with a vocabulary. Texts that cannot be mapped are translated with GPT-3.5, and the GPT outputs are then checked and corrected manually. We also provide a version whose language is refined by GPT-3.5; the prompt is given in the original paper~\cite{sima2024drivelm}.
 
 \subsection{Statistics}\label{drivelm:app:nus_stats}
 
-This section analyses the distribution of the QA categories of DriveLM-nuScenes at the task level and at the object level, and lists templates for all QAs at the task level. The results show the richness of the QA categories, which cover various aspects of autonomous driving, and an abundance of logical relationships sufficient to construct graph-structured QAs.
+This section analyses the distribution of the QA categories of DriveLM-nuScenes at the task level and at the object level. The results show the richness of the QA categories, which cover various aspects of autonomous driving, and an abundance of logical relationships sufficient to construct graph-structured QAs.
 
 \begin{figure}[t]
   \centering
@@ -136,175 +124,7 @@ This section analyses the distribution of the QA categories of DriveLM-nuScenes 
 \end{figure}
 
 \paragraph{Task level.}
-DriveLM-nuScenes forms a benchmark that encompasses various aspects of autonomous driving and connects all stages of human driving logic. Fig.~\ref{drivelm:fig:data_distribution} and Fig.~\ref{drivelm:fig:nus_statis} show the distribution of question types at the task level, and Table~\ref{drivelm:tab:nus_qa} gives example QA templates for all $P_{1-3}$ stages.
-
-\medskip\noindent\begin{minipage}{\linewidth}
-  \captionof{table}[Question templates of DriveLM-nuScenes]{\textbf{Question templates of DriveLM-nuScenes at the task level.} The categories correspond to those in Fig.~\ref{drivelm:fig:nus_statis}.}
-  \label{drivelm:tab:nus_qa}
-\end{minipage}
-\nopagebreak
-\begin{tcolorbox}[breakable, enhanced, before skip=2pt, colback=gray!10, colframe=black, arc=1mm, boxrule=0.5pt, fontupper=\small\linespread{1.05}\selectfont, parbox=false, before upper={\raggedright\setlength{\parskip}{3pt}}]
-\textcolor{blue}{\textbf{Perception}}
-
-\textcolor{blue}{Surrounding Objects Identify}
-
-Q: Please describe the current scene.\\
-A: There are two moving cars behind the ego car and two barriers in front of it.
-
-Q: What are objects to the front left/back right/\ldots{} of the ego car?\\
-A: There are two barriers to the front left of the ego car.
-
-Q: Are there traffic cones/moving cars/\ldots{} to the front right/back left/\ldots{} of the ego car?\\
-A: No.
-
-\textcolor{blue}{Traffic Elements Identify}
-
-Q: Is there any traffic element in the front view?\\
-A: Yes, there are some traffic elements in the front view.
-
-Q: Identify all the traffic elements in the front view, categorize them, determine their status, and predict the bounding box around each one. The output should be a list formatted as (c, s, x1, y1, x2, y2), where c represents the category, s denotes the status, and x1, y1, x2, y2 are the offsets of the top-left and bottom-right corners of the box relative to the center point.\\
-A: There are three traffic elements in the front view. The information of these traffic elements are [(road sign, go straight, 907.58, 590.67, 992.54, 630.95)\ldots].
-
-\textcolor{blue}{Important Objects Identify}
-
-Q: What are the important objects in the current scene? Those objects will be considered for the future reasoning and driving decision.\\
-A: There is a parked truck to the back of the ego car\ldots{} The ids of these objects are <c1,CAM\_BACK,827.5,484.2>\ldots
-
-Q: What is the relative positioning of the important objects in the current scene?\\
-A: <c3,CAM\_FRONT,689.2,527.5> is to the front of <c1,CAM\_BACK,827.5,484.2>\ldots
-
-Q: Which lanes are each important object on in the scene?\\
-A: <c2,CAM\_FRONT,820.8,473.3> is on the ego lane\ldots
-
-\textcolor{blue}{Visual Description}
-
-Q: What is the visual description of <c2,CAM\_FRONT\_LEFT,415.8,580.8>/\ldots?\\
-A: Pedestrian riding a bicycle.
-
-\textcolor{blue}{Motion State}
-
-Q: What is the status of the cars/pedestrians/\ldots{} that are to the front/front right/\ldots{} of the ego car?\\
-A: Many cars are parked.
-
-Q: What is the observed status of object <c1,CAM\_FRONT,920.0,509.2>/\ldots?\\
-A: Moving.
-
-Q: What is the moving status of object <c1,CAM\_FRONT,920.0,509.2>/\ldots?\\
-A: Going ahead.
-
-\textcolor{blue}{\textbf{Prediction}}
-
-\textcolor{blue}{Visual Occlusion}
-
-Q: Which object is most likely to be occluded by <c1,CAM\_FRONT,707.5,472.5>/\ldots? Would this object affect the ego vehicle? Based on this object, what action of the ego vehicle is dangerous?\\
-A: The object in front of <c1,CAM\_FRONT,840.8,507.5>, yes, accelerating forward.
-
-\textcolor{blue}{Logical Sequence}
-
-Q: What object should the ego vehicle notice first when the ego vehicle is getting to the next possible location? What is the state of the object that is first noticed by the ego vehicle and what action should the ego vehicle take? What object should the ego vehicle notice second when the ego vehicle is getting to the next possible location? What is the state of the object perceived by the ego vehicle as second and what action should the ego vehicle take? What object should the ego vehicle notice third? What is the state of the object perceived by the ego vehicle as third and what action should the ego vehicle take?\\
-A: Firstly notice that <c2,CAM\_FRONT,514.7,462.2>, the state of it is traffic sign, so the ego vehicle should slow down and go ahead. Secondly notice that <c3,CAM\_FRONT,950.3,613.1>, the state of it is traffic sign, so the ego vehicle should slow down and go ahead. Thirdly notice that <c1,CAM\_FRONT,707.5,472.5>, the state of it is going ahead, so the ego vehicle should slow down and go ahead.
-
-\textcolor{blue}{Motion Prediction}
-
-Q: Would <c1,CAM\_FRONT,920.0,509.2>/\ldots{} be in the moving direction of the ego vehicle?\\
-A: Yes.
-
-Q: What is the future state of <c1,CAM\_FRONT,920.0,509.2>/\ldots?\\
-A: Keep going straight.
-
-Q: Will <c2,CAM\_FRONT,1223.3,598.3>/\ldots{} be in the moving direction of <c1,CAM\_BACK,514.2,503.3>/\ldots?\\
-A: No.
-
-\textcolor{blue}{Object Interaction}
-
-Q: Will <c2,CAM\_FRONT,1223.3,598.3>/\ldots{} change its motion state based on <c1,CAM\_BACK,514.2,503.3>/\ldots?\\
-A: No.
-
-Q: Based on the observations of <c1,CAM\_BACK,514.2,503.3>/\ldots, what are possible actions to be taken by <c2,CAM\_FRONT,1223.3,598.3>/\ldots? What is the reason?\\
-A: The action is to keep going at the same speed, the reason is there is no safety issue.
-
-Q: Based on the observation of <c4,CAM\_FRONT,1071.2,346.2>/\ldots, what actions may <c1,CAM\_FRONT,1126.7,515.0>/\ldots{} take?\\
-A: The action is to keep going at the same speed, the reason is there is no safety issue.
-
-\textcolor{blue}{Possible Attention}
-
-Q: In this scenario, what object is most likely to consider <c3,CAM\_FRONT,400.1,717.2>/\ldots?\\
-A: The ego vehicle.
-
-Q: Would <c1,CAM\_BACK,514.2,503.3>/\ldots{} take <c3,CAM\_FRONT,400.1,717.2>/\ldots{} into account?\\
-A: No.
-
-Q: What object would consider <c1,CAM\_FRONT,985.8,516.7>/\ldots{} to be most relevant to its decision?\\
-A: The ego vehicle.
-
-Q: Except for the ego vehicle, what object would consider <c1,CAM\_FRONT,985.8,516.7>/\ldots{} to be most relevant to its decision?\\
-A: <c2,CAM\_FRONT,1217.5,511.7>.
-
-\textcolor{blue}{Signal Meaning}
-
-Q: What does <c2,CAM\_BACK\_LEFT,400.8,654.2>/\ldots{} mean?\\
-A: No entry.
-
-Q: What kind of traffic sign is <c2,CAM\_BACK\_LEFT,400.8,654.2>/\ldots?\\
-A: Traffic cone.
-
-\textcolor{blue}{\textbf{Planning}}
-
-\textcolor{blue}{Safe/Unsafe Action}
-
-Q: In this scenario, what are safe actions to take for the ego vehicle?\\
-A: Decelerate gradually without braking, keep going at the same speed.
-
-Q: In this scenario, what are dangerous actions to take for the ego vehicle?\\
-A: Accelerate and go ahead, brake suddenly, drive backward, turn right.
-
-\textcolor{blue}{Importance Ranking}
-
-Q: What is the priority of the objects that the ego vehicle should consider? (in descending order)\\
-A: <c2,CAM\_FRONT,514.7,462.2>, <c3,CAM\_FRONT,950.3,613.1>, <c1,CAM\_FRONT,707.5,472.5>.
-
-\textcolor{blue}{Goal Action}
-
-Q: What is the target action of the ego vehicle?\\
-A: Go straight.
-
-\textcolor{blue}{Planning and Reasoning}
-
-Q: What actions could the ego vehicle take based on <c1,CAM\_FRONT,920.0,509.2>/\ldots? Why take this action and what's the probability?\\
-A: The action is to decelerate gradually without braking, the reason is to keep a safe distance, high.
-
-Q: Based on <c3,CAM\_FRONT,1591.1,441.8>/\ldots{} in this scene, what is the most possible action of the ego vehicle?\\
-A: Decelerate gradually without braking.
-
-\textcolor{blue}{Possible Collision}
-
-Q: What is the probability of colliding with <c1,CAM\_FRONT,920.0,509.2>/\ldots{} after the ego vehicle goes straight and keeps the same speed/accelerates and goes straight/\ldots?\\
-A: Low.
-
-Q: What actions taken by the ego vehicle can lead to a collision with <c1,CAM\_FRONT,920.0,509.2>/\ldots?\\
-A: Accelerate and go straight.
-
-\textcolor{blue}{Ego Attention}
-
-Q: What is the traffic signal that the ego vehicle should pay attention to?\\
-A: None.
-
-Q: Is <c1,CAM\_FRONT,920.0,509.2>/\ldots{} an object that the ego vehicle should consider in the current scene?\\
-A: Yes.
-
-Q: Is it necessary for the ego vehicle to take <c3,CAM\_FRONT,400.1,717.2>/\ldots{} into account?\\
-A: Yes.
-
-\textcolor{blue}{Free-form QA/Comment}
-
-Q: What impact does this situation have on driving vehicles?\\
-A: The road scene is complex, please slow down.
-
-Q: What's your comment on this scene?\\
-A: Pedestrians at the intersection, please be careful and give way.
-
-\ldots
-\end{tcolorbox}
+DriveLM-nuScenes forms a benchmark that encompasses various aspects of autonomous driving and connects all stages of human driving logic. Fig.~\ref{drivelm:fig:data_distribution} and Fig.~\ref{drivelm:fig:nus_statis} show the distribution of question types at the task level.
 
 \paragraph{Object level.}
 Since the QAs in DriveLM-nuScenes revolve around key objects, we also compute statistics at the object level. Fig.~\ref{drivelm:fig:nus_obj_stats} (left) shows the distribution of key object types. Because the questions associated with traffic elements differ substantially from those of the other categories, the statistics of QA types are computed separately for traffic elements and for the remaining categories (Fig.~\ref{drivelm:fig:nus_obj_stats}, right).
@@ -335,55 +155,7 @@ Generating the data in the CARLA simulator allows scalable annotations without a
 
 \subsection{Expert Algorithm: PDM-Lite}\label{drivelm:app:pdm}
 
-Previous CARLA experts, such as the privileged rule-based expert used by TransFuser++~\cite{jaeger2023hidden}, can only solve the scenarios implemented in CARLA Leaderboard 1.0. PDM-Lite, a rule-based expert developed for this purpose by Bei{\ss}wenger~\cite{beisswenger2024pdmlite}, is designed to tackle all 38 scenarios of Leaderboard 2.0. It consists of six stages, summarised in Fig.~\ref{drivelm:fig:pdm_lite} and below; the full description is given in~\cite{beisswenger2024pdmlite}.
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{ch-drivelm/images/PDM-Lite.png}
-  \caption[The six stages of PDM-Lite]{\textbf{PDM-Lite}~\cite{beisswenger2024pdmlite}. The rule-based planner used to generate DriveLM-CARLA, designed to handle all 38 scenarios of CARLA Leaderboard 2.0, has six stages, detailed in Appendix~\ref{drivelm:app:pdm}.}
-  \label{drivelm:fig:pdm_lite}
-\end{figure}
-
-\paragraph{Path planning.}
-\begin{sloppypar}
-First, PDM-Lite creates a dense path of spatially equidistant points with an A* planning algorithm, given sparse target points (up to 200\,m apart) from the leaderboard module. The plan is based on the HD map of the town provided by CARLA. Information such as speed limits and distances to the next traffic light or stop sign is added to the different sections of the route to be traversed. To handle scenarios that require leaving the default path, a short segment of the route where the scenario will be spawned is shifted laterally towards an adjacent lane. Examples of such scenarios are \mbox{\emph{Accident}}, \mbox{\emph{ConstructionObstacle}}, \mbox{\emph{ParkedObstacle}}, \mbox{\emph{VehicleOpensDoor}}, \mbox{\emph{AccidentTwoWays}}, \mbox{\emph{ConstructionObstacleTwoWays}}, \mbox{\emph{ParkedObstacleTwoWays}}, \mbox{\emph{VehicleOpensDoorTwoWays}} and \mbox{\emph{YieldToEmergencyVehicle}}.
-\end{sloppypar}
-
-\paragraph{Agent forecasting.}
-PDM-Lite forecasts the dynamic agents over a horizon of 2\,s with a temporal resolution of 20\,Hz. Since the paths and controls of the other actors are not known in advance, PDM-Lite assumes that they maintain their previous controls and apply similar ones in the near future. Using a kinematic bicycle model with parameters taken from~\cite{Chen2021ICCVa}, PDM-Lite forecasts the motion of the other agents under this constant-action assumption, similar to the expert of~\cite{jaeger2023hidden}. Only actors closer than 50\,m to the ego agent are forecast.
-
-\paragraph{IDM target speed.}
-A target speed proposal is generated with the Intelligent Driver Model~\cite{treiber2000idm}. While the original IDM selects only one vehicle as the leading actor, PDM-Lite applies it iteratively to all vehicles, pedestrians, non-green traffic lights and stop signs that intersect the path ahead of the ego vehicle. Once the leading actors are selected, a target speed is determined for each of them using the parameters summarised in Table~\ref{drivelm:tab:pdm}. The minimum of these speeds is the final target speed proposal for that time step.
-
-\begin{table}[t]
-  \centering
-  \caption[IDM parameters of PDM-Lite]{\textbf{Target speed proposal by IDM.} PDM-Lite uses IDM to select a target speed. The parameters for the desired net distance and the desired time headway differ with the type of the leading actor: vehicles, bicycles / stop signs / traffic lights / walkers / static objects (\eg, construction signs).}
-  \label{drivelm:tab:pdm}
-  \begin{adjustbox}{max width=\textwidth}
-  \begin{tabular}{l|l|l}
-    \toprule
-    \textbf{Parameter} & \textbf{Value} & \textbf{Description} \\
-    \midrule
-    $v_0$ & $0.72\,v_\textrm{lane}$ & Desired velocity: 72\% of the speed limit \\
-    $s_0$ & $4.0$/$2.0$/$6.0$/$4.0$/$2.0$\,m & Desired net distance to the leading agent \\
-    $T$ & $0.25$/$0.1$/$0.1$/$0.1$/$0.1$\,s & Desired time headway to the leading agent \\
-    $a$ & $24.0\,\textrm{m\,s}^{-2}$ & Maximum acceleration of the ego vehicle \\
-    $b_{v \leq 6.02}$ & $8.7\,\textrm{m\,s}^{-2}$ & Maximum deceleration of the ego vehicle if $v \leq 6.02$ \\
-    $b_{v > 6.02}$ & $3.72\,\textrm{m\,s}^{-2}$ & Maximum deceleration of the ego vehicle if $v > 6.02$ \\
-    $\delta$ & $4.0$ & Acceleration exponent \\
-    \bottomrule
-  \end{tabular}
-  \end{adjustbox}
-\end{table}
-
-\paragraph{Simulation.}
-The trajectory with the proposed target speed is simulated for 2\,s at 20\,Hz by alternately applying the longitudinal controller (described below) and a kinematic bicycle model. The proposal is thereby converted into an expected sequence of ego-vehicle bounding boxes in closed loop.
-
-\paragraph{Scoring.}
-Having forecast the bounding boxes of all actors, PDM-Lite checks for intersections between the bounding boxes of the simulated ego vehicle and those of other vehicles, and scores the motion of the ego vehicle accordingly: if an intersection with a non-leading and non-rear-end vehicle is detected, the IDM target speed proposal is rejected and the target speed is set to zero.
-
-\paragraph{Controllers.}
-Controlling the vehicle requires three values: steering, throttle and brake. The steering value can be estimated directly from the location, velocity and path of the ego vehicle. PDM-Lite uses a lateral PID controller for this, similar to~\cite{jaeger2023hidden}, which minimises the angle to a selected point along the path ahead. For throttle and brake, it employs a linear regression model on features extracted from the current speed and the target speed.
+Previous CARLA experts, such as the privileged rule-based expert used by TransFuser++~\cite{jaeger2023hidden}, can only solve the scenarios implemented in CARLA Leaderboard 1.0. PDM-Lite, a rule-based expert developed for this purpose by Bei{\ss}wenger~\cite{beisswenger2024pdmlite}, is designed to tackle all 38 scenarios of Leaderboard 2.0. It consists of six stages, from path planning and the forecasting of other agents to the selection of a target speed with the intelligent driver model and the control of the vehicle, which are described in full in~\cite{beisswenger2024pdmlite}.
 
 \paragraph{Results.}
 The performance of PDM-Lite is evaluated on the 20 official validation routes of Leaderboard 2.0. Table~\ref{drivelm:tab:pdm_results} presents the results of evaluations with three different seeds. Routes 0--9 and 10--19 are identical except for the weather conditions, which provides an additional measure of performance variance. Since PDM-Lite uses privileged information, its variance in performance is not due to the different weather parameters but to the random initialisation of the surrounding traffic.
@@ -471,19 +243,7 @@ CIDEr~\cite{vedantam2015cider} combines elements of BLEU and of vector space mod
 SPICE~\cite{anderson2016spice} first parses the text into a syntactic dependency tree with a probabilistic context-free grammar~\cite{jelinek1992basic}, and then maps the dependency tree to a scene graph with rules. The scene graph describes the objects, attributes and relationships in the text, and the SPICE score is the F-score between the scene graphs of the prediction and of the ground truth.
 
 \paragraph{GPT Score.}
-The GPT Score is provided by ChatGPT. Traditional metrics mainly assess performance at the word level and may miss semantic nuances, which can yield unexpected evaluation outcomes. Leveraging the reasoning capabilities of ChatGPT, we use it to gauge the quality of predictions and derive a more rational score. ChatGPT is prompted to assign a numerical score between 0 and 100, with higher scores indicating more accurate predictions. The prompt used for the GPT Score is shown in Table~\ref{drivelm:tab:gpt_score}.
-
-\begin{table}[t]
-  \centering
-  \caption[Prompt for the GPT Score]{\textbf{Prompt for the GPT Score.} It differs from the prompt used in DriveGPT4~\cite{xu2024drivegpt4}, but the resulting score is similar.}
-  \label{drivelm:tab:gpt_score}
-  \begin{tcolorbox}[colback=gray!10, colframe=black, width=\linewidth, arc=1mm, auto outer arc, boxrule=0.5pt, fontupper=\small]
-    \raggedright
-    \texttt{\textcolor{blue}{Messages} = [}\par\smallskip
-    \texttt{\{"role": "system", "content": f"""}An evaluator who rates my answer based on the correct answer.\texttt{"""\},}\par\smallskip
-    \texttt{\{"role": "user", "content": f"""}Rate my answer based on the correct answer out of 100, with higher scores indicating that the answer is closer to the correct answer, and you should be accurate to single digits like 62, 78, 41, etc. This is the correct answer: \texttt{\{\textcolor{blue}{GT}\}}. This is my answer: \texttt{\{\textcolor{blue}{Pred}\}}.\texttt{"""\}]}
-  \end{tcolorbox}
-\end{table}
+The GPT Score is provided by ChatGPT. Traditional metrics mainly assess performance at the word level and may miss semantic nuances, which can yield unexpected evaluation outcomes. Leveraging the reasoning capabilities of ChatGPT, we use it to gauge the quality of predictions and derive a more rational score. ChatGPT is prompted to assign a numerical score between 0 and 100, with higher scores indicating more accurate predictions. The model is asked to rate a predicted answer against the ground-truth answer on a scale from 0 to 100; the exact prompt is given in the original paper~\cite{sima2024drivelm}.
 
 \paragraph{Completeness.}
 The Completeness score accounts for how many of the ground-truth questions associated with a frame are answered correctly. For each QA, if the score of the predicted answer is above a threshold, the QA is considered ``correctly answered'' and counts as a correct prediction; otherwise it counts as an incorrect prediction. We then compute the accuracy, \ie, the ratio of the number of correct predictions to the total number of predictions. In our setting, we use the SPICE score with a threshold of 0.5.
@@ -540,13 +300,13 @@ This section gives the implementation details of the experiments in Section~\ref
 We set the learning rate to 0.0001, use no learning-rate scheduler, set the random seed to 1234, and otherwise follow the default LoRA~\cite{hu2021lora} configuration. For BLIP-2, we use a maximum sequence length of 400; all other hyperparameters are those of the official BLIP-2 implementation.
 
 \paragraph{Experiments on DriveLM-nuScenes.}
-This setting applies to Sections~\ref{drivelm:sec:exp_arch}, \ref{drivelm:sec:exp_question_wise} and~\ref{drivelm:sec:exp_vqa}. During training, all QAs of a frame are used as input, and a subset of them have context (the questions of $P_2$, $P_3$, $B$ and $M$). The contexts are extracted from the ground truth, following the teacher-forcing setting~\cite{lamb2016professor,toomarian1992learning} generally adopted in recurrent networks. At inference, because of the varying complexity of the scenarios, the number of $P_{1-3}$ QAs per frame is highly imbalanced across the dataset, with a variance of over 260 on DriveLM-nuScenes. To balance its impact, we compute the GVQA scores on only a subset of the QAs associated with each frame. To extract this subset, we design a set of QA patterns for each stage based on the questions generally associated with that stage, and ensure that every validation frame has at least one question matching the pattern in each stage. Except for the questions of stage $P_1$, all questions receive context from the QAs of the previous stage, whose answers are derived from the predictions of the preceding steps. Fig.~\ref{drivelm:fig:nus_detailed_results} and Fig.~\ref{drivelm:fig:nus_results} show two examples of the resulting graph structure.
+This setting applies to Sections~\ref{drivelm:sec:exp_arch}, \ref{drivelm:sec:exp_question_wise} and~\ref{drivelm:sec:exp_vqa}. During training, all QAs of a frame are used as input, and a subset of them have context (the questions of $P_2$, $P_3$, $B$ and $M$). The contexts are extracted from the ground truth, following the teacher-forcing setting~\cite{lamb2016professor,toomarian1992learning} generally adopted in recurrent networks. At inference, because of the varying complexity of the scenarios, the number of $P_{1-3}$ QAs per frame is highly imbalanced across the dataset, with a variance of over 260 on DriveLM-nuScenes. To balance its impact, we compute the GVQA scores on only a subset of the QAs associated with each frame. To extract this subset, we design a set of QA patterns for each stage based on the questions generally associated with that stage, and ensure that every validation frame has at least one question matching the pattern in each stage. Except for the questions of stage $P_1$, all questions receive context from the QAs of the previous stage, whose answers are derived from the predictions of the preceding steps. 
 
 \paragraph{Experiment on Waymo.}
-This setting applies to Section~\ref{drivelm:sec:exp_waymo}. The model is trained with the same scheme as above on the \texttt{train} split of DriveLM-nuScenes. Since Waymo has no annotations (not even questions), the questions at inference are devised with rules. Specifically, we reuse the general-purpose perception questions of DriveLM-nuScenes as the starting questions for Waymo. We then check whether the answers mention objects that also occur in the DriveLM-nuScenes annotations, such as ``pedestrians'', ``cars'' or ``trucks'', and automatically generate questions about these matched objects, which serve as the subsequent questions of the prediction and planning stages. Fig.~\ref{drivelm:fig:waymo_results} shows an example of the resulting graph structure.
+This setting applies to Section~\ref{drivelm:sec:exp_waymo}. The model is trained with the same scheme as above on the \texttt{train} split of DriveLM-nuScenes. Since Waymo has no annotations (not even questions), the questions at inference are devised with rules. Specifically, we reuse the general-purpose perception questions of DriveLM-nuScenes as the starting questions for Waymo. We then check whether the answers mention objects that also occur in the DriveLM-nuScenes annotations, such as ``pedestrians'', ``cars'' or ``trucks'', and automatically generate questions about these matched objects, which serve as the subsequent questions of the prediction and planning stages. 
 
 \paragraph{Experiment on DriveLM-CARLA-ped.}
-For the generalisation experiment of Section~\ref{drivelm:sec:exp_carla}, two new questions are added to the graph: (1) \emph{Is there a person in the scene?} and (2), if the answer to the first question is yes, \emph{What should the vehicle do based on the pedestrian that is crossing the road?}, or otherwise \emph{What should the ego vehicle do?}. The answer to the second question is concatenated to the context of the final behaviour question. Fig.~\ref{drivelm:fig:carla_resultsPed} shows three examples.
+For the generalisation experiment of Section~\ref{drivelm:sec:exp_carla}, two new questions are added to the graph: (1) \emph{Is there a person in the scene?} and (2), if the answer to the first question is yes, \emph{What should the vehicle do based on the pedestrian that is crossing the road?}, or otherwise \emph{What should the ego vehicle do?}. The answer to the second question is concatenated to the context of the final behaviour question. 
 
 \subsection{Results with More VQA Metrics}\label{drivelm:app:vqa_metrics}
 
@@ -633,61 +393,6 @@ Because of the large variety of question types in DriveLM-nuScenes, analysing ea
 \subsection{Computational Complexity}\label{drivelm:app:complexity}
 
 Table~\ref{drivelm:tab:latency} compares the computational complexity of DriveLM-Agent with that of UniAD-Single. A future direction is to cache the vision tokens and to batch the different question patterns, which could fundamentally speed up inference.
-
-\section{Qualitative Results}\label{drivelm:app:qualitative}
-
-This section shows qualitative results of VQA on DriveLM-nuScenes, of generalisation across sensor configurations on Waymo, and of generalisation to unseen objects on DriveLM-CARLA.
-
-\subsection{DriveLM-nuScenes}\label{drivelm:app:qual_nus}
-
-Fig.~\ref{drivelm:fig:nus_detailed_results} shows a detailed example of the GVQA reasoning process on DriveLM-nuScenes, covering the $P_{1-3}$ QAs and the behaviour task. It compares the predicted answers with the ground truth and gives their SPICE and GPT scores. The second question of the prediction stage represents a typical error: with single-frame input, the model often struggles to determine the correct movement status of objects, a judgement that is challenging even for humans. Fig.~\ref{drivelm:fig:nus_results} presents further qualitative results.
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{ch-drivelm/images/nus_detailed_results.pdf}
-  \caption[Detailed qualitative results on DriveLM-nuScenes]{\textbf{Detailed qualitative results on DriveLM-nuScenes.} The graph prompting process can be divided into different tasks, and different QAs within each task revolve around different objects.}
-  \label{drivelm:fig:nus_detailed_results}
-\end{figure}
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{ch-drivelm/images/supp-vis-drivelm_1.pdf}
-  \caption[More qualitative results on DriveLM-nuScenes]{\textbf{More qualitative results on DriveLM-nuScenes.} The examples illustrate the ability of DriveLM-Agent to perform VQA in driving scenarios.}
-  \label{drivelm:fig:nus_results}
-\end{figure}
-
-\subsection{Waymo}\label{drivelm:app:qual_waymo}
-
-Fig.~\ref{drivelm:fig:waymo_results} shows the results of the model trained on DriveLM-nuScenes when applied to Waymo, illustrating generalisation across sensor configurations. Since Waymo has no DriveLM annotations, the questions are defined as described in Appendix~\ref{drivelm:app:impl}, and no ground truth is available.
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{ch-drivelm/images/supp-vis-drivelm_2.pdf}
-  \caption[Qualitative results on Waymo]{\textbf{Qualitative results on Waymo.} Two examples show how DriveLM-Agent generalises to a new sensor configuration.}
-  \label{drivelm:fig:waymo_results}
-\end{figure}
-
-\subsection{DriveLM-CARLA}\label{drivelm:app:qual_carla}
-
-\paragraph{Generalisation to the unseen pedestrian scenario.}
-Fig.~\ref{drivelm:fig:carla_resultsPed} shows the generated behaviours on the generalisation test set with pedestrians. The first example, at the top, is a success: DriveLM-Agent recognises the pedestrian and infers the appropriate action, which in this case is to stop the vehicle. The behaviour stage interprets this context correctly, and the ego vehicle comes to a complete stop. The other two examples show the predominant failure modes of DriveLM-Agent in scenarios with pedestrians. In the middle example, the model still detects the pedestrian but fails to translate this detection into the correct behaviour. The bottom example shows a more severe limitation: the model completely overlooks the pedestrian and acts as if it did not exist, executing no evasive or stopping manoeuvre, which would pose a significant risk in the real world.
-
-\paragraph{Graph visual question answering.}
-Fig.~\ref{drivelm:fig:carla_resultsQA} shows two GVQA examples on DriveLM-CARLA; only a subset of the evaluated questions is shown. In the first example, the ego vehicle drives behind another vehicle, and the primary task is to follow the road and adapt the speed to the leading vehicle. DriveLM-Agent shows proficient scene understanding and identifies all important objects in the scene. Although the ground truth reveals that the CARLA simulator occasionally labels object colours incorrectly, DriveLM-Agent maintains reliable object recognition. The model also identifies the vehicle in front and reasons about what to do based on it. The second example takes place at an intersection regulated by a stop sign. DriveLM-Agent identifies all objects and reasons about the situation: it correctly determines that it must stop, not simply because of the stop sign but primarily because of a motorcycle positioned ahead. This suggests that DriveLM-Agent can prioritise dynamic obstacles over traffic control devices in some circumstances.
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=0.9\linewidth]{ch-drivelm/images/carla_supp_2.pdf}
-  \caption[Qualitative results on DriveLM-CARLA-ped]{\textbf{Qualitative results on the generalisation test set of DriveLM-CARLA.} Three examples of DriveLM-Agent in the pedestrian scenario. The first example shows a success case, and the second and third show two common failure cases of the model.}
-  \label{drivelm:fig:carla_resultsPed}
-\end{figure}
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=0.9\linewidth]{ch-drivelm/images/carla_supp_1.pdf}
-  \caption[Qualitative VQA results on DriveLM-CARLA]{\textbf{Qualitative VQA results on DriveLM-CARLA.} The first example shows how DriveLM-Agent deals with a vehicle directly in front of the ego vehicle. The second example shows an intersection with a stop sign and other traffic participants waiting in front of the ego vehicle at the stop sign.}
-  \label{drivelm:fig:carla_resultsQA}
-\end{figure}
 
 \section{Broader Impact}\label{drivelm:app:impact}
 
