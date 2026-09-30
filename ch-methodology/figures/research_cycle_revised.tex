@@ -1,0 +1,32 @@
+\begin{tikzpicture}[
+    cyc/.style={stage=#1, text width=3.05cm, minimum height=1.35cm, font=\footnotesize},
+    ex/.style={font=\scriptsize, text=black!65, align=center, text width=3.3cm},
+  ]
+  \def\R{3.55}
+  % centre
+  \node[box, draw=reality, fill=reality!8, text width=3.3cm, minimum height=1.5cm, font=\footnotesize]
+       (core) at (0,0) {\textbf{Curse of reality}\\[1pt]
+        deployment brings\\unseen conditions};
+
+  % six stages on a circle (clockwise from top)
+  \node[cyc=reality] (s1) at (90:\R)  {\textbf{1. Observe}\\failures and long-tail cases in the field};
+  \node[cyc=bench]   (s2) at (30:\R)  {\textbf{2. Formalise}\\task, representation and metric};
+  \node[cyc=perceive](s3) at (-30:\R) {\textbf{3. Benchmark}\\curate data at scale; auto-label + human QA};
+  \node[cyc=reason]  (s4) at (-90:\R) {\textbf{4. Baseline}\\a simple, unified, scalable method};
+  \node[cyc=arch]    (s5) at (-150:\R){\textbf{5. Community}\\open source, leaderboards, challenges};
+  \node[cyc=act]     (s6) at (150:\R) {\textbf{6. Deploy \& self-correct}\\test, adapt or align};
+
+  % arrows along the cycle
+  \foreach \a/\b in {s1/s2, s2/s3, s3/s4, s4/s5, s5/s6, s6/s1}
+    \draw[flow, line width=1pt] (\a) to[bend left=18] (\b);
+
+  % example artefacts from the thesis
+  \node[ex, above=1pt of s1]  {Occupancy for irregular obstacles; VLM hallucination; demonstration inconsistency};
+  \node[ex, right=2pt of s2]  {3D occupancy; graph VQA; PDM score; task success rate};
+  \node[ex, right=2pt of s3]  {OpenLane, OpenLane-V2$^{*}$, OpenOcc, OpenScene, DriveLM-Data, AgiBot World$^{*}$};
+  \node[ex, below=1pt of s4]  {BEVFormer$^{*}$, OccNet, DriveLM-Agent, UniAD$^{*}$};
+  \node[ex, left=2pt of s5]   {Waymo 2022 (1st)$^{*}$, CVPR'23 Occupancy, CVPR'24 DriveLM, AgiBot World Challenge$^{*}$};
+  \node[ex, left=2pt of s6]   {Centaur (non-reactive simulation), $\chi_0$ (real robots), ETA$^{*}$};
+
+  \draw[dep, dashed] (core) -- (s1);
+\end{tikzpicture}

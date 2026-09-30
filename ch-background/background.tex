@@ -61,7 +61,9 @@ Language entered driving through explanation, with the textual justifications of
 
 \subsection{Language-model drivers}
 
+\begin{sloppypar}
 GPT-Driver reformulates motion planning as language modelling~\cite{mao2023gptdriver}, DriveGPT4 produces interpretable end-to-end driving outputs with a multimodal large language model~\cite{xu2024drivegpt4}, Driving-with-LLMs fuses object-level vectors into the language model~\cite{chen2024drivingwithllms}, and LMDrive drives in closed loop from language instructions~\cite{shao2024lmdrive}. EMMA maps raw camera data to trajectories, objects and road-graph elements with a multimodal foundation model~\cite{hwang2025emma}. ORION guides action generation with a vision-language model~\cite{fu2025orion}, AutoVLA unifies reasoning and action tokens with fast and slow thinking modes~\cite{zhou2025autovla}, and Alpamayo-R1 couples reasoning with action prediction for long-tail driving~\cite{nvidia2025alpamayo}. SimLingo aligns language and action for vision-only closed-loop driving and won the 2024 CARLA Challenge~\cite{renz2025simlingo}. These systems build on visual instruction tuning~\cite{liu2023llava} and chain-of-thought prompting~\cite{wei2022cot}. Evidence that language reasoning improves driving, as opposed to explainability, is mixed and mostly open-loop; the strongest closed-loop evidence comes from systems that tightly align language with action~\cite{renz2025simlingo} or use reasoning adaptively~\cite{zhou2025autovla}.
+\end{sloppypar}
 
 \subsection{Dual and fast--slow systems}
 
@@ -82,7 +84,9 @@ Learning to drive from data has a long history. ALVINN learned steering with a n
 
 \subsection{Differentiable modular stacks}
 
+\begin{sloppypar}
 A second generation keeps intermediate representations while training the whole system towards planning. TransFuser fuses camera and LiDAR with transformers~\cite{chitta2023transfuser}, TCP couples trajectory planning with control prediction~\cite{wu2022tcp}, ST-P3 learns spatiotemporal features shared by perception, prediction and planning~\cite{hu2022stp3}, and VAD plans on a vectorised scene~\cite{jiang2023vad}. The author co-authored UniAD, which chains tracking, mapping, motion forecasting, occupancy prediction and planning through learnable queries~\cite{hu2023uniad}. A survey of the field names causal confusion, robustness, interpretability and closed-loop evaluation as its open challenges~\cite{chen2024e2esurvey}. Which intermediate tasks are actually necessary is contested: a systematic study of the design space led PARA-Drive to a fully parallel architecture with nearly three times faster runtime~\cite{weng2024paradrive}, and a careful analysis on CARLA showed that reported improvements are often confounded by changes to minor system components~\cite{jaeger2023hidden}.
+\end{sloppypar}
 
 \subsection{Multimodal planners}
 

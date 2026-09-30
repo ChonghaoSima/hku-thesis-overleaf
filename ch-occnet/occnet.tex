@@ -32,6 +32,7 @@ Quantising the 3D scene into structured cells with semantic labels attached, whi
   \caption[Comparison of scene representations]{\textbf{Comparison of scene representations.} 3D occupancy unifies foreground objects and background stuff in a fine-grained, dense voxel space, and it is agnostic to the input modality.}
   \label{occnet:tab:compare_to_other_form}
   \small
+  \begin{adjustbox}{max width=\linewidth}
   \begin{tabular}{lccccc}
     \toprule
     Representation & \makecell{Output\\space} & \makecell{Foreground\\object} & \makecell{Background\\\& mapping} & \makecell{Description\\granularity} & \makecell{Requires point\\cloud input} \\
@@ -43,11 +44,12 @@ Quantising the 3D scene into structured cells with semantic labels attached, whi
     \rowcolor{perceive!10} 3D occupancy & 3D & \checkmark & \checkmark & 0.25--0.5\,m & -- \\
     \bottomrule
   \end{tabular}
+  \end{adjustbox}
 \end{table}
 
 Table~\ref{occnet:tab:compare_to_other_form} compares occupancy with the representations that are widely deployed in driving. A 3D box covers only foreground objects. Point-cloud segmentation offers the finest granularity, around 0.02\,m, but requires LiDAR input and is therefore limited by cost. BEV segmentation covers objects and background, but its lack of a height dimension limits its granularity. Occupancy unifies foreground objects and background stuff in a dense 3D voxel space with a granularity of 0.25--0.5\,m, without requiring a point cloud as input. These advantages call for an investigation of whether occupancy can improve conventional perception tasks and downstream planning.
 
-Occupancy has been discussed before, but only at an initial stage. In robotics, the occupancy grid map is a typical representation for mobile navigation~\cite{moras2015grid}, but it serves only as the search space of planning. In computer vision, 3D semantic scene completion (SSC)~\cite{song2017sscnet} can be regarded as a perception task that evaluates the idea of occupancy. Vision-based methods for this task~\cite{huang2023tpvformer,li2023voxformer,cao2022monoscene,miao2023occdepth} leave two opportunities open. They do not exploit temporal information, although history frames are an intuitive geometric prior for a vision-centric model that has to reconstruct geometry-aware occupancy. And, being one-stage methods~\cite{huang2023tpvformer,miao2023occdepth,cao2022monoscene}, they ignore a coarse-to-fine scheme, which can improve the 3D geometric representation at an affordable cost. Beyond model design, the community still lacks a practical way to evaluate occupancy in a full-stack spirit, as vision-centric pipelines that connect perception to planning~\cite{hu2023uniad} prevail.
+Occupancy has been discussed before, but only at an initial stage. In robotics, the occupancy grid map is a typical representation for mobile navigation~\cite{moras2015grid}, but it serves only as the search space of planning. In computer vision, 3D semantic scene completion (SSC)~\cite{song2017sscnet} can be regarded as a perception task that evaluates the idea of occupancy. Vision-based methods for this task~\cite{huang2023tpvformer,li2023voxformer,cao2022monoscene,miao2023occdepth} leave two opportunities open. Most evaluated configurations use a single frame, although history is an intuitive geometric prior for a vision-centric model that reconstructs occupancy. VoxFormer-T~\cite{li2023voxformer} is an important exception: it uses the current and four previous images. A remaining question is how to integrate temporal features into a compact multi-view occupancy descriptor that also supports downstream tasks. Many of these methods also use a one-stage decoder~\cite{huang2023tpvformer,miao2023occdepth,cao2022monoscene}, leaving room to study a coarse-to-fine design that can improve 3D features at an affordable cost. Beyond model design, the community still lacks a practical way to evaluate occupancy in a full-stack setting, as vision-centric pipelines that connect perception to planning~\cite{hu2023uniad} become more common.
 
 To address these issues, we propose OccNet, a multi-view, vision-centric pipeline with a cascade voxel decoder that reconstructs 3D occupancy with the aid of temporal clues, followed by task-specific heads for a wide range of driving tasks. The core of OccNet is a compact and representative occupancy embedding of the 3D scene. Rather than generating voxel features directly from image features, or using BEV features alone as in previous work~\cite{li2022bevformer,chen2022persformer,wang2022monocular}, OccNet decodes the occupancy feature from the BEV feature in a cascade fashion. The decoder recovers the height information progressively with voxel-based temporal self-attention and spatial cross-attention, bundled with a 3D deformable attention module for efficiency. Equipped with this descriptor, OccNet supports 3D occupancy prediction, 3D detection and BEV segmentation, and it facilitates motion planning. For a fair comparison across methods, we build OpenOcc, a benchmark with dense and high-quality annotations on the nuScenes dataset~\cite{caesar2020nuscenes,fong2022panoptic}. It comprises 34,149 annotated frames with over 1.4 billion occupancy cells, each assigned one of 16 classes that describe foreground objects and background stuff. It also annotates the motion of objects with directional flow, which makes it extensible to planning.
 
@@ -221,13 +223,14 @@ Table~\ref{occnet:tab:compare_gt} compares OpenOcc with other benchmarks: of tho
   \end{tabular}}
 \end{table}
 
-\paragraph{Occupancy for LiDAR segmentation.} Occupancy is a voxelised representation of points in 3D space, and semantic scene completion becomes equivalent to semantic LiDAR segmentation as $\Delta s\to0$. We transfer the semantic occupancy prediction to LiDAR segmentation by assigning each point the label of its voxel, and evaluate the result with mIoU. As reported in Table~\ref{occnet:tab:lidarseg}, OccNet, given only camera input, is comparable with the LiDAR segmentation model RangeNet++~\cite{milioto2019rangenet++} in mIoU (60.46 \vs 65.50), and even outperforms it on bicycle (32.58 \vs 21.30). It also outperforms TPVFormer~\cite{huang2023tpvformer} by 2 points in mIoU. A stronger LiDAR model, Cylinder3D~\cite{zhu2021cylindrical}, remains clearly ahead at 76.10 mIoU.
+\paragraph{Occupancy for LiDAR segmentation.} Occupancy is a voxelised representation of 3D space. As the voxel size $\Delta s$ becomes smaller, assigning each point its voxel label gives a progressively finer approximation to point-wise semantic segmentation. This finite-resolution relationship does not imply equivalence to a LiDAR-input pipeline, whose sensing modality and supervision differ. We evaluate the transferred labels with mIoU. As reported in Table~\ref{occnet:tab:lidarseg}, OccNet, given only camera input, approaches the LiDAR segmentation model RangeNet++~\cite{milioto2019rangenet++} in mIoU (60.46 \vs 65.50), and outperforms it on bicycle (32.58 \vs 21.30). It also outperforms TPVFormer~\cite{huang2023tpvformer} by 2 points in mIoU. A stronger LiDAR model, Cylinder3D~\cite{zhu2021cylindrical}, remains clearly ahead at 76.10 mIoU.
 
 \begin{table}[t]
   \centering
   \caption[Joint training of 3D occupancy and 3D detection]{\textbf{Joint training of 3D occupancy and 3D detection} on the nuScenes validation set. Joint training with occupancy helps the detection task.}
   \label{occnet:tab:joint_train}
   \small
+  \begin{adjustbox}{max width=\linewidth}
   \begin{tabular}{llccccccc}
     \toprule
     Model & Joint & mAP$\uparrow$ & NDS$\uparrow$ & mAOE$\downarrow$ & mAVE$\downarrow$ & mAAE$\downarrow$ & mATE$\downarrow$ & mASE$\downarrow$ \\
@@ -242,6 +245,7 @@ Table~\ref{occnet:tab:compare_gt} compares OpenOcc with other benchmarks: of tho
                               & \checkmark & \textbf{0.276} & \textbf{0.390} & \textbf{0.585} & \textbf{0.570} & \textbf{0.190} & 0.842 & 0.292 \\
     \bottomrule
   \end{tabular}
+  \end{adjustbox}
 \end{table}
 
 \paragraph{Occupancy for 3D detection.} In scene completion, the locations of foreground objects are coarsely regressed, which can help the box regression of 3D detection. Table~\ref{occnet:tab:joint_train} shows that jointly training scene completion and 3D detection improves NDS for all three of our models, BEVNet, VoxelNet and OccNet, and mAP for BEVNet and VoxelNet, while the mAP of OccNet is unchanged. The orientation, velocity and attribute errors decrease for all three models. The voxelised representation with $\Delta s=0.5$\,m, however, is too coarse for metrics that depend on the precise centre distance and IoU of 3D boxes, so joint training slightly increases the scale error of all three models and the translation error of BEVNet and OccNet.
@@ -273,6 +277,8 @@ Table~\ref{occnet:tab:compare_gt} compares OpenOcc with other benchmarks: of tho
   \centering
   \caption[Planning with different scene representations]{\textbf{Planning results with different scene representations.} Open-loop evaluation on nuScenes with the ST-P3 protocol~\cite{hu2022stp3}; all results are from single runs. Among predicted inputs, occupancy gives the lowest collision rates and full-class occupancy the lowest L2 distances. Depending on the horizon, occupancy lowers the collision rate by 15\%--22\% relative to predicted boxes and by 9\%--58\% relative to the BEV segmentation of ST-P3 (\eg 1.35\% \vs 1.59\% and 1.49\% at 3\,s). \emph{full}: all 16 occupancy classes instead of vehicle and pedestrian only.}
   \label{occnet:tab:planning}
+  \small
+  \begin{adjustbox}{max width=0.98\linewidth}
   \begin{tabular}{lcccccc}
     \toprule
     \multirow{2}{*}{Input} & \multicolumn{3}{c}{Collision (\%)$\downarrow$} & \multicolumn{3}{c}{L2 (m)$\downarrow$} \\
@@ -288,6 +294,7 @@ Table~\ref{occnet:tab:compare_gt} compares OpenOcc with other benchmarks: of tho
     \rowcolor{perceive!10} Occupancy pred.\ (OccNet, full) & \textbf{0.21} & 0.59 & 1.37 & \textbf{1.29} & \textbf{2.13} & \textbf{2.99} \\
     \bottomrule
   \end{tabular}
+  \end{adjustbox}
 \end{table}
 
 \begin{figure}[t]
@@ -374,6 +381,7 @@ OpenOcc showed that occupancy can be learned from cameras and exploited across t
   \centering
   \caption[Scale of 3D occupancy datasets]{\textbf{Scale of 3D occupancy datasets}, following the comparison in the OpenScene documentation~\cite{sima2023openscene} (a subset of its rows is shown). Hours refer to the sensor data of the source database. $^{\dagger}$The documentation lists this dataset (as OccNet) without flow; OpenOcc annotates flow for foreground voxels (Section~\ref{occnet:sec:benchmark_overview}).}
   \label{occnet:tab:openscene}
+  \begin{adjustbox}{max width=\linewidth}
   \begin{tabular}{llcc}
     \toprule
     Dataset & Source database & Sensor data (h) & Flow \\
@@ -388,18 +396,19 @@ OpenOcc showed that occupancy can be learned from cameras and exploited across t
     \rowcolor{perceive!10} OpenScene                 & nuPlan                & 120       & \checkmark \\
     \bottomrule
   \end{tabular}
+  \end{adjustbox}
 \end{table}
 
 \paragraph{Tasks and baseline.} The 2023 edition of OpenScene defined two tasks. The first is large-scale occupancy prediction, evaluated with the mIoU of Eq.~\eqref{occnet:eq:miou}. The second is an all-in-one foundation-model track scored by the OpenScene Metric, which averages nine downstream scores: 3D detection, semantic segmentation, scene completion, map construction, depth estimation, 3D lane detection, tracking, visual odometry and flow, measured with protocols from nuScenes, KITTI and Waymo. The occupancy baseline released with the benchmark is based on OccNet, with a ResNet-50 backbone.
 
 \begin{figure}[t]
   \centering
-  \begin{tikzpicture}[node distance=5mm and 8mm]
-    \node[pillar=bench, font=\footnotesize, text width=2.9cm] (nuplan) {\textbf{nuPlan}\\[1pt]1,521 logs, 120+\,h\\four cities\\raw sensor data\\$>$20\,TB};
-    \node[pillar=perceive, font=\footnotesize, text width=3.9cm, right=of nuplan] (os) {\textbf{OpenScene}\\[1pt]2\,Hz, $>$10$\times$ smaller\\8 cameras + LiDAR\\3D boxes, occupancy\\(0.5\,m voxels), flow};
-    \node[pillar=act, font=\footnotesize, text width=5.2cm, right=of os] (e2e) {\textbf{End-to-End Driving at Scale}\\[1pt]NAVSIM, PDM Score\\CVPR 2024\\NAVSIM-v2 track, CVPR 2025};
-    \node[pillar=perceive, font=\footnotesize, text width=5.2cm, above=of e2e] (occ) {\textbf{Occupancy prediction}\\[1pt]mIoU, OccNet-based baseline};
-    \node[pillar=arch, font=\footnotesize, text width=5.2cm, below=of e2e] (wm) {\textbf{Predictive World Model}\\[1pt]ViDAR, Chamfer distance\\CVPR 2024};
+  \begin{tikzpicture}[node distance=5mm and 5mm]
+    \node[pillar=bench, font=\footnotesize, text width=2.35cm] (nuplan) {\textbf{nuPlan}\\[1pt]1,521 logs, 120+\,h\\four cities\\raw sensor data\\$>$20\,TB};
+    \node[pillar=perceive, font=\footnotesize, text width=3.1cm, right=of nuplan] (os) {\textbf{OpenScene}\\[1pt]2\,Hz, $>$10$\times$ smaller\\8 cameras + LiDAR\\3D boxes, occupancy\\(0.5\,m voxels), flow};
+    \node[pillar=act, font=\footnotesize, text width=4.15cm, right=of os] (e2e) {\textbf{End-to-End Driving at Scale}\\[1pt]NAVSIM, PDM Score\\CVPR 2024\\NAVSIM-v2 track, CVPR 2025};
+    \node[pillar=perceive, font=\footnotesize, text width=4.15cm, above=of e2e] (occ) {\textbf{Occupancy prediction}\\[1pt]mIoU, OccNet-based baseline};
+    \node[pillar=arch, font=\footnotesize, text width=4.15cm, below=of e2e] (wm) {\textbf{Predictive World Model}\\[1pt]ViDAR, Chamfer distance\\CVPR 2024};
     \draw[flow] (nuplan) -- (os);
     \draw[flow] (os.east) -- (occ.west);
     \draw[flow] (os.east) -- (e2e.west);

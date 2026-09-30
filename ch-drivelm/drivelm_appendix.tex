@@ -86,7 +86,7 @@ The labelling is carried out by annotators with driving experience, who are give
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-drivelm/images/nus_pipeline_supp_v2.pdf}
-  \caption[Annotation, quality check and post-processing of DriveLM-nuScenes]{\textbf{Left: pipeline of the three-step annotation process.} For each video, the annotators label the key frames, the key objects and the QA attributes step by step. \textbf{Right: quality check and post-processing.} The annotated data are divided into batches, each containing 8 video clips and their annotations. After rigorous quality checks and post-processing, two versions of DriveLM-nuScenes are obtained.}
+  \caption[Annotation and review of DriveLM-nuScenes]{\textbf{Left: three-step annotation process.} Annotators select key frames, key objects and QA attributes. \textbf{Right: review and post-processing.} Batches contain eight clips and their annotations; sampled checks can lead to batch re-annotation, but the acceptance threshold and measured error rate were not reported.}
   \label{drivelm:fig:nus_anno_pipeline}
 \end{figure}
 
@@ -100,7 +100,7 @@ Annotators identify the objects in the key frames that are relevant to the drivi
 There are two sets of questions: factual questions and open-ended questions. The answers to factual questions are generated with a rule-based method. The open-ended questions, which are carefully designed in advance, are answered manually by the annotators. Options are provided for most manually annotated questions, together with an ``Other -- Fill in the Blank'' option for flexibility. Free-form questions additionally allow annotators to ask their own questions about the current frame.
 
 \paragraph{Quality check.}
-Besides establishing clear criteria and applying automatic checks at each annotation step, we conduct rigorous manual quality checks. The final data are organised into batches, each comprising 8 video clips together with their scene-level descriptions, the key frames and key objects selected from these clips, and the QAs of each key frame. Quality inspectors receive explicit standards on which to base their assessment of data eligibility. For manually annotated data, if the accuracy of the annotations in a batch falls below expectations, we compile feedback on the issues encountered and ask the annotators to re-annotate the entire batch. For data generated from the ground truth, the inspectors manually adjust inconsistent or unreasonable QAs.
+Besides automatic checks at each annotation step, the source describes manual review of batches containing eight video clips and their annotations. Reviewers used eligibility guidance, returned sampled batches for re-annotation when they fell below expectations, and manually adjusted inconsistent rule-generated QAs. The numerical acceptance threshold, agreement and post-review error rate were not reported, so the process should not be read as a quantified guarantee of label reliability.
 
 \paragraph{Post-processing.}
 Because the annotators are Chinese speakers, the labelled data are translated into English. We first establish mappings between Chinese and English with a vocabulary. Texts that cannot be mapped are translated with GPT-3.5, and the GPT outputs are then checked and corrected manually. We also provide a version whose language is refined by GPT-3.5; the prompt is given in the original paper~\cite{sima2024drivelm}.
@@ -162,7 +162,7 @@ The performance of PDM-Lite is evaluated on the 20 official validation routes of
 
 \begin{table}[t]
   \centering
-  \caption[PDM-Lite on the official CARLA validation routes]{\textbf{PDM-Lite on the official CARLA validation routes.} Driving performance for each route: Driving Score (DS), Route Completion (RC), Infraction Score (IS), Normalised Driving Score (NDS) and Normalised Infraction Score (NIS), together with the average and the standard deviation over 3 seeds. Routes 0--9 are identical to routes 10--19, except for the weather (which PDM-Lite ignores) and the traffic behaviours.}
+  \caption[PDM-Lite on the official CARLA validation routes]{\textbf{PDM-Lite on the official CARLA validation routes.} Each route entry reports the mean and standard deviation over three seeds for Driving Score (DS), Route Completion (RC), Infraction Score (IS), Normalised Driving Score (NDS) and Normalised Infraction Score (NIS). The final Avg. row pools the displayed route--seed results; its $\pm$ value is not the standard deviation of three seed-level aggregate scores. Routes 0--9 and 10--19 share geometry but differ in weather and random traffic.}
   \label{drivelm:tab:pdm_results}
   \small
   \begin{adjustbox}{max width=\textwidth}
@@ -243,7 +243,7 @@ CIDEr~\cite{vedantam2015cider} combines elements of BLEU and of vector space mod
 SPICE~\cite{anderson2016spice} first parses the text into a syntactic dependency tree with a probabilistic context-free grammar~\cite{jelinek1992basic}, and then maps the dependency tree to a scene graph with rules. The scene graph describes the objects, attributes and relationships in the text, and the SPICE score is the F-score between the scene graphs of the prediction and of the ground truth.
 
 \paragraph{GPT Score.}
-The GPT Score is provided by ChatGPT. Traditional metrics mainly assess performance at the word level and may miss semantic nuances, which can yield unexpected evaluation outcomes. Leveraging the reasoning capabilities of ChatGPT, we use it to gauge the quality of predictions and derive a more rational score. ChatGPT is prompted to assign a numerical score between 0 and 100, with higher scores indicating more accurate predictions. The model is asked to rate a predicted answer against the ground-truth answer on a scale from 0 to 100; the exact prompt is given in the original paper~\cite{sima2024drivelm}.
+The GPT Score uses ChatGPT to compare a predicted answer with the reference and return a score from 0 to 100. It is a model-based judgement, not a ground-truth semantic measurement. Later auditing in DriveBench~\cite{xie2025vlms} showed that such scores can be homogeneous without task-specific context. The exact prompt, model snapshot, API settings, scoring date, response parsing, retry policy and cached outputs are unavailable in the thesis repository. Comparisons under GPT Score should therefore be interpreted together with conventional metrics rather than as a gold standard.
 
 \paragraph{Completeness.}
 The Completeness score accounts for how many of the ground-truth questions associated with a frame are answered correctly. For each QA, if the score of the predicted answer is above a threshold, the QA is considered ``correctly answered'' and counts as a correct prediction; otherwise it counts as an incorrect prediction. We then compute the accuracy, \ie, the ratio of the number of correct predictions to the total number of predictions. In our setting, we use the SPICE score with a threshold of 0.5.
@@ -254,7 +254,7 @@ Behaviour predictions are evaluated by classification accuracy, comprising the a
 
 \subsection{Motion Metrics}\label{drivelm:app:metrics_motion}
 
-For the motion stage, we use the standard metrics of the nuScenes and Waymo benchmarks: the average and final displacement errors (ADE and FDE) and the collision rate of the predicted trajectory.
+For the motion stage, we report ADE and an unresolved source quantity $U$ on Waymo. The source labels the same Waymo values as collision rate in Table~\ref{drivelm:tab:arch} and FDE below; the evaluator record requested with Table~\ref{drivelm:tab:arch} must establish the metric before these values are interpreted. On nuScenes, the table retains the reported collision-rate label.
 
 \paragraph{ADE.}
 The average displacement error is the average L2 distance between the predicted trajectory and the ground-truth trajectory over all predicted horizons. It is the average of the errors at the 1st, 2nd and 3rd second.
@@ -263,7 +263,7 @@ The average displacement error is the average L2 distance between the predicted 
 The final displacement error is the Euclidean distance between the predicted and the true end point at the last predicted step (the 3rd second).
 
 \paragraph{Collision rate.}
-The collision rate is the ratio of the number of test frames in which the predicted trajectory collides with objects to the total number of test frames. The number reported in Table~\ref{drivelm:tab:arch} is the average of the collision rates at the 1st, 2nd and 3rd second; the note to that table explains why the label of its Waymo column is uncertain.
+The collision rate is the ratio of test frames in which the predicted trajectory collides with objects to all evaluated frames. The nuScenes value in Table~\ref{drivelm:tab:arch} averages the reported rates at 1, 2 and 3 seconds. The Waymo column is not called collision rate until its source label is resolved.
 
 ADE, FDE and the collision rate are computed with the convention of UniAD~\cite{hu2023uniad}, not that of ST-P3~\cite{hu2022stp3}. For example, for the FDE and the collision rate at the 3rd second, the UniAD convention considers the error or collision rate at this time step only, whereas the ST-P3 convention averages them over 0.5, 1, 1.5, 2, 2.5 and 3 seconds; see the discussion in the UniAD repository\footnote{\raggedright\url{https://github.com/OpenDriveLab/UniAD/commit/ffac1a69a6d01c9dca5cd2ed751007896df351f8}} for details. Moreover, errors reported on the full nuScenes validation set in prior work are not directly comparable with results on the DriveLM-nuScenes validation split, a challenging subset of it that consists only of keyframes with intention changes.
 
@@ -335,17 +335,17 @@ Table~\ref{drivelm:tab:vqa_more_metrics} reports the setting of Table~\ref{drive
 
 \subsection{Stage-wise Context Ablation on Waymo}\label{drivelm:app:waymo_ablation}
 
-Table~\ref{drivelm:tab:waymo_supp} extends the zero-shot generalisation experiment of Table~\ref{drivelm:tab:arch} with more context settings. A key observation is that the higher the accuracy of the behaviour task, the better the performance of the motion task. With more context for the behaviour task, the accuracy improvement comes mainly from the speed accuracy, which in turn affects the FDE.
+Table~\ref{drivelm:tab:waymo_supp} extends the zero-shot transfer experiment of Table~\ref{drivelm:tab:arch} with more context settings. Behaviour accuracy and ADE are interpretable under the stated protocol. The final column preserves the unresolved source quantity $U$ and is not used to claim a collision or FDE improvement.
 
 \begin{table}[t]
   \centering
-  \caption[Stage-wise ablation on zero-shot generalisation to Waymo]{\textbf{Zero-shot generalisation across sensor configurations.} $B^{*}$ denotes using the ground-truth behaviour QA as context for the motion task. Results on 1k randomly sampled frames of the Waymo \texttt{val} set after training on DriveLM-nuScenes. The key observation is that the higher the accuracy of the behaviour task, the better the performance of the motion task.}
+  \caption[Stage-wise ablation on zero-shot transfer to Waymo]{\textbf{Zero-shot transfer across sensor configurations.} $B^{*}$ denotes ground-truth behaviour context. Results use 1k sampled Waymo validation frames after training on DriveLM-nuScenes. $U^{\dagger}$ is an unresolved source quantity and is retained only as a record.}
   \label{drivelm:tab:waymo_supp}
   \begin{adjustbox}{max width=\textwidth}
   \begin{tabular}{l|cc|ccc|cc}
     \toprule
     \multirow{2}{*}{\textbf{Method}} & \textbf{Behaviour} & \textbf{Motion} & \multicolumn{3}{c|}{\textbf{Behaviour ($B$)}} & \multicolumn{2}{c}{\textbf{Motion ($M$)}} \\
-    & \textbf{Context} & \textbf{Context} & Acc.\,$\uparrow$ & Speed\,$\uparrow$ & Steer\,$\uparrow$ & ADE\,$\downarrow$ & FDE$^{\dagger}$\,$\downarrow$ \\
+    & \textbf{Context} & \textbf{Context} & Acc.\,$\uparrow$ & Speed\,$\uparrow$ & Steer\,$\uparrow$ & ADE\,$\downarrow$ & $U^{\dagger}$\,$\downarrow$ \\
     \midrule
     Command Mean & - & - & - & - & - & 7.98 & 11.41 \\
     UniAD-Single & - & - & - & - & - & 4.16 & 9.31 \\
@@ -363,7 +363,7 @@ Table~\ref{drivelm:tab:waymo_supp} extends the zero-shot generalisation experime
   \end{adjustbox}
   \par\smallskip
   {\linespread{1.1}\footnotesize\raggedright
-  $^{\dagger}$\,The values in this column are identical to those in the Waymo Col.\ column of Table~\ref{drivelm:tab:arch}. The original paper labels them `FDE' in its supplementary table and `Col.' in its main table and does not reconcile the two labels; both are reproduced here as in the source.\par}
+  $^{\dagger}$\,These values are the unresolved $U$ column of Table~\ref{drivelm:tab:arch}. The source supplies incompatible collision-rate and FDE labels; the requested evaluator record must identify the metric before use.\par}
 \end{table}
 
 \subsection{More VLMs on DriveLM-nuScenes}\label{drivelm:app:more_vlms}

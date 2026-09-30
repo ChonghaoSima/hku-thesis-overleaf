@@ -1,7 +1,8 @@
 \let\mypdfximage\pdfximage
 \def\pdfximage{\immediate\mypdfximage}
+\PassOptionsToPackage{hyperfootnotes=false}{hyperref}
 
-\documentclass[a4paper,12pt,default,numbered,print]{Classes_final/PhDThesisPSnPDF}
+\documentclass[a4paper,12pt,custommargin,numbered,print]{Classes_final/PhDThesisPSnPDF}
 
 \input{Preamble_final/packages}
 \input{Preamble_final/preamble}
@@ -34,15 +35,20 @@
 \begin{document}
 \frontmatter
 
-\begin{titlepage}
+% HKU requires the abstract to precede the title page in the bound thesis.
+\include{Abstract/abstract}
+
+% Keep front-matter Roman numbering continuous. The standard titlepage
+% environment resets the page counter, so use explicit page boundaries here.
+\cleardoublepage
+\thispagestyle{empty}
 \maketitle
-\end{titlepage}
+\cleardoublepage
 
 \include{Dedication/dedication}
 \include{Declaration/declaration}
 \include{Declaration/genai_statement}
 \include{Acknowledgement/acknowledgement}
-\include{Abstract/abstract}
 \include{Publications/publications}
 
 \tableofcontents

@@ -1,0 +1,36 @@
+\begin{tikzpicture}[
+    mod/.style={box, draw=#1, fill=#1!10, very thick, text width=4.1cm, minimum height=1.9cm, font=\scriptsize},
+    ttl/.style={font=\small\bfseries, text=#1},
+    lab/.style={font=\scriptsize\itshape, text=black!70, align=center},
+    band/.style={draw=#1, fill=#1!8, very thick, rounded corners=4pt},
+  ]
+  % world
+  \draw[band=reality] (0,6.35) rectangle (14.4,7.25);
+  \node[ttl=reality] at (7.2,6.8) {Deployment world: shifted, open, closed-loop};
+
+  % modules
+  \node[mod=perceive] (per) at (2.2,4.6) {\textbf{Perceive}\\[2pt] geometrically open, queryable 3D representation\\[1pt] {\color{black!60} occupancy, BEV (Ch.~\ref{ch:occnet})}};
+  \node[mod=reason]   (rea) at (7.2,4.6) {\textbf{Reason (slow)}\\[2pt] human-inspectable reasoning steps; selective use proposed\\[1pt] {\color{black!60} DriveLM (Ch.~\ref{ch:drivelm}), ETA$^{*}$}};
+  \node[mod=act]      (act) at (12.2,4.6) {\textbf{Act (fast)}\\[2pt] planning-oriented policy; fast path proposed\\[1pt] {\color{black!60} UniAD$^{*}$, Centaur, $\chi_0$}\\{\color{black!60}(Ch.~\ref{ch:centaur} and~\ref{ch:kai0})}};
+  \draw[flow, dashed, line width=1pt] (per) -- (rea);
+  \draw[flow, dashed, line width=1pt] (rea) -- (act);
+  \draw[flow, line width=1pt] (2.2,6.35) -- node[lab, right] {observations} (per.north);
+  \draw[flow, line width=1pt] (act.north) -- node[lab, left] {actions} (12.2,6.35);
+  \draw[dep, dashed, line width=0.8pt] (per.north east) .. controls (5.6,6.25) and (8.8,6.25) .. node[lab, below, pos=0.5] {selective direct path (proposed)} (act.north west);
+
+  % competence monitor
+  \draw[band=arch] (0.2,1.55) rectangle (14.2,2.65);
+  \node[ttl=arch, anchor=west] at (0.4,2.3) {Proposed monitor};
+  \node[font=\scriptsize, anchor=west, text width=9.1cm] at (4.85,2.1)
+       {candidate signals: behaviour-mode score entropy (Cluster Entropy, Ch.~\ref{ch:centaur}); supervised progress used in training (Stage Advantage, collaborator-led, Ch.~\ref{ch:kai0})};
+  \draw[flow, <->, dashed] (act.south) -- node[lab, right] {monitor / adapt} (12.2,2.65);
+  \draw[flow, dashed] (7.2,2.65) -- node[lab, right] {invoke slow reasoning} (rea.south);
+  \draw[flow, dashed] (2.2,2.65) -- node[lab, right] {query / re-perceive} (per.south);
+
+  % learning loop
+  \draw[band=bench] (0.2,0) rectangle (14.2,1.05);
+  \node[ttl=bench, anchor=west] at (0.4,0.52) {Learning loop};
+  \node[font=\scriptsize, anchor=west, text width=9.1cm] at (4.85,0.52)
+       {human-assisted recovery and offline alignment (Ch.~\ref{ch:kai0}); benchmark iterations (Ch.~\ref{ch:methodology}); autonomous goals and learning$^{*}$ remain proposed};
+  \draw[flow, dashed] (7.2,1.05) -- (7.2,1.55);
+\end{tikzpicture}

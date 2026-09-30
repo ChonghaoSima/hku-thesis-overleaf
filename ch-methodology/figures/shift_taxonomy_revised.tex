@@ -1,0 +1,30 @@
+\begin{tikzpicture}[
+    hdr/.style={font=\footnotesize\bfseries, text=black!75, align=center, text width=#1},
+    cell/.style={box, text width=#1, minimum height=1.45cm, font=\scriptsize},
+  ]
+  % column headers
+  \node[hdr=2.6cm] at (0,0)     {Diagnostic category};
+  \node[hdr=3.3cm] at (3.35,0)  {Symptom at deployment};
+  \node[hdr=3.5cm] at (7.1,0)   {Possible response};
+  \node[hdr=3.0cm] at (10.75,0) {Example in this thesis};
+
+  \foreach \y/\c/\shift/\symptom/\lever/\inst in {
+      -1.2/perceive/{\textbf{Perceptual}\\``what is out there?''}/{irregular shapes; representation limits; sensor and weather change}/{\textbf{Richer 3D geometry}\\occupancy alongside task-specific representations}/{Chapter~\ref{ch:occnet}\\Scene as Occupancy, OpenOcc, OpenScene},
+      -2.9/reason/{\textbf{Semantic}\\``what does it mean?''}/{long-tail scenarios; unseen compositions; unexplained decisions}/{\textbf{Structured reasoning}\\perception--prediction--planning graph}/{Chapter~\ref{ch:drivelm}\\DriveLM (Graph VQA)},
+      -4.6/act/{\textbf{Behavioural}\\``what will my action cause?''}/{closed-loop covariate shift; rare safety-critical states}/{\textbf{Test-time self-correction}\\label-free uncertainty minimisation}/{Chapter~\ref{ch:centaur}\\Centaur (test-time training)},
+      -6.3/arch/{\textbf{Deployment}\\``does training match use?''}/{inconsistent demonstrations; timing and execution mismatch}/{\textbf{Train--deploy alignment}\\data and execution interventions}/{Chapter~\ref{ch:kai0}\\$\chi_0$ (robust manipulation)}%
+    }{
+    \node[cell=2.6cm, draw=\c, fill=\c!14] (a) at (0,\y)     {\shift};
+    \node[cell=3.3cm]                      (b) at (3.35,\y)  {\symptom};
+    \node[cell=3.5cm, draw=\c, fill=\c!6]  (c) at (7.1,\y)   {\lever};
+    \node[cell=3.0cm, draw=\c, line width=1.1pt] (d) at (10.75,\y) {\inst};
+    \draw[flow] (a) -- (b);
+    \draw[flow] (b) -- (c);
+    \draw[flow] (c) -- (d);
+  }
+  % brace: categories are non-exclusive diagnostic lenses
+  \draw[reality, very thick, decorate, decoration={brace, amplitude=6pt, mirror}]
+       (-1.75,-0.45) -- (-1.75,-7.05)
+       node[midway, left=8pt, rotate=90, anchor=south, font=\footnotesize, text=reality]
+       {Non-exclusive diagnostic categories};
+\end{tikzpicture}

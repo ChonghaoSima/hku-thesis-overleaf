@@ -1,0 +1,50 @@
+\begin{tikzpicture}[
+    pbox/.style={draw=#1, fill=#1!8, very thick, rounded corners=4pt},
+    ttl/.style={font=\small\bfseries, text=#1},
+    body/.style={font=\scriptsize, align=center, text width=4.55cm},
+    chap/.style={font=\scriptsize\bfseries, text=white, fill=#1, rounded corners=2pt, inner sep=2pt},
+    lab/.style={font=\tiny\itshape, text=black!70, align=center},
+    found/.style={box, draw=bench, fill=bench!8, text width=#1, align=center, minimum height=0.7cm, font=\scriptsize},
+  ]
+  % reality banner
+  \draw[pbox=reality] (0,5.75) rectangle (16.3,6.8);
+  \node[ttl=reality] at (8.15,6.47) {The real world: the curse of reality};
+  \node[font=\scriptsize] at (8.15,6.03) {unseen and irregular objects \,$\cdot$\, long-tail scenarios \,$\cdot$\, closed-loop shift \,$\cdot$\, gaps between training and deployment};
+
+  % three pillars
+  \draw[pbox=perceive] (0.2,2.55) rectangle (4.9,5.1);
+  \node[ttl=perceive] at (2.55,4.8) {RQ1 \,$\cdot$\, Perceive};
+  \node[chap=perceive] at (2.55,4.33) {Chapter~\ref{ch:occnet}};
+  \node[body, anchor=north] at (2.55,3.98) {\textbf{Scene as Occupancy}\\3D occupancy (OccNet)\\OpenOcc, OpenScene benchmarks};
+
+  \draw[pbox=reason] (5.8,2.55) rectangle (10.5,5.1);
+  \node[ttl=reason] at (8.15,4.8) {RQ2 \,$\cdot$\, Reason};
+  \node[chap=reason] at (8.15,4.33) {Chapter~\ref{ch:drivelm}};
+  \node[body, anchor=north] at (8.15,3.98) {\textbf{DriveLM}\\graph visual question answering\\perception $\rightarrow$ prediction\\$\rightarrow$ planning};
+
+  \draw[pbox=act] (11.4,2.55) rectangle (16.1,5.1);
+  \node[ttl=act] at (13.75,4.8) {RQ3 \,$\cdot$\, Act};
+  \node[chap=act] at (12.9,4.33) {Chapter~\ref{ch:centaur}};
+  \node[chap=act] at (14.6,4.33) {Chapter~\ref{ch:kai0}};
+  \node[body, anchor=north] at (13.75,3.98) {\textbf{Centaur}: test-time training for\\end-to-end driving\\\textbf{$\chi_0$}: robust manipulation under\\distributional inconsistency};
+
+  % loop arrows
+  \draw[flow, line width=1.1pt] (4.9,3.55) -- node[lab, above] {what is\\where} (5.8,3.55);
+  \draw[flow, line width=1.1pt] (10.5,3.55) -- node[lab, above] {what\\matters} (11.4,3.55);
+  \draw[flow, line width=1.1pt] (2.55,5.75) -- node[lab, right] {observations} (2.55,5.1);
+  \draw[flow, line width=1.1pt] (13.75,5.1) -- node[lab, left] {actions} (13.75,5.75);
+
+  % architecture band
+  \draw[pbox=arch] (0.2,1.2) rectangle (16.1,2.2);
+  \node[ttl=arch, anchor=west] at (0.4,1.7) {RQ4 \,$\cdot$\, Synthesis};
+  \node[font=\scriptsize, anchor=west, text width=9.0cm, align=left] at (4.75,1.7)
+       {proposed design lessons, not an integrated system: planning-oriented design (UniAD$^{*}$), fast and slow systems (ETA$^{*}$), test-time adaptation, self-directed learning$^{*}$};
+  \node[chap=arch] at (15.05,1.7) {Chapter~\ref{ch:discussion}};
+  \foreach \x in {2.55,8.15,13.75}
+    \draw[dep, <->, line width=0.8pt] (\x,2.2) -- (\x,2.55);
+
+  % foundation band
+  \node[found=4.7cm] at (2.55,0.4)  {Chapter~\ref{ch:background}: Background};
+  \node[found=4.7cm] at (8.15,0.4)  {Chapter~\ref{ch:methodology}: Research methodology};
+  \node[found=4.7cm] at (13.75,0.4) {Chapter~\ref{ch:conclusion}: Conclusion};
+\end{tikzpicture}

@@ -51,10 +51,7 @@
   fontupper=\small\linespread{1.2}\selectfont, title={Statement of contribution},
   fonttitle=\small\bfseries, coltitle=white, colbacktitle=bench}
 
-% Facts that only the candidate can confirm; must be resolved before submission.
-\newcommand{\authorcheck}[1]{\textcolor{reality}{\textbf{[Author to confirm:} #1\textbf{]}}}
-
-% TikZ figures are drawn for single spacing; the body text uses \linespread{1.5}.
+% Shared figure helper for revised TikZ figures.
 \newcommand{\tikzfig}[2][\textwidth]{{\linespread{1}\selectfont\resizebox{#1}{!}{\input{#2}}}}
 
 % ---------- pillar colours (used consistently in every figure) ----------
