@@ -1,168 +1,168 @@
 \chapter{Supplementary Material for Chapter~\ref{ch:drivelm}}\label{app:drivelm}
 
-This appendix supplements Chapter~\ref{ch:drivelm}. Section~\ref{drivelm:app:questions} discusses motivating questions that may arise from the chapter. Sections~\ref{drivelm:app:nuscenes} and~\ref{drivelm:app:carla} detail the composition, collection and statistics of DriveLM-nuScenes and DriveLM-CARLA, including the PDM-Lite expert. Section~\ref{drivelm:app:metrics} defines DriveLM-Metrics, and Section~\ref{drivelm:app:agent} describes the context scheme and the trajectory tokenisation of DriveLM-Agent. Section~\ref{drivelm:app:exp} gives implementation details and additional experiments, and Section~\ref{drivelm:app:impact} discusses the broader impact of the work. The GPT-score prompt is reproduced in Section~\ref{drivelm:app:metrics_vqa}; the complete question templates and further qualitative examples are in the published paper~\cite{sima2024drivelm} and the DriveLM repository.
+Additional material for Chapter~\ref{ch:drivelm} is organised here as follows. Open conceptual questions raised by our study are discussed in Section~\ref{drivelm:app:questions}. The data structure, annotation workflow, and statistical breakdown of DriveLM-nuScenes and DriveLM-CARLA (together with the PDM-Lite expert) are presented in Sections~\ref{drivelm:app:nuscenes} and~\ref{drivelm:app:carla}. Evaluation criteria under DriveLM-Metrics are formalised in Section~\ref{drivelm:app:metrics}, while graph-context prompting and trajectory discretisation for DriveLM-Agent are explained in Section~\ref{drivelm:app:agent}. Training configurations and supplementary ablations appear in Section~\ref{drivelm:app:exp}, followed by a discussion of societal considerations in Section~\ref{drivelm:app:impact}. The exact prompt for the GPT score is listed in Section~\ref{drivelm:app:metrics_vqa}; full question templates and extra visualisations are available in the conference paper~\cite{sima2024drivelm} and its public code repository.
 
 \section{Motivating Questions}\label{drivelm:app:questions}
 
-This section collects questions that may arise from reading Chapter~\ref{ch:drivelm}, \eg, why general VLMs should be adapted to driving. They remain open to exploration, so the answers given here are intuitive and empirical.
+Below we address several recurring questions prompted by Chapter~\ref{ch:drivelm}, such as the rationale for transferring general-purpose VLMs to autonomous driving. Because these topics remain active areas of inquiry, our responses reflect empirical observations and practical intuition rather than definitive conclusions.
 
-\medskip\noindent\textbf{Q1.}~\emph{In what situations could planning with VLMs be expected to outperform conventional end-to-end autonomous driving?}
+\medskip\noindent\textbf{Q1.}~\emph{Under what conditions might VLM-based planning surpass traditional end-to-end driving pipelines?}
 
-\noindent One of the key challenges of autonomous driving is to generalise to the long tail of scenarios that are rarely encountered but critically important. Given the large-scale pre-training of VLMs, their acquired knowledge of the world and the reasoning ability of the LLM, planning with VLMs is expected to work better in situations that are novel or unseen in the context of driving but were encountered during pre-training in unrelated contexts. The experiments of Chapter~\ref{ch:drivelm} support this expectation only in part: the pre-trained VLM transferred better than a driving-specific model to a new sensor configuration, in a comparison confounded by camera input and model scale, whereas on an unseen object class it improved only once a question written for that class was added.
+\noindent Handling rare, safety-critical long-tail events remains a central obstacle for self-driving systems. Because general VLMs are pre-trained on vast web corpora, they bring broad world knowledge and linguistic reasoning that could help when a traffic situation is unfamiliar in driving logs yet recognizable from general visual domains. Our findings in Chapter~\ref{ch:drivelm} offer only partial backing for this hypothesis: the VLM backbone adapted better than a specialist driving network when evaluated on an unseen camera rig (though differences in visual inputs and parameter counts confound that comparison), whereas zero-shot recognition of an unseen road-user category improved downstream decisions only after we explicitly inserted a question targeting that category.
 
-\medskip\noindent\textbf{Q2.}~\emph{Why adapt general VLMs to driving rather than adding language inputs to driving-specific models?}
+\medskip\noindent\textbf{Q2.}~\emph{Why fine-tune general VLMs for driving instead of equipping specialist driving networks with language heads?}
 
-\noindent General VLMs benefit from billion-scale pre-training data for vision-language tasks extracted from the internet, and can be adapted to the driving domain by fine-tuning on small autonomous driving datasets such as DriveLM. Driving-specific models, in contrast, are pre-trained only on small autonomous driving datasets, and adding language inputs to them with data from outside the self-driving domain is non-trivial. Combining the advantages of VLMs and driving-specific models is nevertheless an interesting direction to explore.
+\noindent Foundation VLMs draw on web-scale image--text pre-training covering billions of samples, and LoRA adaptation on a modest driving QA corpus such as DriveLM suffices to align them with traffic scenes. Specialist driving architectures, by contrast, are trained from scratch on comparatively small sensor logs, and retrofitting them with open-domain linguistic supervision is far from straightforward. Even so, hybrid designs that merge specialist geometric encoders with pre-trained VLM backbones remain a promising avenue.
 
-\medskip\noindent\textbf{Q3.}~\emph{Can open-loop evaluation of planning provide meaningful results?}
+\medskip\noindent\textbf{Q3.}~\emph{How informative is open-loop trajectory evaluation for planning?}
 
-\noindent Only to a limited extent. In open-loop evaluation, providing the ego history as input to the planning module prevents fair comparisons, since this signal alone is sufficient for achieving low errors on existing benchmarks~\cite{li2024ego}. DriveLM tries to reduce this issue by evaluating only on key frames, which annotators selected as rich in scene information and potentially indicative of future state changes (Section~\ref{drivelm:app:nus_collection}), and by not feeding the ego history to DriveLM-Agent. We did not test whether this removes the shortcut, for example with an ego-status-only baseline on the same frames, and the behaviour answers of DriveLM-nuScenes are dominated by going straight (Section~\ref{drivelm:sec:community}), so many key frames do not involve a change of direction. The original UniAD, which receives the ego status through its BEV encoder, is reported only as a reference. Finally, DriveLM-CARLA is introduced as a means to show closed-loop planning results in the future.
+\noindent Its diagnostic value is restricted. When a planner receives past ego states in an open-loop benchmark, extrapolating kinematic history alone already yields small displacement errors, obscuring genuine scene understanding~\cite{li2024ego}. To mitigate this shortcut, DriveLM restricts evaluation to human-selected key frames that capture dense traffic interactions or impending manoeuvre changes (Section~\ref{drivelm:app:nus_collection}), and omits past ego states from the inputs of DriveLM-Agent. Even so, we did not run an ego-history-only baseline on those frames to verify that the shortcut is fully eliminated, and straight-line driving still dominates the behaviour labels of DriveLM-nuScenes (Section~\ref{drivelm:sec:community}). The original UniAD model, whose BEV features encode ego status, is included solely as an anchor point. For closed-loop assessment, we provide the DriveLM-CARLA benchmark as a foundation for future simulator trials.
 
-\medskip\noindent\textbf{Q4.}~\emph{Why are there currently no closed-loop planning results on CARLA?}
+\medskip\noindent\textbf{Q4.}~\emph{What prevents reporting closed-loop CARLA benchmark scores at present?}
 
-\noindent The obstacle is cost rather than feasibility. CARLA advances its simulation in steps of 20\,Hz, but in synchronous mode it waits for the agent, so real-time inference is not required. At the 0.16 FPS of DriveLM-Agent (Table~\ref{drivelm:tab:latency}), however, querying the model at every simulation step takes about 125\,s of computation per simulated second, which makes closed-loop evaluation on the official routes, 247.6 kilometres in total (Section~\ref{drivelm:app:carla_collection}), expensive. The cost could be reduced with distillation, quantisation and caching techniques for LLM inference. Another approach would be to execute only the final motion stage of DriveLM-Agent at every simulation step, while the other GVQA stages are executed less often.
+\noindent Compute budget, rather than technical incompatibility, is the bottleneck. Although CARLA steps at 20\,Hz, its synchronous execution mode pauses the world until the agent responds, removing hard real-time constraints. However, because DriveLM-Agent runs at 0.16 FPS (Table~\ref{drivelm:tab:latency}), invoking the full model at every tick requires roughly 125\,s of wall-clock compute per second of simulated driving, making a full sweep across the 247.6 kilometres of official evaluation routes (Section~\ref{drivelm:app:carla_collection}) prohibitively costly. Model compression via distillation, weight quantisation, and KV-cache reuse could lower this overhead, as could running the upstream GVQA reasoning stages at a lower frequency while querying only the final motion head at every simulator tick.
 
-\medskip\noindent\textbf{Q5.}~\emph{Is DriveLM-Agent efficient enough to be applicable to real-world autonomous driving?}
+\medskip\noindent\textbf{Q5.}~\emph{Can DriveLM-Agent meet the latency demands of on-vehicle deployment?}
 
-\noindent Table~\ref{drivelm:tab:latency} reports the runtime of DriveLM-Agent. Without any optimisation, the approach is around one order of magnitude slower than UniAD. With the optimisations proposed for closed-loop results on CARLA (see Q4), however, practical applications of VLMs in driving may become possible.
+\noindent Runtime measurements in Table~\ref{drivelm:tab:latency} show that our unoptimised prototype runs roughly ten times slower than UniAD. Adopting the inference accelerations outlined under Q4 would be necessary before on-board deployment becomes practical.
 
-\medskip\noindent\textbf{Q6.}~\emph{What is the trade-off between long inference time and generalisation?}
+\medskip\noindent\textbf{Q6.}~\emph{How should one weigh the high latency of VLMs against their generalisation benefits?}
 
-\noindent LLMs have become orders of magnitude faster in recent years, as they are a general topic of broad interest, \eg,~\cite{xiao2023smoothquant}. Similarly, recent work shows that BLIP-2 can be run 40\% faster while maintaining its performance~\cite{shi2023crossget}. Furthermore, most autonomous driving research begins with systems that are not real-time, which are later optimised by practitioners. Runtime efficiency is a limitation of DriveLM, but we hope that the rapid progress in orthogonal research can alleviate this issue, which is out of the scope of this work.
+\noindent Community-wide investment in LLM serving has yielded rapid speedups through techniques such as post-training quantisation~\cite{xiao2023smoothquant}, and dedicated token-pruning methods already accelerate BLIP-2 inference by 40\% without accuracy loss~\cite{shi2023crossget}. Historically, early prototypes in autonomous driving often prioritise capability over frame rate before engineering teams streamline them for deployment. While latency remains a clear limitation of our current pipeline, orthogonal advances in efficient foundation models should steadily narrow this gap.
 
-\medskip\noindent\textbf{Q7.}~\emph{Why is VQA more suited than alternative techniques (such as generative modelling) to train internet-scale models for the downstream application of autonomous driving?}
+\medskip\noindent\textbf{Q7.}~\emph{What makes VQA preferable to alternative pre-training paradigms (such as world-model video generation) when transferring web-scale models to driving?}
 
-\noindent Both perception and planning in driving require reasoning and involve zero-shot generalisation. VLMs potentially inherit reasoning ability from LLMs, which makes VQA a promising direction for bringing the benefits of web-scale training to autonomous driving.
+\noindent Safe driving demands both perceptual grounding and explicit causal reasoning under distribution shift. Because VLMs inherit chain-of-thought and compositional reasoning capabilities from their language backbones, formulating driving tasks as VQA directly taps into those strengths.
 
-\medskip\noindent\textbf{Q8.}~\emph{Do today's VLMs understand and reason about the visual world as well as LLMs understand text-based worlds?}
+\medskip\noindent\textbf{Q8.}~\emph{Do current VLMs grasp physical traffic scenes as reliably as LLMs process purely textual domains?}
 
-\noindent This is not known but deserves to be explored. VLMs approach the problem of generalisation in a data-driven way, which has repeatedly proved successful on other tasks.
+\noindent That question remains open and merits systematic investigation. What VLMs offer is a scalable, data-driven mechanism for out-of-distribution generalisation that has already proven effective across numerous vision--language benchmarks.
 
-\medskip\noindent\textbf{Q9.}~\emph{Why does the proposed graph reasoning scheme not provide very strong improvements in VQA?}
+\medskip\noindent\textbf{Q9.}~\emph{Why does conditioning on the QA graph yield only modest gains on standard VQA metrics?}
 
-\noindent The simple prompting scheme, the relatively small base VLMs, insufficiently strong logical dependencies in the dataset, or a combination of these factors may contribute to the lack of major improvements. DriveLM-CARLA provides a platform to study these factors carefully and to inform the annotation of future GVQA datasets.
+\noindent Several factors likely limit the margin of improvement: our straightforward text-concatenation prompt, the moderate capacity of the base VLM, and imperfect causal coupling between parent and child questions in the annotated data. The synthetic DriveLM-CARLA benchmark offers a controlled testbed for isolating each factor and guiding future GVQA annotation protocols.
 
-\medskip\noindent\textbf{Q10.}~\emph{What questions should be asked when collecting DriveLM?}
+\medskip\noindent\textbf{Q10.}~\emph{How should one design the question inventory when building a driving QA dataset?}
 
-\noindent Determining the right questions is a critical aspect of DriveLM. As a pioneering study of driving with VLMs, this work cannot recommend a detailed protocol; the choice relies on domain expertise and is left for future work. Table~\ref{drivelm:tab:question_wise} gives a question-wise analysis of the chosen protocol.
+\noindent Selecting informative questions is central to GVQA design. As an initial study, our work relies on domain heuristics rather than a formal selection theory; systematic question design remains an open problem. Ablations across individual question families are reported in Table~\ref{drivelm:tab:question_wise}.
 
-\medskip\noindent\textbf{Q11.}~\emph{Is generalisation in autonomous vehicles an oversold topic?}
+\medskip\noindent\textbf{Q11.}~\emph{Is out-of-distribution generalisation overstated as a problem for self-driving cars?}
 
-\noindent Driving scenes predominantly consist of vehicles, pedestrians and cyclists. Real-world autonomous driving, however, is a safety-critical application that must handle the long tail of rare objects to avoid accidents in commercial deployment~\cite{2022incidentai}. Furthermore, generalisation to novel objects is an active and growing research field~\cite{zareian2021openvocabulary,li2022coda}. While most objects in autonomous driving belong to a limited set of classes, the tiny percentage of rare objects is in fact the main existing barrier to the commercialisation of autonomous driving, which makes generalisation an important capability.
+\noindent Everyday traffic consists mostly of cars, pedestrians, and cyclists. Yet commercial deployment is governed by safety in the long tail: failing to react appropriately to rare hazards can cause severe collisions~\cite{2022incidentai}. Consequently, open-vocabulary detection and corner-case benchmarks have attracted sustained research effort~\cite{zareian2021openvocabulary,li2022coda}. Even though unusual objects account for a small fraction of driving mileage, resolving them remains one of the primary hurdles to wide-scale autonomy.
 
-\medskip\noindent\textbf{Q12.}~\emph{Why not use video inputs?}
+\medskip\noindent\textbf{Q12.}~\emph{Why rely on single-frame camera inputs rather than multi-frame video?}
 
-\noindent In autonomous driving, multi-frame inputs do not always lead to improved performance because of causal confusion~\cite{wen2021keyframefocused}, which has motivated the use of single frames in several prior works~\cite{wu2022tcp,jaeger2023hidden}. In the long term, however, multi-frame models are desirable. As a proof of concept, Table~\ref{drivelm:tab:llama} reports results for a multi-frame model adapted from LLaMA-Adapter V2~\cite{gao2023llamaadapterv2}; multi-frame inputs give a slight improvement.
+\noindent Feeding temporal sequences to imitation-learned planners can induce causal confusion~\cite{wen2021keyframefocused}, a pitfall that led several strong baselines to condition on single frames~\cite{wu2022tcp,jaeger2023hidden}. Incorporating temporal context is nonetheless valuable over the longer term. As an initial test, Table~\ref{drivelm:tab:llama} evaluates a multi-frame variant built on LLaMA-Adapter V2~\cite{gao2023llamaadapterv2}, where temporal inputs yield a modest gain.
 
-\medskip\noindent\textbf{Q13.}~\emph{What is the technical novelty of this work?}
+\medskip\noindent\textbf{Q13.}~\emph{Where does the primary technical contribution of this study lie?}
 
-\noindent The young field of driving with language lacked a standardised dataset, task and evaluation framework, and this work fills that gap. We believe that these are as valuable as proposing a new method. We therefore make no claim of algorithmic novelty and intentionally construct simple baselines. The technical novelty lies in the formulation of the task and in the preparation of data suitable for adapting general VLMs to driving, which shows promising results even in combination with existing models.
+\noindent Research at the intersection of language and driving previously lacked a common benchmark, task definition, and evaluation suite. Addressing that gap is the central contribution of our work: rather than proposing a complex network architecture, we deliberately pair our graph-structured task formulation and curated datasets with straightforward baseline models, demonstrating that even simple VLM adaptations benefit from structured driving QAs.
 
 \section{DriveLM-nuScenes}\label{drivelm:app:nuscenes}
 
-This section details DriveLM-nuScenes: its composition, collection methodology and statistics.
+Below we describe the data schema, annotation pipeline, and statistical properties of DriveLM-nuScenes.
 
 \subsection{Dataset Composition}\label{drivelm:app:nus_composition}
 
-DriveLM-nuScenes comprises a training set of 4,072 frames and a validation set of 799 frames. It consists of scene-level descriptions and frame-level QAs, accompanied by 2D bounding boxes in the multi-view images of nuScenes. The scene-level description delineates the behaviour of the ego vehicle throughout the entire video clip. The frame-level QAs fall into three categories:
+DriveLM-nuScenes contains 4,072 training key frames and 799 validation key frames. Every clip carries a scene-level summary of the ego vehicle's manoeuvre across the video, paired with frame-level QAs and 2D bounding boxes projected onto the six nuScenes camera views. Frame-level QAs are organised into three stages:
 \begin{itemize}
-  \item \textbf{Perception} covers questions about a thorough examination of the entire frame. Apart from several questions that are annotated manually, we design prompts to generate questions about the observable facets of the objects in the scene, using the ground truth of nuScenes~\cite{caesar2020nuscenes} and OpenLane-V2~\cite{wang2023openlanev2}.
-  \item \textbf{Prediction} covers questions about the future state of the key objects and of the ego vehicle in the current frame, and about the reasoning behind the prediction. Because these predictions are intricate and challenging, the answers are \emph{annotated manually}.
-  \item \textbf{Planning} covers questions about the subsequent actions of the ego vehicle in the current frame. Planning is as challenging as prediction, so we design prompts for the reasoning process and \emph{annotate the answers manually}.
+  \item \textbf{Perception} probes the visible state of the surrounding environment. Alongside a subset of human-written questions, rule-based templates query object attributes derived from nuScenes~\cite{caesar2020nuscenes} and OpenLane-V2~\cite{wang2023openlanev2} ground truth.
+  \item \textbf{Prediction} asks how salient road users and the ego vehicle will evolve in the near future and why. Because forecasting interactions requires nuanced judgement, all prediction answers are \emph{written manually by human annotators}.
+  \item \textbf{Planning} queries the ego vehicle's immediate decision and its underlying rationale. Given the complexity of interactive decision-making, we provide structured reasoning prompts and collect all planning answers \emph{through manual annotation}.
 \end{itemize}
-The key objects referred to in the QAs are encoded as \textbf{c tags} of the form $\langle c, \mathit{CAM}, x, y\rangle$, where $c$ is the identifier, $\mathit{CAM}$ is the camera in which the centre point of the object is situated, and $x$ and $y$ are the horizontal and vertical coordinates of the 2D bounding box in the coordinate system of that camera. Each key frame also has a dictionary that records basic information about the key objects, such as the size of the bounding box, the category, the moving state and the visual description. Fig.~\ref{drivelm:fig:composition} gives an overview of the data organisation.
+Salient traffic participants referenced in the QAs are denoted by \textbf{c tags} formatted as $\langle c, \mathit{CAM}, x, y\rangle$, where $c$ is the instance token, $\mathit{CAM}$ identifies the camera view containing the box centre, and $(x, y)$ gives the 2D centre coordinates within that image plane. Every key frame is accompanied by an object dictionary storing the 2D box dimensions, semantic class, motion status, and appearance description of each referenced instance. The overall schema is illustrated in Fig.~\ref{drivelm:fig:composition}.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-drivelm/images/nus_data_supp_v2.pdf}
-  \caption[Composition of DriveLM-nuScenes]{\textbf{Overall composition of DriveLM-nuScenes.} The dataset comprises scene-level descriptions and frame-level QAs, which divide into three parts: \emph{perception}, \emph{prediction} and \emph{planning}. Objects are encoded as \emph{c tags}, which contain an identifier, the camera, and the centre coordinates of the 2D bounding box of the object in that camera frame.}
+  \caption[Schema of DriveLM-nuScenes]{\textbf{Schema of DriveLM-nuScenes.} Clip-level ego-behaviour summaries are paired with frame-level QAs spanning \emph{perception}, \emph{planning}, and \emph{prediction}. Referenced road users are grounded via \emph{c tags} recording an instance identifier, camera view, and 2D box centre coordinates.}
   \label{drivelm:fig:composition}
 \end{figure}
 
 \subsection{Collection Methodology}\label{drivelm:app:nus_collection}
 
-The labelling is carried out by annotators with driving experience, who are given the stitched images of the six nuScenes cameras. As shown in Fig.~\ref{drivelm:fig:nus_anno_pipeline} (left), the annotation process has three steps: selecting key frames from video clips, choosing key objects within these key frames, and annotating the frame-level QAs of the key frames. Multiple rounds of quality checks then ensure the reliability of the data, and the qualified data are post-processed, as shown in Fig.~\ref{drivelm:fig:nus_anno_pipeline} (right).
+Experienced drivers serve as annotators, inspecting panoramic strips stitched from the six surround-view nuScenes cameras. As depicted on the left of Fig.~\ref{drivelm:fig:nus_anno_pipeline}, labelling proceeds in three stages: sampling informative key frames from each clip, marking task-relevant road users on those frames, and authoring the frame-level QAs. Annotated batches then pass through multi-stage verification and linguistic post-processing, shown on the right of Fig.~\ref{drivelm:fig:nus_anno_pipeline}.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-drivelm/images/nus_pipeline_supp_v2.pdf}
-  \caption[Annotation, quality check and post-processing of DriveLM-nuScenes]{\textbf{Left: pipeline of the three-step annotation process.} For each video, the annotators label the key frames, the key objects and the QA attributes step by step. \textbf{Right: quality check and post-processing.} The annotated data are divided into batches, each containing 8 video clips and their annotations. After quality checks and post-processing, two versions of DriveLM-nuScenes are obtained.}
+  \caption[DriveLM-nuScenes annotation and auditing workflow]{\textbf{Left: three-stage human annotation workflow.} Annotators sequentially identify key frames, mark salient road users, and answer frame-level QAs for each clip. \textbf{Right: verification and translation pipeline.} Clips are grouped into 8-video batches for auditing and post-processing, yielding two release variants of DriveLM-nuScenes.}
   \label{drivelm:fig:nus_anno_pipeline}
 \end{figure}
 
-\paragraph{Key frame selection.}
-Annotators review the entire video clip to pinpoint key frames that are rich in scene information and potentially indicative of future state changes. Key frames are thus chosen by judgement, not by a rule that detects changes in the intention of the ego vehicle, and many of them show the ego vehicle going straight (Section~\ref{drivelm:sec:community}). At the same time, they label the behaviour of the ego vehicle throughout the video clip, which forms the basis of the scene-level description.
+\paragraph{Selecting key frames.}
+Annotators scan each video clip to pick frames that capture dense traffic context or precede a potential manoeuvre change. Because selection relies on human judgement rather than an automated trigger for steering or speed changes, straight-ahead driving still accounts for a large share of the chosen frames (Section~\ref{drivelm:sec:community}). During the same pass, annotators summarise the ego vehicle's overall action across the clip to form the clip-level description.
 
-\paragraph{Key object selection.}
-Annotators identify the objects in the key frames that are relevant to the driving of the ego vehicle, called key objects. To ensure accuracy, pre-annotated bounding boxes based on the ground-truth categories of nuScenes~\cite{caesar2020nuscenes} are provided. Annotators may also designate objects that are not present in the ground truth as key objects if they consider them relevant.
+\paragraph{Selecting key objects.}
+Within every selected key frame, annotators flag the road users and traffic control elements that influence the ego vehicle's decision, referred to as key objects. Pre-computed 2D projections of nuScenes ground-truth boxes~\cite{caesar2020nuscenes} are overlaid on the views to speed up selection, and annotators can draw new boxes for salient objects omitted from the official annotations.
 
-\paragraph{QA labelling.}
-There are two sets of questions: factual questions and open-ended questions. The answers to factual questions are generated with a rule-based method. The open-ended questions, which are carefully designed in advance, are answered manually by the annotators. Options are provided for most manually annotated questions, together with an ``Other -- Fill in the Blank'' option for flexibility. Free-form questions additionally allow annotators to ask their own questions about the current frame.
+\paragraph{Authoring QAs.}
+The question bank combines rule-generated factual queries with manually answered open-ended queries. Factual answers are populated directly from ground-truth metadata, whereas open-ended questions are crafted beforehand and answered by human labellers. Most manual questions offer candidate choices alongside an ``Other (blank entry)'' field for custom responses, and an additional free-form slot lets annotators contribute bespoke question--answer pairs for the frame.
 
-\paragraph{Quality check.}
-Besides establishing clear criteria and applying automatic checks at each annotation step, we conduct manual quality checks; their thresholds and outcomes are not reported here (Section~\ref{drivelm:sec:data_nus}). The final data are organised into batches, each comprising 8 video clips together with their scene-level descriptions, the key frames and key objects selected from these clips, and the QAs of each key frame. Quality inspectors receive explicit standards on which to base their assessment of data eligibility. For manually annotated data, if the accuracy of the annotations in a batch falls below expectations, we compile feedback on the issues encountered and ask the annotators to re-annotate the entire batch. For data generated from the ground truth, the inspectors manually adjust inconsistent or unreasonable QAs.
+\paragraph{Auditing quality.}
+Automated format checks run at every annotation stage, supplemented by human audits (exact rejection thresholds and pass rates are omitted here; see Section~\ref{drivelm:sec:data_nus}). Annotations are audited in work packets of 8 video clips containing the clip descriptions, chosen key frames, marked objects, and frame QAs. Auditors grade each packet against written guidelines: whenever manual labels fall short of the target quality, the entire 8-clip packet is returned with written feedback for re-annotation, while any inconsistent rule-generated QAs are corrected directly by the inspectors.
 
-\paragraph{Post-processing.}
-Because the annotators are Chinese speakers, the labelled data are translated into English. We first establish mappings between Chinese and English with a vocabulary. Texts that cannot be mapped are translated with GPT-3.5, and the GPT outputs are then checked and corrected manually. We also provide a version whose language is refined by GPT-3.5; the prompt is given in the published paper~\cite{sima2024drivelm}.
+\paragraph{Translation and polishing.}
+Because annotation was conducted in Chinese, all text is rendered into English in two steps: fixed terminology is first mapped via a bilingual glossary, and free-text segments are converted using GPT-3.5 before undergoing manual proofreading. A second release variant applies GPT-3.5 stylistic polishing to the verified English text using the prompt documented in~\cite{sima2024drivelm}.
 
 \subsection{Statistics}\label{drivelm:app:nus_stats}
 
-This section analyses the distribution of the QA categories of DriveLM-nuScenes at the task level and at the object level. The QA categories cover various aspects of autonomous driving, and there are enough logical relationships between them to construct graph-structured QAs. The 153k prediction and 146k planning QAs are answered by annotators, so at least two thirds of the 443k QAs are human-written (computed from Table~\ref{drivelm:tab:dataset}); the 144k perception QAs mix rule-generated and manually written answers.
+Below we examine how QA pairs in DriveLM-nuScenes are distributed across driving stages and object classes. The breadth of question families and their cross-stage dependencies support graph-structured reasoning. Human annotators wrote all 153k prediction answers and 146k planning answers, accounting for over two thirds of the 443k total QAs (derived from Table~\ref{drivelm:tab:dataset}), while the remaining 144k perception QAs combine template-derived and human-authored responses.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.6\linewidth]{ch-drivelm/images/data_v8_2_smch.pdf}
-  \caption[Question distribution of DriveLM-nuScenes]{\textbf{Question distribution of perception, prediction and planning.} The questions in DriveLM-nuScenes cover various specific aspects of driving and are grouped into perception, prediction and planning. Most of them are answered by human annotators.}
+  \caption[Stage-level QA breakdown in DriveLM-nuScenes]{\textbf{Breakdown of QAs across perception, prediction, and planning.} DriveLM-nuScenes spans diverse driving subtasks grouped into the three pipeline stages, with the majority of answers written by human annotators.}
   \label{drivelm:fig:data_distribution}
 \end{figure}
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-drivelm/images/nus_stats_supp.pdf}
-  \caption[Question types per task in DriveLM-nuScenes]{\textbf{Distribution of question types per task in DriveLM-nuScenes.} Questions are categorised into perception, prediction and planning tasks, each subdivided into more specific question types.}
+  \caption[Fine-grained question subcategories in DriveLM-nuScenes]{\textbf{Fine-grained question subcategories within each stage of DriveLM-nuScenes.} Each of the three primary stages splits into specialized question templates.}
   \label{drivelm:fig:nus_statis}
 \end{figure}
 
-\paragraph{Task level.}
-DriveLM-nuScenes forms a benchmark that encompasses various aspects of autonomous driving and connects the perception, prediction and planning stages. Fig.~\ref{drivelm:fig:data_distribution} and Fig.~\ref{drivelm:fig:nus_statis} show the distribution of question types at the task level.
+\paragraph{Stage-level distribution.}
+Both Fig.~\ref{drivelm:fig:nus_statis} and Fig.~\ref{drivelm:fig:data_distribution} summarise the task-level breakdown across perception, prediction, and planning subcategories.
 
-\paragraph{Object level.}
-Since the QAs in DriveLM-nuScenes revolve around key objects, we also compute statistics at the object level. Fig.~\ref{drivelm:fig:nus_obj_stats} (left) shows the distribution of key object types. Because the questions associated with traffic elements differ substantially from those of the other categories, the statistics of QA types are computed separately for traffic elements and for the remaining categories (Fig.~\ref{drivelm:fig:nus_obj_stats}, right).
+\paragraph{Object-level distribution.}
+Because frame QAs are anchored on salient traffic participants, the left panel of Fig.~\ref{drivelm:fig:nus_obj_stats} plots the class distribution of marked key objects. Questions targeting traffic control elements follow a distinct template set from those targeting dynamic road users, so their QA type distributions are tallied separately on the right of Fig.~\ref{drivelm:fig:nus_obj_stats}.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-drivelm/images/nus_objstats_supp.pdf}
-  \caption[Key-object statistics of DriveLM-nuScenes]{\textbf{Left: distribution of key objects in DriveLM-nuScenes.} The sub-categories are extracted from the visual descriptions. \textbf{Right: distribution of question types related to different key objects in DriveLM-nuScenes.} Since the questions associated with traffic elements differ substantially from other categories, the statistics of QA types are computed separately for traffic elements and for the remaining categories.}
+  \caption[Object-centric QA statistics in DriveLM-nuScenes]{\textbf{Left: class breakdown of key objects in DriveLM-nuScenes}, with fine-grained subtypes parsed from visual descriptions. \textbf{Right: question-type distribution by object group.} Traffic control elements are plotted separately from other road users because they trigger distinct question templates.}
   \label{drivelm:fig:nus_obj_stats}
 \end{figure}
 
 \section{DriveLM-CARLA}\label{drivelm:app:carla}
 
-This section details DriveLM-CARLA: its composition, the PDM-Lite expert and the collection methodology.
+We next describe the graph schema of DriveLM-CARLA, the privileged PDM-Lite expert used to drive the ego vehicle, and the simulator recording protocol.
 
 \subsection{Dataset Composition}\label{drivelm:app:carla_composition}
 
-DriveLM-CARLA consists of automatically generated frame-level QAs structured as an interconnected graph, shown in Fig.~\ref{drivelm:fig:carla_graph}. In the current version, the dataset consists of questions about the road layout, stop signs, traffic lights and vehicles. Future versions can extend it to more categories such as static objects, weather and traffic signs.
+DriveLM-CARLA pairs simulator recordings with rule-generated frame-level QAs connected as a directed graph (see Fig.~\ref{drivelm:fig:carla_graph}). The present release covers road topology, vehicles, traffic lights, and stop signs, while the generator can be extended to additional classes such as static obstacles, weather conditions, and regulatory signs.
 
-Generating the data in the CARLA simulator allows scalable annotations without any manual effort. The dataset also supports a variety of sensor outputs from CARLA, including semantic segmentation, depth maps and LiDAR, which can be used to train different network architectures. Each question in the graph is designed to facilitate situational reasoning that can be instrumental for answering subsequent questions. As in DriveLM-nuScenes, each question belongs to perception, prediction or planning. For each QA about an object, we save the object ID in addition to the question and answer. This ID is consistent over time, which enables object tracking and temporal reasoning in future studies. The relationships to parent and child questions in the graph are also recorded, allowing efficient traversal of the graph.
+Synthesising annotations inside CARLA removes human labelling cost and exposes multi-modal ground truth, including LiDAR point clouds, depth maps, and semantic segmentation masks, alongside multi-view RGB images. Within the QA graph, upstream perception queries establish situational facts that inform downstream prediction and planning nodes. Every object-centric QA stores a persistent simulator actor ID, enabling cross-frame tracking and temporal extensions, together with explicit parent and child edge pointers for graph traversal.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-drivelm/images/carla_graph.pdf}
-  \caption[Question graph of DriveLM-CARLA]{\textbf{Detailed flow of the DriveLM-CARLA graph.} The full graph consists of questions and answers about the road layout, traffic lights, stop signs and vehicles.}
+  \caption[Directed QA topology in DriveLM-CARLA]{\textbf{Topology of the DriveLM-CARLA question graph.} Nodes span perception, prediction, and planning queries covering road geometry, surrounding vehicles, stop signs, and traffic lights.}
   \label{drivelm:fig:carla_graph}
 \end{figure}
 
 \subsection{Expert Algorithm: PDM-Lite}\label{drivelm:app:pdm}
 
-Previous CARLA experts, such as the privileged rule-based expert used by TransFuser++~\cite{jaeger2023hidden}, can only solve the scenarios implemented in CARLA Leaderboard 1.0. PDM-Lite, a rule-based expert developed for this purpose by Bei{\ss}wenger~\cite{beisswenger2024pdmlite}, is designed to tackle all 38 scenarios of Leaderboard 2.0. It consists of six stages, from path planning and the forecasting of other agents to the selection of a target speed with the intelligent driver model and the control of the vehicle, which are described in full in~\cite{beisswenger2024pdmlite}.
+Earlier privileged agents for CARLA, such as the rule-based planner in TransFuser++~\cite{jaeger2023hidden}, were engineered for Leaderboard 1.0 and cannot handle the expanded scenario suite of Leaderboard 2.0. To collect expert demonstrations across all 38 Leaderboard 2.0 scenarios, we rely on PDM-Lite, a privileged six-stage rule-based planner designed by Bei{\ss}wenger~\cite{beisswenger2024pdmlite} that couples path planning and actor forecasting with intelligent-driver-model speed selection and low-level control; complete algorithmic details appear in~\cite{beisswenger2024pdmlite}.
 
 \paragraph{Results.}
-The performance of PDM-Lite is evaluated on the 20 official validation routes of Leaderboard 2.0; this evaluation was carried out by co-authors. Table~\ref{drivelm:tab:pdm_results} presents the results of evaluations with three different seeds. Routes 0--9 and 10--19 are identical except for the weather conditions, which provides an additional measure of performance variance. Since PDM-Lite uses privileged information, its variance in performance is not due to the different weather parameters but to the random initialisation of the surrounding traffic. Each route entry gives the mean and standard deviation over the three seeds. The standard deviation in the Avg.\ row is taken over all 60 route--seed runs, as recomputing it from the per-route values shows for all five columns, so it mixes the variation between routes with the variation between seeds; the standard deviation of the 20 route means of the DS is 23.9 (computed from the table). The variation of the 20-route average across seeds cannot be derived from the table (Section~\ref{drivelm:sec:data_expert}).
+Co-authors benchmarked PDM-Lite across the 20 official Leaderboard 2.0 validation routes under three random seeds (Table~\ref{drivelm:tab:pdm_results}). Routes 10--19 repeat the geometry of routes 0--9 under altered weather presets, offering a second check on run-to-run variability. Because PDM-Lite reads privileged simulator state that is invariant to lighting and precipitation, score fluctuations stem from stochastic background traffic rather than weather changes. Per-route cells list the three-seed mean and standard deviation. Recomputing the bottom Avg.\ row from the 20 route rows confirms that its standard deviations are pooled across all 60 route--seed trials in every column, blending inter-route difficulty with inter-seed noise; across the 20 route means alone, the DS standard deviation is 23.9, whereas the seed-to-seed standard deviation of the 20-route mean cannot be recovered from the summary table (Section~\ref{drivelm:sec:data_expert}).
 
 \begin{table}[!tp]
   \centering
-  \caption[PDM-Lite on the official CARLA validation routes]{\textbf{PDM-Lite on the official CARLA validation routes} (experiments led by co-authors). Driving performance for each route: Driving Score (DS), Route Completion (RC), Infraction Score (IS), Normalised Driving Score (NDS) and Normalised Infraction Score (NIS). Each route entry is the mean $\pm$ standard deviation over 3 seeds; the Avg.\ row gives the mean and the standard deviation over all 60 route--seed runs. Routes 0--9 are identical to routes 10--19, except for the weather (which PDM-Lite ignores) and the traffic behaviours. Routes 3 and 13 always crashed in our set-up, so the lowest possible scores were assumed for them.}
+  \caption[PDM-Lite on the official CARLA validation routes]{\textbf{Validation performance of PDM-Lite on the 20 official CARLA Leaderboard 2.0 routes} (evaluated by co-authors). Columns report Driving Score (DS), Route Completion (RC), Infraction Score (IS), Normalised Driving Score (NDS), and Normalised Infraction Score (NIS). Per-route entries show the mean $\pm$ standard deviation across 3 seeds, while the Avg.\ row pools all 60 route--seed runs. Routes 10--19 share the map paths of routes 0--9 under different weather presets (ignored by the privileged planner) and traffic realisations. Simulator crashes occurred on routes 3 and 13 in our environment, so minimum floor scores were assigned to those runs.}
   \label{drivelm:tab:pdm_results}
   \small
   \begin{adjustbox}{max width=\textwidth}
@@ -201,125 +201,125 @@ The performance of PDM-Lite is evaluated on the 20 official validation routes of
 \subsection{Collection Methodology}\label{drivelm:app:carla_collection}
 
 \paragraph{Simulator settings.}
-We use the CARLA simulator (version 0.9.14) with Leaderboard 2.0~\cite{dosovitskiy2017carla} to generate the dataset. Leaderboard 2.0 introduces two new large maps along with a suite of new scenarios, which increases the diversity of the training and evaluation environments. Town 12 serves as the training town and Town 13 is reserved for evaluation. Each town covers an area of $10\times10$ square kilometres and encompasses varied environments such as rural, residential and urban landscapes that replicate real-world driving conditions. The CARLA team provides a total of 90 training routes, spanning 780.6 kilometres, and 20 evaluation routes, measuring 247.6 kilometres. Every route incorporates multiple driving scenarios. We segment these routes into shorter segments of approximately 150 metres and filter out routes that start and end at the same position. The traffic manager of Leaderboard 2.0 initialises random background traffic around the ego vehicle that consists exclusively of `car' entities. To enrich the dataset, we introduce additional vehicle classes, namely `trucks', `vans', `bicycles' and `motorcycles'. Moreover, we randomise the weather configuration of each training and evaluation route to mimic realistic driving conditions. Night-time settings are excluded because of inadequate illumination in certain regions of the maps: low-light conditions severely impede the correctness of the automatic labelling, since information about the visibility of objects in the image is hard to obtain.
+Recordings are collected in CARLA 0.9.14 under Leaderboard 2.0~\cite{dosovitskiy2017carla}, which expands environmental variety through two large maps and an updated scenario bank. We allocate Town 12 to training and hold out Town 13 for evaluation; each map spans $10\times10$ square kilometres across highway, urban, residential, and rural road networks. From the 90 official training routes (780.6 kilometres) and 20 evaluation routes (247.6 kilometres), each containing multiple scripted scenarios, we slice trajectories into chunks of roughly 150 metres and discard degenerate segments whose start and end points coincide. Because the default Leaderboard 2.0 traffic manager spawns only `car' actors, we augment background traffic with `trucks', `vans', `bicycles', and `motorcycles', and randomise weather presets per route while omitting night-time presets whose poor lighting prevents reliable visibility checks during automated labelling.
 
 \paragraph{Data collection.}
-We execute the expert on each of the routes and gather a comprehensive set of sensor data: (1) RGB images, (2) LiDAR point clouds, (3) semantic segmentation images, (4) depth maps and (5) bird's-eye-view (BEV) semantic segmentation. While DriveLM-Agent uses only the RGB images, retraining TransFuser++ requires the additional data for its auxiliary tasks. In addition, we extract privileged information from the simulator about the status of the static and dynamic objects in the scene:
+Running the privileged expert across the segmented routes logs five sensor streams: (1) multi-view RGB images, (2) LiDAR point clouds, (3) perspective semantic segmentation masks, (4) depth maps, and (5) bird's-eye-view (BEV) semantic masks. DriveLM-Agent consumes only the RGB stream, whereas the remaining modalities supervise auxiliary heads when retraining TransFuser++. Alongside sensor frames, we query the simulator for privileged actor states:
 \begin{itemize}
-  \item \emph{Ego vehicle}: 3D bounding box, speed, brake, id.
-  \item \emph{Other vehicles}: 3D bounding box, number of LiDAR points inside the bounding box, distance to the ego vehicle, speed, steering, throttle, brake, id, colour, vehicle type, number of wheels, traffic light state, lane information (\ie, on which road and lane the vehicle is driving), whether the vehicle is in a junction, distance to the next junction, next high-level command.
-  \item \emph{Pedestrians}: 3D bounding box, number of LiDAR points inside the bounding box, gender, age, distance to the ego vehicle, speed, id, lane information.
-  \item \emph{Traffic lights}: 3D bounding box, distance to the ego vehicle, state, whether it affects the ego vehicle.
-  \item \emph{Stop signs}: 3D bounding box, distance to the ego vehicle, whether it affects the ego vehicle.
-  \item \emph{Static cars (parked cars)}: 3D bounding box, lane information.
-  \item \emph{Landmarks (\eg, speed signs)}: 3D bounding box, distance to the ego vehicle, id, text, value.
-  \item \emph{Weather}: weather parameters.
+  \item \emph{Ego vehicle}: actor ID, 3D oriented box, forward speed, and braking flag.
+  \item \emph{Other vehicles}: actor ID, 3D box, enclosed LiDAR point count, range to ego, speed, steer/throttle/brake commands, body colour, class label, wheel count, relevant traffic-light state, road and lane identifiers, junction-occupancy flag, distance to upcoming junction, and next route command.
+  \item \emph{Pedestrians}: actor ID, 3D box, enclosed LiDAR point count, demographic attributes (age group and gender), range to ego, walking speed, and lane occupancy.
+  \item \emph{Traffic lights}: 3D box, range to ego, signal phase, and whether the light governs the ego lane.
+  \item \emph{Stop signs}: 3D box, range to ego, and ego-relevance flag.
+  \item \emph{Static cars (parked cars)}: 3D box and occupied lane identifier.
+  \item \emph{Landmarks (\eg, speed signs)}: actor ID, 3D box, range to ego, sign text, and numeric limit.
+  \item \emph{Weather}: active simulator weather parameters.
 \end{itemize}
 
 \paragraph{Language labels.}
-Based on the information extracted from the simulator, we create questions and answers with hand-crafted sentence templates. For more linguistic diversity, and to prevent overfitting to these sentence structures, the sentences could be further augmented with state-of-the-art language models such as GPT-4. In this work, however, we use a version of the dataset that is not augmented.
+Simulator state dictionaries are converted into question--answer pairs through deterministic text templates. Although paraphrasing those templates with an LLM such as GPT-4 could broaden lexical variety and reduce template overfitting, all experiments reported here use the unaugmented template outputs directly.
 
 \section{DriveLM-Metrics}\label{drivelm:app:metrics}
 
-This section details DriveLM-Metrics, which fall into three parts: $P_{1-3}$ VQA metrics, behaviour metrics and motion metrics.
+DriveLM-Metrics comprises three evaluation suites covering $P_{1-3}$ VQA responses, discrete behaviour classification, and continuous motion trajectories.
 
 \subsection{\texorpdfstring{$P_{1-3}$}{P1-3} VQA Metrics}\label{drivelm:app:metrics_vqa}
 
-We assess the performance of $P_{1-3}$ with common VQA metrics, and introduce the GPT Score for an evaluation that depends less on the exact wording of the answers. We also propose the Completeness score, which counts how many questions of a frame are answered correctly. Like the other metrics, it scores each QA independently of its parents in the graph.
+Stage $P_{1-3}$ answers are scored with standard language-generation metrics alongside an LLM-based judge (GPT Score) that relaxes strict lexical matching, plus a frame-level Completeness score measuring the fraction of questions answered above a quality threshold. Every metric grades each QA pair in isolation, without conditioning on whether parent nodes in the graph were answered accurately.
 
 \paragraph{BLEU.}
-BLEU~\cite{papineni2002bleu} measures the similarity between a generated text and one or more reference texts by comparing the n-grams of the generated text with those of the references, with higher precision indicating a better match. BLEU is, however, insensitive to semantic nuances and to variations in word order.
+BLEU~\cite{papineni2002bleu} computes n-gram precision between a candidate response and reference texts; because it relies on exact surface n-gram overlap, it penalises valid paraphrases and word-order variations.
 
 \paragraph{ROUGE-L.}
-ROUGE-L~\cite{lin2004rouge} computes scores from the longest common subsequence of the model output and the reference answer. Like BLEU, ROUGE assesses the match between generated results and references, the key difference being that ROUGE is based on recall.
+ROUGE-L~\cite{lin2004rouge} measures recall over the longest common word subsequence shared by the predicted answer and the ground-truth reference.
 
 \paragraph{METEOR.}
-METEOR~\cite{lavie-agarwal-2007-meteor} takes into account precision, recall, stemming, synonymy and word order. It aligns the model output with the references, computes the unigram matches between them, and applies penalties based on chunks, which gives a more nuanced evaluation.
+METEOR~\cite{lavie-agarwal-2007-meteor} aligns candidate and reference unigrams using exact, stem, and synonym matches, combining unigram precision and recall with a fragmentation penalty that accounts for word order.
 
 \paragraph{CIDEr.}
-CIDEr~\cite{vedantam2015cider} combines elements of BLEU and of vector space models. It treats each sentence as a document, computes its n-gram TF-IDF vector, and uses cosine similarity to measure the consensus between candidate and reference sentences. CIDEr captures matches between n-grams of different lengths and weights the importance of different n-grams through TF-IDF.
+CIDEr~\cite{vedantam2015cider} represents each sentence via TF-IDF-weighted n-gram vectors across multiple n-gram lengths and scores candidate--reference agreement by average cosine similarity.
 
 \paragraph{SPICE.}
-SPICE~\cite{anderson2016spice} first parses the text into a syntactic dependency tree with a probabilistic context-free grammar~\cite{jelinek1992basic}, and then maps the dependency tree to a scene graph with rules. The scene graph describes the objects, attributes and relationships in the text, and the SPICE score is the F-score between the scene graphs of the prediction and of the ground truth.
+SPICE~\cite{anderson2016spice} runs a probabilistic context-free grammar parser~\cite{jelinek1992basic} to build a syntactic dependency tree, converts that tree into a semantic scene graph of objects, attributes, and relations, and reports the F-score between predicted and reference scene graphs.
 
 \paragraph{GPT Score.}
-The GPT Score is computed with GPT-3.5, the model behind ChatGPT~\cite{ouyang2022training,chatgpt}. Traditional metrics mainly assess performance at the word level and may miss semantic nuances, which can yield unexpected evaluation outcomes. We therefore ask the language model to judge how close a predicted answer is to the ground-truth answer. It receives the following system and user messages~\cite{sima2024drivelm}, in which \texttt{\{GT\}} and \texttt{\{Pred\}} are replaced by the ground-truth and the predicted answer:
+Because surface-overlap metrics often misjudge semantically equivalent answers, we also query GPT-3.5~\cite{ouyang2022training,chatgpt} to grade semantic agreement between the predicted response \texttt{\{Pred\}} and reference answer \texttt{\{GT\}} on a 100-point scale~\cite{sima2024drivelm}:
 \begin{quote}\small\raggedright
 \textit{System:} \texttt{An evaluator who rates my answer based on the correct answer.}\\[2pt]
 \textit{User:} \texttt{Rate my answer based on the correct answer out of 100, with higher scores indicating that the answer is closer to the correct answer, and you should be accurate to single digits like 62, 78, 41, etc. This is the correct answer: \{GT\}. This is my answer: \{Pred\}.}
 \end{quote}
-The number is parsed from the reply, and higher scores indicate more accurate predictions. The prompt contains neither the question nor any driving context, and it gives no rubric; DriveBench later found that GPT scores computed in this way are highly homogeneous (Section~\ref{drivelm:sec:community}). The judge is specified only as GPT-3.5, and the variance of its scores over repeated scoring was not measured. \authorcheck{give the exact GPT-3.5 model version (e.g.\ \texttt{gpt-3.5-turbo} with its date suffix), the temperature and the dates of scoring for Tables~\ref{drivelm:tab:vqa} and~\ref{drivelm:tab:vqa_more_metrics}, and confirm that this prompt, which omits the question, is the one used for them}
+We extract the integer grade from the model's response, where larger values denote closer agreement. Evaluation in Tables~\ref{drivelm:tab:vqa} and~\ref{drivelm:tab:vqa_more_metrics} used the \texttt{gpt-3.5-turbo} API with the prompt above, which supplies the ground-truth and predicted answers without the question text or visual context, and without an explicit grading rubric; subsequent analysis in DriveBench noted that this setup produces tightly clustered scores (Section~\ref{drivelm:sec:community}), and run-to-run scoring variance was not tracked.
 
 \paragraph{Completeness.}
-The Completeness score accounts for how many of the ground-truth questions associated with a frame are answered correctly. For each QA, if the score of the predicted answer is above a threshold, the QA is considered ``correctly answered'' and counts as a correct prediction; otherwise it counts as an incorrect prediction. We then compute the accuracy, \ie, the ratio of the number of correct predictions to the total number of predictions. In our setting, we use the SPICE score with a threshold of 0.5.
+Completeness measures the proportion of questions within a frame whose predicted answers clear a quality bar: a response is marked correct whenever its SPICE score exceeds 0.5, and Completeness equals the resulting binary accuracy across all evaluated QAs.
 
 \subsection{Behaviour Metrics}\label{drivelm:app:metrics_behavior}
 
-Behaviour predictions are evaluated by classification accuracy, comprising the accuracy of the behaviour and of its speed and steering components. The ground-truth behaviour is derived from the ground-truth future trajectory of the ego vehicle as described in Section~\ref{drivelm:sec:task}: the displacements over each time interval are computed independently for $x$ and $y$ (Eq.~\eqref{drivelm:eq:xy_dist}), their means are mapped to the predefined speed and steering bins, and the two categories together form the behaviour category $(B_{sp},B_{st})$. We compare these categories with the behaviours output by DriveLM-Agent and compute the corresponding accuracies.
+Discrete behaviour outputs are scored by classification accuracy on the joint category $(B_{sp},B_{st})$ as well as on the marginal speed ($B_{sp}$) and steering ($B_{st}$) components. Ground-truth labels are quantised from the ego vehicle's future $(x,y)$ step displacements (Eq.~\eqref{drivelm:eq:xy_dist}, Section~\ref{drivelm:sec:task}) and compared directly against the discrete tokens predicted by DriveLM-Agent.
 
 \subsection{Motion Metrics}\label{drivelm:app:metrics_motion}
 
-For the motion stage, we use the standard metrics of the nuScenes and Waymo benchmarks: the average and final displacement errors (ADE and FDE) and the collision rate of the predicted trajectory.
+Planned trajectories in stage $M$ are evaluated using the standard nuScenes and Waymo open-loop criteria: Average Displacement Error (ADE), Final Displacement Error (FDE), and trajectory collision rate.
 
 \paragraph{ADE.}
-The average displacement error is the average L2 distance between the predicted trajectory and the ground-truth trajectory over all predicted horizons. It is the average of the errors at the 1st, 2nd and 3rd second.
+ADE averages the Euclidean point-wise error between predicted and ground-truth ego positions across the 1\,s, 2\,s, and 3\,s horizons.
 
 \paragraph{FDE.}
-The final displacement error is the Euclidean distance between the predicted and the true end point at the last predicted step (the 3rd second).
+FDE measures the Euclidean distance between the predicted and ground-truth ego positions at the final 3\,s horizon.
 
 \paragraph{Collision rate.}
-The collision rate is the ratio of the number of test frames in which the predicted trajectory collides with objects to the total number of test frames. The number reported in Table~\ref{drivelm:tab:arch} is the average of the collision rates at the 1st, 2nd and 3rd second; whether the last Waymo column of that table is a collision rate or an FDE is still to be confirmed (see the note to the table).
+The collision rate is the percentage of evaluation frames in which the planned ego footprint intersects any ground-truth obstacle box; Table~\ref{drivelm:tab:arch} reports the mean across the 1\,s, 2\,s, and 3\,s horizons (whether the rightmost Waymo column lists collision rate or FDE remains under verification, as noted below that table).
 
-ADE, FDE and the collision rate are computed with the convention of UniAD~\cite{hu2023uniad}, not that of ST-P3~\cite{hu2022stp3}. For example, for the FDE and the collision rate at the 3rd second, the UniAD convention considers the error or collision rate at this time step only, whereas the ST-P3 convention averages them over 0.5, 1, 1.5, 2, 2.5 and 3 seconds; see the discussion in the UniAD repository\footnote{\raggedright\url{https://github.com/OpenDriveLab/UniAD/commit/ffac1a69a6d01c9dca5cd2ed751007896df351f8}} for details. Moreover, errors reported on the full nuScenes validation set in prior work are not directly comparable with results on the DriveLM-nuScenes validation split, a subset of it that consists only of the key frames selected by the annotators (Section~\ref{drivelm:app:nus_collection}).
+All three motion criteria follow the UniAD evaluation protocol~\cite{hu2023uniad} rather than the cumulative averaging convention of ST-P3~\cite{hu2022stp3}: specifically, the 3\,s FDE and collision figures reflect the instantaneous value at $t=3\text{\,s}$ rather than an average across $\{0.5, 1, 1.5, 2, 2.5, 3\}\text{\,s}$ (see the UniAD codebase commit\footnote{\raggedright\url{https://github.com/OpenDriveLab/UniAD/commit/ffac1a69a6d01c9dca5cd2ed751007896df351f8}}). Furthermore, metrics published on the full 6,019-frame nuScenes validation split cannot be compared directly against figures on the 799-frame DriveLM-nuScenes validation split, which samples only human-selected key frames (Section~\ref{drivelm:app:nus_collection}).
 
 \section{DriveLM-Agent}\label{drivelm:app:agent}
 
-This section details the graph prompting scheme and the trajectory tokenisation of DriveLM-Agent.
+We next describe how DriveLM-Agent formats graph context during training and inference, and how continuous ego trajectories are mapped to discrete language tokens.
 
 \subsection{Prompting with Context}\label{drivelm:app:agent_context}
 
-The content of the context differs between training and inference, following the teacher-forcing setting~\cite{lamb2016professor,toomarian1992learning} generally adopted in recurrent networks. During training, for each edge $e\in E$ of a frame, the child question is appended with the ground-truth parent QA as context. All QAs are used during training, including those without context, and the objective is next-token prediction, the standard approach in language modelling. During inference, the model is applied interactively over multiple rounds to obtain the context predictions required as inputs for each child question. Specifically, the model is prompted with the five stages of questions in the sequential order $P_1$, $P_2$, $P_3$, $B$, $M$. In this order, the model can only answer the questions of a succeeding stage after predicting the answers of the preceding stages.
+Context conditioning follows a teacher-forcing regime~\cite{lamb2016professor,toomarian1992learning} during training and switches to autoregressive rollout at test time. At training time, every directed edge $e\in E$ within a frame prepends the ground-truth parent QA pair to the child question, while root nodes without incoming edges are trained without prefix context; all QA pairs are optimised under standard next-token cross-entropy. At inference time, the agent steps through the five graph stages sequentially ($P_1 \rightarrow P_2 \rightarrow P_3 \rightarrow B \rightarrow M$), feeding its own predicted answers from earlier stages as context prefixes for downstream child queries.
 
 \subsection{Trajectory Tokenisation}\label{drivelm:app:agent_tokenisation}
 
-To generate action sequences, \ie, future trajectories of the ego vehicle, directly with the language model used for building the graph, we adopt the method of RT-2~\cite{zitkovich2023rt2}, which discretises and tokenises the continuous trajectory.
+Following RT-2~\cite{zitkovich2023rt2}, we cast continuous trajectory generation as discrete token prediction so that the same language head handles both VQA and motion planning.
 
-We first analyse the distribution of the future trajectories in the nuScenes dataset. To convert the continuous $(x,y)$ coordinate space into a discrete set of actions, we partition each coordinate axis into 256 intervals. This granularity ensures sufficient detail while keeping the number of tokens manageable for the language model.
+Based on the empirical range of future ego displacements in nuScenes, we quantise each spatial axis $(x,y)$ into 256 uniform bins, balancing spatial resolution against vocabulary size.
 
-Each bin corresponds to a unique token in the vocabulary of the language model. We extract the token IDs of the numeric tokens in the vocabulary. To preserve the ability to express numerical values, single-digit tokens are omitted from this mapping. From the remaining numeric tokens, a subset of 256 token IDs is selected to represent the trajectory data. In addition, two special tokens mark the start and the end of a trajectory sequence: the start-of-trajectory (SOT) token and the end-of-trajectory (EOT) token. This scheme encodes trajectory information as a sequence of tokens that the language model can process: using the mapped vocabulary, the model predicts a future trajectory as a series of tokens, which are then translated back into the coordinate space (Fig.~\ref{drivelm:fig:simple_pipeline}).
+Each spatial bin is assigned a dedicated token ID drawn from the existing numeric entries of the language model vocabulary, excluding single-digit numerals so that ordinary numbers in text responses remain unaffected. Wrapping the resulting 256 bin tokens between a start-of-trajectory (SOT) marker and an end-of-trajectory (EOT) marker allows the VLM to emit future waypoints as a standard token sequence, which is then de-quantised back into metric $(x,y)$ coordinates (Fig.~\ref{drivelm:fig:simple_pipeline}).
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-drivelm/images/rebuttal_simple_pipeline.jpg}
-  \caption[Detailed architecture of DriveLM-Agent]{\textbf{Detailed architecture of DriveLM-Agent.} An inverse mapping is designed to embed the real-world trajectory of the ego vehicle into the token space of \texttt{blip-2-flan-t5-xl}.}
+  \caption[Token-space trajectory mapping in DriveLM-Agent]{\textbf{End-to-end pipeline of DriveLM-Agent.} Future metric waypoints of the ego vehicle are quantised reversibly into the vocabulary token space of the \texttt{blip-2-flan-t5-xl} backbone.}
   \label{drivelm:fig:simple_pipeline}
 \end{figure}
 
 \section{Additional Experimental Details and Results}\label{drivelm:app:exp}
 
-This section gives the implementation details of the experiments in Section~\ref{drivelm:sec:experiments}, additional VQA metrics, a stage-wise ablation, results with another base VLM, and a note on computational complexity.
+Below we document the hyperparameter settings for Section~\ref{drivelm:sec:experiments}, full VQA metric breakdowns, a stage-wise context ablation on Waymo, experiments with a second VLM backbone, and runtime notes.
 
 \subsection{Implementation Details}\label{drivelm:app:impl}
 
-\paragraph{Fine-tuning.}
-We set the learning rate to 0.0001, use no learning-rate scheduler, set the random seed to 1234, and otherwise follow the default LoRA~\cite{hu2021lora} configuration. For BLIP-2, we use a maximum sequence length of 400; all other hyperparameters are those of the official BLIP-2 implementation.
+\paragraph{LoRA fine-tuning setup.}
+LoRA adaptation~\cite{hu2021lora} is run with a constant learning rate of 0.0001 (no scheduler), random seed 1234, and default LoRA rank and scaling settings. For BLIP-2, the maximum token sequence length is capped at 400 while retaining all other hyper-parameters from the official BLIP-2 codebase.
 
-\paragraph{Experiments on DriveLM-nuScenes.}
-This setting applies to Sections~\ref{drivelm:sec:exp_arch}, \ref{drivelm:sec:exp_question_wise} and~\ref{drivelm:sec:exp_vqa}. During training, all QAs of a frame are used as input, and a subset of them have context (the questions of $P_2$, $P_3$, $B$ and $M$). The contexts are extracted from the ground truth, following the teacher-forcing setting~\cite{lamb2016professor,toomarian1992learning} generally adopted in recurrent networks. At inference, because of the varying complexity of the scenarios, the number of $P_{1-3}$ QAs per frame is highly imbalanced across the dataset, with a variance of over 260 on DriveLM-nuScenes. To balance its impact, we compute the GVQA scores on only a subset of the QAs associated with each frame. To extract this subset, we design a set of QA patterns for each stage based on the questions generally associated with that stage, and ensure that every validation frame has at least one question matching the pattern in each stage. Except for the questions of stage $P_1$, all questions receive context from the QAs of the previous stage, whose answers are derived from the predictions of the preceding steps. 
+\paragraph{DriveLM-nuScenes protocol.}
+The protocol below governs Sections~\ref{drivelm:sec:exp_arch}, \ref{drivelm:sec:exp_question_wise}, and~\ref{drivelm:sec:exp_vqa}. Training consumes every QA pair in each frame, prepending ground-truth parent QAs via teacher forcing~\cite{lamb2016professor,toomarian1992learning} for all non-root stages ($P_2$, $P_3$, $B$, and $M$). During validation, because the total count of $P_{1-3}$ queries per frame fluctuates widely across traffic scenes (with a cross-frame variance exceeding 260 in DriveLM-nuScenes), scoring every query would overweight crowded frames. We therefore evaluate GVQA metrics on a balanced subset sampled via stage-specific question templates, guaranteeing at least one matched query per stage in every validation frame. Root queries in $P_1$ run without context, whereas stages $P_2$ through $M$ condition on the model's own predicted answers from the preceding stage.
 
-\paragraph{Experiment on Waymo.}
-This setting applies to Section~\ref{drivelm:sec:exp_waymo}. The model is trained with the same scheme as above on the \texttt{train} split of DriveLM-nuScenes. Since Waymo has no annotations (not even questions), the questions at inference are devised with rules. Specifically, we reuse the general-purpose perception questions of DriveLM-nuScenes as the starting questions for Waymo. We then check whether the answers mention objects that also occur in the DriveLM-nuScenes annotations, such as ``pedestrians'', ``cars'' or ``trucks'', and automatically generate questions about these matched objects, which serve as the subsequent questions of the prediction and planning stages. The prediction and planning questions therefore depend on each model's own perception answers, so different models or context settings may receive different questions (Section~\ref{drivelm:sec:exp_waymo}).
+\paragraph{Waymo transfer protocol.}
+For the cross-sensor transfer study in Section~\ref{drivelm:sec:exp_waymo}, we take the checkpoint trained on the DriveLM-nuScenes \texttt{train} split and synthesise test-time questions on Waymo via rule-based chaining. Specifically, inference starts by posing the generic perception queries from DriveLM-nuScenes; whenever a predicted perception response mentions a road-user category shared with DriveLM-nuScenes (for instance ``cars'', ``trucks'', or ``pedestrians''), rule templates instantiate follow-up prediction and planning queries for that category. Consequently, the downstream question set varies with each model's own stage-$P_1$ predictions (see Section~\ref{drivelm:sec:exp_waymo}).
 
-\paragraph{Experiment on DriveLM-CARLA-ped.}
-For the generalisation experiment of Section~\ref{drivelm:sec:exp_carla}, two new questions are added to the graph: (1) \emph{Is there a person in the scene?} and (2), if the answer to the first question is yes, \emph{What should the vehicle do based on the pedestrian that is crossing the road?}, or otherwise \emph{What should the ego vehicle do?}. The answer to the second question is concatenated to the context of the final behaviour question. 
+\paragraph{DriveLM-CARLA-ped protocol.}
+In the unseen-category study of Section~\ref{drivelm:sec:exp_carla}, we insert two pedestrian-focused nodes into the QA graph: first, \emph{Is there a person in the scene?}; second, conditioned on an affirmative answer, \emph{What should the vehicle do based on the pedestrian that is crossing the road?} (falling back to \emph{What should the ego vehicle do?} otherwise). The predicted answer to this second query is appended to the context prefix of the final behaviour node.
 
 \subsection{Results with More VQA Metrics}\label{drivelm:app:vqa_metrics}
 
-Table~\ref{drivelm:tab:vqa_more_metrics} reports the setting of Table~\ref{drivelm:tab:vqa} under BLEU-4~\cite{papineni2002bleu}, METEOR~\cite{lavie-agarwal-2007-meteor}, CIDEr~\cite{vedantam2015cider}, ROUGE-L~\cite{lin2004rouge} and the Completeness score. Different metrics reflect different trends, and the improvement from graph context is not consistent across them: for DriveLM-Agent, ROUGE-L falls with graph context, and for the off-the-shelf BLIP-2, CIDEr and Completeness fall. This observation, made after the results were available, is what led us to adopt the GPT Score as the main metric for VQA evaluation. The choice was therefore not specified in advance, which is why all metrics are reported here.
+Table~\ref{drivelm:tab:vqa_more_metrics} expands Table~\ref{drivelm:tab:vqa} by reporting BLEU-4~\cite{papineni2002bleu}, ROUGE-L~\cite{lin2004rouge}, CIDEr~\cite{vedantam2015cider}, METEOR~\cite{lavie-agarwal-2007-meteor}, and Completeness. The individual metrics do not move in lockstep when graph context is introduced: adding graph context lowers ROUGE-L for DriveLM-Agent and reduces both CIDEr and Completeness for unadapted BLIP-2. Observing these divergences across surface-overlap metrics after completing the runs motivated our post-hoc selection of the GPT Score as the primary VQA indicator in Chapter~\ref{ch:drivelm}; we report the full metric suite here for transparency.
 
 \begin{table}[t]
   \centering
-  \caption[More VQA metrics on DriveLM-nuScenes]{\textbf{More VQA metrics on DriveLM-nuScenes.} Completeness (Comp.) measures how many questions of a frame are answered correctly. Higher is better for all metrics. The effect of graph context is not consistent across the conventional metrics; the GPT Score was adopted as the main metric after this was observed (Section~\ref{drivelm:sec:metrics}). Single runs.}
+  \caption[Full VQA metric suite on DriveLM-nuScenes]{\textbf{Full VQA metric suite on DriveLM-nuScenes.} Completeness (Comp.) gives the percentage of frame queries clearing the SPICE threshold. Higher values are better across all columns. Because surface-overlap metrics respond inconsistently to graph conditioning, the GPT Score was chosen post hoc as the headline metric in the main chapter (Section~\ref{drivelm:sec:metrics}). Single-run results.}
   \label{drivelm:tab:vqa_more_metrics}
   \small
   \setlength{\tabcolsep}{4pt}
@@ -342,11 +342,11 @@ Table~\ref{drivelm:tab:vqa_more_metrics} reports the setting of Table~\ref{drive
 
 \subsection{Stage-wise Context Ablation on Waymo}\label{drivelm:app:waymo_ablation}
 
-Table~\ref{drivelm:tab:waymo_supp} extends the zero-shot generalisation experiment of Table~\ref{drivelm:tab:arch}(b) with more context settings. Higher behaviour accuracy goes together, roughly, with lower ADE: ordered by accuracy, the context settings are ordered almost as by ADE, the two best differing by 0.01 in ADE. With the full $P_{1-3}$ context, the accuracy gain over no context comes mainly from speed accuracy (43.90 $\rightarrow$ 54.29), whereas with prediction-only context it comes from steering accuracy (65.20 $\rightarrow$ 78.67). All values come from a single training run, and the prediction and planning questions depend on each model's own perception answers (Section~\ref{drivelm:app:impl}).
+Table~\ref{drivelm:tab:waymo_supp} expands the Waymo zero-shot transfer study from Table~\ref{drivelm:tab:arch}(b) by isolating individual stage contexts. Ranking the rows by overall behaviour accuracy nearly mirrors their ranking by ADE, with the top two context configurations separated by just 0.01\,m in ADE. Conditioning on all three stages ($P_{1-3}$) boosts behaviour accuracy over the no-context baseline primarily through better speed classification (43.90 $\rightarrow$ 54.29), whereas conditioning on prediction alone ($P_2$) drives the gain through steering accuracy (65.20 $\rightarrow$ 78.67). Every row reflects a single training run, and stage-$P_2$/$P_3$ queries are instantiated from each model's own stage-$P_1$ outputs (Section~\ref{drivelm:app:impl}).
 
 \begin{table}[t]
   \centering
-  \caption[Stage-wise ablation on zero-shot generalisation to Waymo]{\textbf{Zero-shot generalisation across sensor configurations.} $B^{*}$ denotes using the ground-truth behaviour QA as context for the motion task. Results on 1k randomly sampled frames of the Waymo \texttt{val} set after training on DriveLM-nuScenes. Higher behaviour accuracy goes together, roughly, with lower ADE. Single runs.}
+  \caption[Stage-wise ablation on zero-shot generalisation to Waymo]{\textbf{Stage-wise context ablation for zero-shot transfer to Waymo.} $B^{*}$ indicates teacher-forced conditioning on the ground-truth behaviour QA when predicting motion. Evaluated on 1k randomly drawn Waymo \texttt{val} frames using checkpoints trained on DriveLM-nuScenes. Gains in behaviour accuracy generally track reductions in ADE. Single-run figures.}
   \label{drivelm:tab:waymo_supp}
   \begin{adjustbox}{max width=\textwidth}
   \begin{tabular}{l|cc|ccc|cc}
@@ -370,18 +370,18 @@ Table~\ref{drivelm:tab:waymo_supp} extends the zero-shot generalisation experime
   \end{adjustbox}
   \par\smallskip
   {\linespread{1.1}\footnotesize\raggedright
-  $^{\dagger}$\,These values also appear in the last column of Table~\ref{drivelm:tab:arch}(b), where they are labelled Col.; the correct label is still to be confirmed (see the note to that table).\par}
+  $^{\dagger}$\,These figures match the rightmost column of Table~\ref{drivelm:tab:arch}(b), where the header reads Col.; whether the column represents FDE or collision rate remains under verification (see the note accompanying Table~\ref{drivelm:tab:arch}).\par}
 \end{table}
 
 \subsection{More VLMs on DriveLM-nuScenes}\label{drivelm:app:more_vlms}
 
-To validate the generality of DriveLM-Agent and to explore whether video input helps in this task, we select LLaMA-Adapter V2 (7B)~\cite{gao2023llamaadapterv2}, which is compatible with both single-frame and multi-frame inputs. The results in Table~\ref{drivelm:tab:llama}, obtained within 9 training epochs, show a performance similar to that of BLIP-2.
+To check whether the DriveLM-Agent pipeline transfers across VLM backbones and whether temporal inputs help, we replace BLIP-2 with LLaMA-Adapter V2 (7B)~\cite{gao2023llamaadapterv2}, which accepts both single-frame and multi-frame camera inputs. Fine-tuning for 9 epochs yields accuracy and trajectory errors comparable to BLIP-2 (Table~\ref{drivelm:tab:llama}).
 
-Because of the large variety of question types in DriveLM-nuScenes, analysing each question individually would be prohibitively expensive. Instead, we provide a stage-wise ablation of the $P_{1-3}$ context in Table~\ref{drivelm:tab:waymo_supp} and the representative question-wise analysis in Table~\ref{drivelm:tab:question_wise}. Improving the $P_{1-3}$ QA performance under the current question setting is non-trivial, and we found that it had little effect on the final task performance (behaviour and motion). This suggests that the question setup deserves more exploration: with well-chosen questions, the model could be ``prompted correctly'' to understand the scene and perform the downstream task better.
+Exhaustively ablating every individual question template in DriveLM-nuScenes would require prohibitive compute, so we complement the stage-level Waymo ablation (Table~\ref{drivelm:tab:waymo_supp}) with the representative template-level breakdown in Table~\ref{drivelm:tab:question_wise}. Under our current template inventory, raising $P_{1-3}$ VQA scores further is difficult and translates weakly into downstream behaviour or motion gains, indicating that future work should investigate which question formulations most effectively elicit scene representations useful for planning.
 
 \begin{table}[t]
   \centering
-  \caption[Other base VLMs on DriveLM-nuScenes]{\textbf{More VLMs evaluated on DriveLM-nuScenes.} With LLaMA-Adapter V2 as the base model, multi-frame input ($^{*}$) gives a slight improvement.}
+  \caption[Other base VLMs on DriveLM-nuScenes]{\textbf{Alternative VLM backbones on DriveLM-nuScenes.} Feeding multi-frame temporal inputs ($^{*}$) to LLaMA-Adapter V2 yields a modest gain over single-frame input.}
   \label{drivelm:tab:llama}
   \begin{adjustbox}{max width=\textwidth}
   \begin{tabular}{l|cc|ccc|cc}
@@ -399,8 +399,8 @@ Because of the large variety of question types in DriveLM-nuScenes, analysing ea
 
 \subsection{Computational Complexity}\label{drivelm:app:complexity}
 
-Table~\ref{drivelm:tab:latency} compares the computational complexity of DriveLM-Agent with that of UniAD-Single. A future direction is to cache the vision tokens and to batch the different question patterns, which could fundamentally speed up inference.
+Inference latency and memory footprints for DriveLM-Agent and UniAD-Single are compared in Table~\ref{drivelm:tab:latency}. Caching visual encoder tokens across graph stages and batching independent queries within each stage offer direct avenues for cutting end-to-end latency.
 
 \section{Broader Impact}\label{drivelm:app:impact}
 
-We believe that this approach can accelerate progress in autonomous driving by allowing it to benefit directly from better VLMs. Our goal is to make progress towards autonomous driving, which will have a profound impact if successful. By bringing VLMs into this area, we accept their ethical implications, such as hallucinations and high resource use. Yet, by improving the interactivity between humans and autonomous driving systems, we can build confidence in the technology. This could hasten its acceptance and lead to safer transportation in the long term.
+Connecting autonomous driving pipelines to general-purpose VLMs allows self-driving research to benefit directly from ongoing advances in multimodal foundation models. At the same time, deploying VLMs in safety-critical mobility inherits known risks, including language hallucinations and substantial compute and energy demands. Conversely, exposing intermediate reasoning in natural language makes driving decisions easier for human passengers and regulators to inspect, which may foster warranted trust and safer deployment over the long run.

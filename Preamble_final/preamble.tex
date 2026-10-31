@@ -1,8 +1,12 @@
+% HKU research-thesis presentation rules require at least 35 mm on both sides.
+% Specify both margins and a zero binding offset; do not inherit scale=0.75.
 \ifsetMargin
+    \geometry{reset,a4paper,left=35mm,right=35mm,top=35mm,bottom=30mm,bindingoffset=0mm}
 \else
-    \RequirePackage[left=37mm,right=30mm,top=35mm,bottom=30mm]{geometry}
-    \setFancyHdr %
+    \RequirePackage[a4paper,left=35mm,right=35mm,top=35mm,bottom=30mm,bindingoffset=0mm]{geometry}
 \fi
+\setFancyHdr
+\setMargintrue
 
 \ifsetFont
 \else
@@ -18,6 +22,9 @@
 
 \usepackage{setspace}
 \linespread{1.5}
+% The 35 mm HKU side margins leave a narrow measure. Allow TeX additional
+% paragraph flexibility before it creates margin-violating overfull lines.
+\setlength{\emergencystretch}{3em}
 
 \RequirePackage[labelsep=space,tableposition=top]{caption}
 \renewcommand{\figurename}{Fig.} %

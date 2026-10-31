@@ -697,8 +697,10 @@ font in the preamble.tex file by specifying `customfont' in the class options}
 
 
 % ******************************** Line Spacing ********************************
-% Set spacing as 1.5 line spacing for the PhD Thesis
-\onehalfspace
+% Set spacing as 1.5 line spacing for the PhD Thesis. Use the declaration rather
+% than the similarly named environment, which would leave a group open for the
+% rest of the class and prevents package loading on current LaTeX kernels.
+\onehalfspacing
 
 
 % ******************** To compute empty space in title page ********************
