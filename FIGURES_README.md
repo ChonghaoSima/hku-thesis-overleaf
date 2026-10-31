@@ -70,7 +70,7 @@
 | 1.1 | `fig:intro:overview` | `ch-introduction/figures/thesis_overview.{pptx,pdf}` | 论文总览：现实世界 → 感知/推理/行动三栏（RQ1–3，第 4–7 章）→ RQ4 架构带 → 第 2/3/9 章 |
 | 3.1 | `fig:method:shift` | `ch-methodology/figures/shift_taxonomy.{pptx,pdf}` | 四类偏移（感知/语义/行为/部署）→ 部署时症状 → 方法论杠杆 → 对应章节 |
 | 3.2 | `fig:method:cycle` | `ch-methodology/figures/research_cycle.{pptx,pdf}` | benchmark-driven 研究循环六阶段，中心为 curse of reality，灰字为各阶段的代表作品 |
-| 3.3 | `fig:method:lineage` | `ch-methodology/figures/lineage.{pptx,pdf}` | 18 篇论文谱系：横轴年份，纵向四条泳道（Perceive/Reason/Act/Architecture）+ 早期工作行；实线=基于，虚线=启发/对比，箭头颜色=出发论文的泳道；深色粗外框=作者主导，右上角 ■=发布数据或基准 |
+| 3.3 | `fig:method:lineage` | `ch-methodology/figures/lineage.{pptx,pdf}` | 20 篇论文谱系：横轴年份，纵向四条泳道（Perceive/Reason/Act/Architecture）+ 早期工作行；实线=基于，虚线=启发/对比，箭头颜色=出发论文的泳道；深色粗外框=作者主导，右上角 ■=发布数据或基准 |
 | 3.4 | `fig:method:ladder` | `ch-methodology/figures/evaluation_ladder.{pptx,pdf}` | 评测保真度阶梯 L0–L3 及各章所处层级 |
 | 3.5 | `fig:method:decision` | `ch-methodology/figures/lever_decision.{pptx,pdf}` | 从现场失败到研究贡献的决策流程（6 个问题 → 6 个杠杆 → 评测与开放） |
 | 4.8 | `occnet:fig:openscene_usage` | `ch-occnet/figures/openscene_usage.{pptx,pdf}` | OpenScene 与其下游用途 |
@@ -132,7 +132,7 @@
 - **四类偏移 ↔ 杠杆 ↔ 章节**：感知偏移 → 通用 3D 表示（第 4 章）；语义偏移 → 结构化推理（第 5 章）；行为偏移 → 测试时自我纠错（第 6 章）；部署偏移 → 训练-部署对齐（第 7 章）。另有两个贯穿性杠杆：数据（扩规模或精选，以合作作品 AgiBot World 为例）和测量（基准）。
 - **评测保真度**：第 4、5 章为 L0（开环，离线数据）；第 6 章为 L1（NAVSIM 非反应式仿真）；第 7 章为 L3（真机）；**L2 闭环仿真没有用于任何学习型智能体**（仅用于验证 PDM-Lite 专家）。论文中没有任何驾驶结果在实车上验证。
 - **监控信号**：Cluster Entropy 是无标签的（第 6 章）；Stage Advantage 需要人工阶段标注，属于有监督信号，且只用于训练（第 7 章）。
-- **合作作品（图中需加 `$^{*}$`）**：UniAD、BEVFormer、ETA、AgiBot World、OpenLane-V2、DriveBench、Hint-AD、SDF、VCD、BEV survey 的挑战赛团队成绩（Waymo 2022）、self-directed learning 观点论文。作者主导的（不加星号）：OccNet/OpenOcc、OpenScene、DriveLM、Centaur、χ0、PersFormer/OpenLane（共同一作）、BEV survey（共同一作）、LSH-SMILE。
+- **合作作品（图中需加 `$^{*}$`）**：UniAD、BEVFormer、ETA、FLARE、AgiBot World、PerturBot、OpenLane-V2、DriveBench、Hint-AD、SDF、VCD、BEV survey 的挑战赛团队成绩（Waymo 2022）、self-directed learning 观点论文。作者主导的（不加星号）：OccNet/OpenOcc、OpenScene、DriveLM、Centaur、χ0、PersFormer/OpenLane（共同一作）、BEV survey（共同一作）、LSH-SMILE。
 - **数字只能取自正文**，例如：Centaur 在 NAVSIM 上 90.3 → 92.6（单次运行），三种子 92.10 ± 0.33；navsafe 74.14 对比人类 94.65；χ0 在 Task A 上成功率约 27% → 约 97%（30 次试验，读自图 7.7）；OpenOcc 34,149 帧、超过 14 亿体素；DriveLM 挑战赛 152 支队伍。不确定的数字不要画进图里。
 
 ---

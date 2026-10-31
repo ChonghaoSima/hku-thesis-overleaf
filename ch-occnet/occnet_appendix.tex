@@ -10,11 +10,16 @@ This appendix collects material that supports Chapter~\ref{ch:occnet}: the evalu
   \text{mIoU} = \frac{1}{C}\sum_{c=1}^{C}\frac{\text{TP}_c}{\text{TP}_c+\text{FP}_c+\text{FN}_c},
   \label{occnet:eq:miou}
 \end{equation}
-where $C=16$ is the number of classes in the benchmark, and $\text{TP}_c$, $\text{FP}_c$ and $\text{FN}_c$ are the true positive, false positive and false negative predictions for class $c$, respectively. In addition, the class-agnostic metric $\text{IoU}_{\text{geo}}$ evaluates the quality of the geometric reconstruction of the scene.
+where $C=16$ is the number of classes in the benchmark, and $\text{TP}_c$, $\text{FP}_c$ and $\text{FN}_c$ are the true positive, false positive and false negative predictions for class $c$, respectively. In addition, the class-agnostic metric $\text{IoU}_{\text{geo}}$ evaluates the quality of the geometric reconstruction of the scene. It merges all semantic classes into a single ``occupied'' class and computes
+\begin{equation}
+  \text{IoU}_{\text{geo}} = \frac{\text{TP}_{\text{occ}}}{\text{TP}_{\text{occ}}+\text{FP}_{\text{occ}}+\text{FN}_{\text{occ}}},
+  \label{occnet:eq:iougeo}
+\end{equation}
+where $\text{TP}_{\text{occ}}$ counts voxels that are predicted and labelled occupied, $\text{FP}_{\text{occ}}$ voxels predicted occupied but labelled empty, and $\text{FN}_{\text{occ}}$ voxels predicted empty but labelled occupied. \authorcheck{state whether mIoU and $\text{IoU}_{\text{geo}}$ are computed on camera-visible voxels only, given that OpenOcc marks voxels invisible to the cameras} Both metrics are computed per voxel. Voxel-level mIoU penalises depth errors along a camera ray inconsistently, which motivated the ray-based RayIoU~\cite{liu2024sparseocc}; RayIoU was proposed after this work and is not reported here.
 
 \paragraph{3D object detection.} Detection is evaluated with the official nuScenes metrics~\cite{caesar2020nuscenes}, namely the nuScenes detection score (NDS), mean average precision (mAP), average translation error (ATE), average scale error (ASE), average orientation error (AOE), average velocity error (AVE) and average attribute error (AAE).
 
-\paragraph{Motion planning.} For planning, we follow the metrics of ST-P3~\cite{hu2022stp3}. The L2 distance between the planned trajectory and the ground-truth trajectory measures the regression accuracy, and the collision rate with other vehicles and pedestrians measures the safety of the future actions. Both metrics are computed open-loop on logged nuScenes data: the planned trajectory is not executed, so the scene does not react to it.
+\paragraph{Motion planning.} For planning, we follow the metrics of ST-P3~\cite{hu2022stp3}. The L2 distance between the planned trajectory and the ground-truth trajectory measures the regression accuracy, and the collision rate with the ground-truth future positions of other vehicles and pedestrians serves as a proxy for the safety of the plan. Both metrics are computed open-loop on logged nuScenes data: the planned trajectory is not executed, so the scene does not react to it, and errors cannot compound.
 
 %-----------------------------------------------------------------------
 \section{Implementation Details of OccNet}\label{occnet:app:implementation}
@@ -43,7 +48,7 @@ where $C=16$ is the number of classes in the benchmark, and $\text{TP}_c$, $\tex
 
 \paragraph{Dataset generation pipeline.} With the accumulated dense background points and foreground object points, we generate the occupancy data following the pipeline shown in Fig.~\ref{occnet:fig:occ_gt_pipeline}. The occupancy data are refined step by step into the dense and high-quality annotations of Fig.~\ref{occnet:fig:occ_gt_pipeline}(d).
 
-\paragraph{Dataset statistics.} We annotate 16 classes in 34,149 frames for all 700 training and 150 validation scenes, with over 1.4 billion voxels. Fig.~\ref{occnet:fig:statistics_occ} shows the label distribution of the 16 classes, which indicates a great diversity in the benchmark. The dataset exhibits a significant class imbalance: the 10 foreground classes account for only 5.33\% of all labels, and bicycle and motorcycle for only 0.02\% and 0.03\%, respectively. We additionally provide flow annotations for eight foreground classes, which help downstream tasks such as motion planning. We split objects into a moving and a stationary state with a velocity threshold of $v_{\text{th}}=0.2$\,m/s; Fig.~\ref{occnet:fig:statistics_flow} gives the percentage of moving objects for each class. More than 50\% of the foreground objects are moving, which underlines the significance of motion information in driving scenes.
+\paragraph{Dataset statistics.} We annotate 16 classes in 34,149 frames for all 700 training and 150 validation scenes, with over 1.4 billion voxels. Fig.~\ref{occnet:fig:statistics_occ} shows the label distribution of the 16 classes, which indicates a great diversity in the benchmark. The dataset exhibits a strong class imbalance: the 10 foreground classes account for only 5.33\% of all labels, and bicycle and motorcycle for only 0.02\% and 0.03\%, respectively. We additionally provide flow annotations for eight foreground classes, intended for downstream tasks such as motion planning; flow prediction is not evaluated in this thesis. We split objects into a moving and a stationary state with a velocity threshold of $v_{\text{th}}=0.2$\,m/s; Fig.~\ref{occnet:fig:statistics_flow} gives the percentage of moving objects for each class. More than 50\% of the foreground objects are moving, which underlines the importance of motion information in driving scenes.
 
 \begin{figure}[t]
   \centering
@@ -62,11 +67,13 @@ where $C=16$ is the number of classes in the benchmark, and $\text{TP}_c$, $\tex
 %-----------------------------------------------------------------------
 \section{Additional Experiments}\label{occnet:app:experiments}
 
-\paragraph{Number of frames for temporal self-attention.} We investigate the effect of the number of frames used by the temporal self-attention during training. Tables~\ref{occnet:tab:frame_number_ssc} and~\ref{occnet:tab:frame_number_lidarseg} show that adding temporal frames improves performance, and that the improvement slows down once a threshold of four frames is reached. Too few history frames, however, hurt performance to some extent: with a single history frame, both tasks are worse than without temporal context (18.35 \vs 19.21 mIoU on scene completion and 48.41 \vs 53.82 mIoU on LiDAR segmentation).
+\paragraph{Number of frames for temporal self-attention.} We investigate the effect of the number of frames used by the temporal self-attention during training (Tables~\ref{occnet:tab:frame_number_ssc} and~\ref{occnet:tab:frame_number_lidarseg}, single runs). Scene completion improves from 19.21 mIoU without history to 20.81 with four history frames and changes little beyond (20.68 with nine), and LiDAR segmentation shows a similar pattern. The trend is not monotonic, however: with a single history frame, both tasks are worse than without temporal context (18.35 \vs 19.21 mIoU on scene completion and 48.41 \vs 53.82 mIoU on LiDAR segmentation), and per-class values fluctuate strongly, \eg the bus IoU in LiDAR segmentation varies between 57.71 and 75.49 across settings. Differences of about 1 mIoU between adjacent settings are therefore of the order of the variation we would expect between runs, which we did not measure.
+
+\paragraph{An unresolved inconsistency.} The LiDAR segmentation of OccNet (ResNet50) with the default two history frames is 52.33 mIoU in Table~\ref{occnet:tab:frame_number_lidarseg}, whereas Table~\ref{occnet:tab:lidarseg_resolution} reports 47.29 mIoU at the default voxel size of 0.5\,m. Nothing in the two tables distinguishes the settings, so the difference of 5.04 mIoU is unexplained. \authorcheck{reconcile 52.33 (Table~\ref{occnet:tab:frame_number_lidarseg}) with 47.29 (Table~\ref{occnet:tab:lidarseg_resolution}): state whether the two runs differ in settings (\eg training schedule, label resolution or number of history frames) or are repeated runs of the same configuration} Until it is resolved, the frame trend of Table~\ref{occnet:tab:frame_number_lidarseg} and the resolution trend of Table~\ref{occnet:tab:lidarseg_resolution} should be read as indicative only.
 
 \begin{table}[t]
   \centering
-  \caption[Effect of history frames on semantic scene completion]{\textbf{Effect of the number of history frames on semantic scene completion} (OccNet, ResNet50). \#Num: number of history frames used in training. $^{\ast}$: setting used in the main experiments.}
+  \caption[Effect of history frames on semantic scene completion]{\textbf{Effect of the number of history frames on semantic scene completion} (OccNet, ResNet50, single runs). \#Num: number of history frames used in training. $^{\ast}$: setting used in the main experiments.}
   \label{occnet:tab:frame_number_ssc}
   \begin{tabular}{lccccc}
     \toprule
@@ -84,7 +91,7 @@ where $C=16$ is the number of classes in the benchmark, and $\text{TP}_c$, $\tex
 
 \begin{table}[t]
   \centering
-  \caption[Effect of history frames on LiDAR segmentation]{\textbf{Effect of the number of history frames on LiDAR segmentation} (OccNet, ResNet50). \#Num: number of history frames used in training.}
+  \caption[Effect of history frames on LiDAR segmentation]{\textbf{Effect of the number of history frames on LiDAR segmentation} (OccNet, ResNet50, single runs). \#Num: number of history frames used in training. The two-frame value differs from the corresponding value of Table~\ref{occnet:tab:lidarseg_resolution} (Section~\ref{occnet:app:experiments}).}
   \label{occnet:tab:frame_number_lidarseg}
   \begin{tabular}{lcccccc}
     \toprule
@@ -100,11 +107,11 @@ where $C=16$ is the number of classes in the benchmark, and $\text{TP}_c$, $\tex
   \end{tabular}
 \end{table}
 
-\paragraph{Evaluating planning with occupancy-based collisions.} Instead of the bounding boxes of vehicles and pedestrians, we use the ground-truth occupancy to evaluate the planner. Specifically, the collision rate is computed between the trajectory and all foreground occupancy voxels plus the voxels of four background classes, \ie other flat, terrain, manmade and vegetation. As Table~\ref{occnet:tab:occupancy_metrics} shows, occupancy input for the planning model remains advantageous in most intervals under this metric. In future research, a cost function designed specifically for occupancy input may further improve planning.
+\paragraph{Evaluating planning with occupancy-based collisions.} Instead of the bounding boxes of vehicles and pedestrians, we use the ground-truth occupancy to evaluate the planner. Specifically, the collision rate is computed between the trajectory and all foreground occupancy voxels plus the voxels of four background classes, \ie other flat, terrain, manmade and vegetation. Under this metric (Table~\ref{occnet:tab:occupancy_metrics}, single runs), predicted occupancy gives lower collision rates than predicted boxes at 1\,s and 3\,s (1.68\% \vs 1.75\% and 4.32\% \vs 4.37\%) but a higher one at 2\,s (2.94\% \vs 2.85\%). These differences, 0.05 to 0.09 percentage points, change sign across horizons. The L2 distances of this table also differ from those of Table~\ref{occnet:tab:planning} for the same inputs, \eg 3.02\,m instead of 3.07\,m for predicted occupancy and 3.03\,m instead of 3.00\,m for ground-truth boxes at 3\,s, although L2 does not depend on how collisions are counted. This implies that the two tables come from different planner runs, and that run-to-run variation in L2 (up to 0.05\,m) is of the same order as the differences between inputs. \authorcheck{state whether Table~\ref{occnet:tab:occupancy_metrics} comes from planner runs separate from those of Table~\ref{occnet:tab:planning}, and whether its occupancy rows use two-class or full-class input} A cost function designed specifically for occupancy input may improve planning further.
 
 \begin{table}[t]
   \centering
-  \caption[Planning evaluated with occupancy-based collisions]{\textbf{Planning results with different scene representations under the occupancy-based collision metric.} Occupancy input remains advantageous in most intervals.}
+  \caption[Planning evaluated with occupancy-based collisions]{\textbf{Planning results with different scene representations under the occupancy-based collision metric} (experiments led by co-authors; single runs). Predicted occupancy collides less than predicted boxes at 1\,s and 3\,s and more at 2\,s. \emph{Bbox pred.}: boxes from OccNet's detection head.}
   \label{occnet:tab:occupancy_metrics}
   \begin{tabular}{lcccccc}
     \toprule
@@ -121,11 +128,11 @@ where $C=16$ is the number of classes in the benchmark, and $\text{TP}_c$, $\tex
   \end{tabular}
 \end{table}
 
-\paragraph{Pre-training for planning.} Having evaluated pre-trained models on 3D detection and BEV segmentation in Section~\ref{occnet:sec:main_results}, we further examine their effect on the downstream planning task. Specifically, we replace the perception module of ST-P3~\cite{hu2022stp3} with a pre-trained OccNet and fine-tune the planning module. Unfortunately, pre-training on occupancy does not provide an advantage for planning (Table~\ref{occnet:tab:planning_pretrain}). Combined with the planning experiment of Section~\ref{occnet:sec:main_results}, this indicates that the planning task should directly use the scene completion results of occupancy rather than the pre-trained features.
+\paragraph{Pre-training for planning.} Having evaluated pre-trained models on 3D detection and BEV segmentation in Section~\ref{occnet:sec:main_results}, we further examine their effect on the downstream planning task. Specifically, we replace the perception module of ST-P3~\cite{hu2022stp3} with a pre-trained OccNet and fine-tune the planning module. In this experiment, pre-training on occupancy gave higher collision rates and L2 distances than detection pre-training at every horizon (Table~\ref{occnet:tab:planning_pretrain}, single runs). The absolute values of Table~\ref{occnet:tab:planning_pretrain}, however, are on a different scale from those of Table~\ref{occnet:tab:planning}. With detection pre-training, the planner reaches collision rates of 0.40\% and 0.82\% at 2\,s and 3\,s and L2 distances of 0.85\,m, 1.18\,m and 1.57\,m at 1\,s, 2\,s and 3\,s, all lower than the corresponding values of every row of Table~\ref{occnet:tab:planning}, including the rows with ground-truth inputs; only its collision rate at 1\,s (0.38\%) is not. If both tables used the same protocol, a detection-pretrained planner would outperform planning on predicted occupancy, which would change the conclusion of Section~\ref{occnet:sec:main_results}. No protocol difference that would explain the gap is recorded in this chapter. \authorcheck{state the protocol, the L2 and collision conventions (value at the horizon or average up to it) and the planner configuration of Table~\ref{occnet:tab:planning_pretrain}, and whether it can be compared with Table~\ref{occnet:tab:planning}} We therefore draw only the within-table conclusion: in this set-up, occupancy pre-training did not help planning more than detection pre-training. Whether planning should consume predicted occupancy rather than occupancy-pretrained features cannot be decided until the two tables are reconciled.
 
 \begin{table}[t]
   \centering
-  \caption[Pre-training tasks for planning]{\textbf{Pre-training tasks for planning.} Features pre-trained on occupancy do not directly benefit planning.}
+  \caption[Pre-training tasks for planning]{\textbf{Pre-training tasks for planning} (experiments led by co-authors; single runs). Features pre-trained on occupancy did not benefit planning more than detection pre-training. The absolute values are on a different scale from those of Table~\ref{occnet:tab:planning} and are not comparable with them until the protocol is confirmed (Section~\ref{occnet:app:experiments}).}
   \label{occnet:tab:planning_pretrain}
   \begin{tabular}{lcccccc}
     \toprule
@@ -139,57 +146,95 @@ where $C=16$ is the number of classes in the benchmark, and $\text{TP}_c$, $\tex
   \end{tabular}
 \end{table}
 
-\paragraph{Decoder ablation on semantic scene completion.} Table~\ref{occnet:tab:occ_ablation} compares BEVNet, VoxelNet and OccNet on semantic scene completion per class. The cascaded voxel structure helps learn a better occupancy descriptor of 3D space with both backbones.
+\paragraph{Decoder ablation on semantic scene completion.} Table~\ref{occnet:tab:occ_ablation} compares BEVNet, VoxelNet and OccNet on semantic scene completion per class. OccNet has the highest mIoU with both backbones, but its margin over VoxelNet is small (0.42 mIoU with ResNet50 and 0.92 with ResNet101, single runs), and with ResNet50 VoxelNet is better on four classes (bicycle, construction vehicle, driveable surface and other flat). The clearer advantage of the cascade is efficiency (Table~\ref{occnet:tab:efficiency}). \authorcheck{confirm from the evaluation logs the second decimal of 3.40 (BEVDet, trailer, Table~\ref{occnet:tab:occ_method}) and of 12.80 and 46.70 (Table~\ref{occnet:tab:occ_ablation}), which earlier versions gave with one decimal only}
 
-\begin{table}[t]
+\begin{table}[tbp]
   \centering
-  \caption[Decoder ablation on semantic scene completion]{\textbf{Ablation of the decoder design on semantic scene completion.} OccNet outperforms BEVNet and VoxelNet.}
+  \caption[Decoder ablation on semantic scene completion]{\textbf{Ablation of the decoder design on semantic scene completion}, in single runs: (a)~overall metrics and the six background classes; (b)~the ten foreground classes. OccNet has the highest mIoU with both backbones. R50/R101: ResNet50/ResNet101.}
   \label{occnet:tab:occ_ablation}
+  \footnotesize
   \setlength{\tabcolsep}{3.5pt}
-  \resizebox{\textwidth}{!}{%
-  \begin{tabular}{@{}llcc*{16}{c}@{}}
+  (a) Overall metrics and background stuff\par\smallskip
+  \begin{adjustbox}{max width=\textwidth}
+  \begin{tabular}{@{}llcc*{6}{c}@{}}
     \toprule
-    Method & Backbone & $\text{IoU}_{\text{geo}}$ & mIoU & \rotatebox{90}{barrier} & \rotatebox{90}{bicycle} & \rotatebox{90}{bus} & \rotatebox{90}{car} & \rotatebox{90}{const.\ veh.} & \rotatebox{90}{motorcycle} & \rotatebox{90}{pedestrian} & \rotatebox{90}{traffic cone} & \rotatebox{90}{trailer} & \rotatebox{90}{truck} & \rotatebox{90}{driv.\ surf.} & \rotatebox{90}{other flat} & \rotatebox{90}{sidewalk} & \rotatebox{90}{terrain} & \rotatebox{90}{manmade} & \rotatebox{90}{vegetation} \\
+    Method & Backbone & $\text{IoU}_{\text{geo}}$ & mIoU & \rotatebox{90}{driv.\ surf.} & \rotatebox{90}{other flat} & \rotatebox{90}{sidewalk} & \rotatebox{90}{terrain} & \rotatebox{90}{manmade} & \rotatebox{90}{vegetation} \\
     \midrule
-    BEVNet   & ResNet50 & 36.11 & 17.37 & 14.02 & 5.07 & 20.85 & 24.94 & 8.64 & 7.75 & 12.8 & 8.93 & 10.21 & 16.02 & 44.41 & 14.42 & 23.87 & 27.76 & 13.73 & 24.49 \\
-    VoxelNet & ResNet50 & 37.59 & 19.06 & 19.31 & 6.25 & 22.16 & 26.89 & 9.96 & 6.91 & 12.70 & 6.27 & 9.43 & 16.96 & 46.7 & 23.31 & 26.04 & 29.08 & 16.52 & 26.46 \\
-    \rowcolor{perceive!10} OccNet & ResNet50 & 37.69 & 19.48 & 20.63 & 5.52 & 24.16 & 27.72 & 9.79 & 7.73 & 13.38 & 7.18 & 10.68 & 18.00 & 46.13 & 20.60 & 26.75 & 29.37 & 16.90 & 27.21 \\
+    BEVNet   & R50 & 36.11 & 17.37 & 44.41 & 14.42 & 23.87 & 27.76 & 13.73 & 24.49 \\
+    VoxelNet & R50 & 37.59 & 19.06 & 46.70 & 23.31 & 26.04 & 29.08 & 16.52 & 26.46 \\
+    \rowcolor{perceive!10} OccNet & R50 & 37.69 & 19.48 & 46.13 & 20.60 & 26.75 & 29.37 & 16.90 & 27.21 \\
     \midrule
-    BEVNet   & ResNet101 & 40.15 & 24.62 & 26.39 & 15.79 & 32.07 & 35.83 & 11.93 & 19.72 & 19.75 & 15.38 & 12.82 & 23.90 & 49.16 & 21.52 & 30.57 & 31.39 & 18.99 & 28.71 \\
-    VoxelNet & ResNet101 & 40.73 & 26.06 & 27.98 & 15.95 & 32.31 & 36.15 & 14.88 & 20.55 & 20.72 & 16.52 & 15.13 & 25.94 & 49.07 & 27.82 & 31.04 & 32.43 & 20.45 & 29.99 \\
-    \rowcolor{perceive!10} OccNet & ResNet101 & \textbf{41.08} & \textbf{26.98} & \textbf{29.77} & \textbf{16.89} & \textbf{34.16} & \textbf{37.35} & \textbf{15.58} & \textbf{21.92} & \textbf{21.29} & \textbf{16.75} & \textbf{16.37} & \textbf{26.23} & \textbf{50.74} & \textbf{27.93} & \textbf{31.98} & \textbf{33.24} & \textbf{20.8} & \textbf{30.68} \\
+    BEVNet   & R101 & 40.15 & 24.62 & 49.16 & 21.52 & 30.57 & 31.39 & 18.99 & 28.71 \\
+    VoxelNet & R101 & 40.73 & 26.06 & 49.07 & 27.82 & 31.04 & 32.43 & 20.45 & 29.99 \\
+    \rowcolor{perceive!10} OccNet & R101 & \textbf{41.08} & \textbf{26.98} & \textbf{50.74} & \textbf{27.93} & \textbf{31.98} & \textbf{33.24} & \textbf{20.80} & \textbf{30.68} \\
     \bottomrule
-  \end{tabular}}
+  \end{tabular}
+  \end{adjustbox}
+
+  \medskip
+  (b) Foreground objects\par\smallskip
+  \begin{adjustbox}{max width=\textwidth}
+  \begin{tabular}{@{}ll*{10}{c}@{}}
+    \toprule
+    Method & Backbone & \rotatebox{90}{barrier} & \rotatebox{90}{bicycle} & \rotatebox{90}{bus} & \rotatebox{90}{car} & \rotatebox{90}{const.\ veh.} & \rotatebox{90}{motorcycle} & \rotatebox{90}{pedestrian} & \rotatebox{90}{traffic cone} & \rotatebox{90}{trailer} & \rotatebox{90}{truck} \\
+    \midrule
+    BEVNet   & R50 & 14.02 & 5.07 & 20.85 & 24.94 & 8.64 & 7.75 & 12.80 & 8.93 & 10.21 & 16.02 \\
+    VoxelNet & R50 & 19.31 & 6.25 & 22.16 & 26.89 & 9.96 & 6.91 & 12.70 & 6.27 & 9.43 & 16.96 \\
+    \rowcolor{perceive!10} OccNet & R50 & 20.63 & 5.52 & 24.16 & 27.72 & 9.79 & 7.73 & 13.38 & 7.18 & 10.68 & 18.00 \\
+    \midrule
+    BEVNet   & R101 & 26.39 & 15.79 & 32.07 & 35.83 & 11.93 & 19.72 & 19.75 & 15.38 & 12.82 & 23.90 \\
+    VoxelNet & R101 & 27.98 & 15.95 & 32.31 & 36.15 & 14.88 & 20.55 & 20.72 & 16.52 & 15.13 & 25.94 \\
+    \rowcolor{perceive!10} OccNet & R101 & \textbf{29.77} & \textbf{16.89} & \textbf{34.16} & \textbf{37.35} & \textbf{15.58} & \textbf{21.92} & \textbf{21.29} & \textbf{16.75} & \textbf{16.37} & \textbf{26.23} \\
+    \bottomrule
+  \end{tabular}
+  \end{adjustbox}
 \end{table}
 
-\paragraph{Effect of voxel resolution on LiDAR segmentation.} We voxelise the 3D space at resolutions $\Delta s\in\{1.0\,\text{m},0.5\,\text{m},0.25\,\text{m}\}$ to investigate the effect of voxel resolution on LiDAR segmentation. Since the semantic occupancy prediction is transferred to LiDAR segmentation by assigning each point the label of its voxel, LiDAR segmentation improves as $\Delta s$ decreases (Table~\ref{occnet:tab:lidarseg_resolution}), from 46.60 to 53.00 mIoU. This suggests that a camera-based OccNet can approach the performance of LiDAR-based methods as $\Delta s\to0$.
+\paragraph{Effect of voxel resolution on LiDAR segmentation.} We voxelise the 3D space at resolutions $\Delta s\in\{1.0\,\text{m},0.5\,\text{m},0.25\,\text{m}\}$ to investigate the effect of voxel resolution on LiDAR segmentation. Since the semantic occupancy prediction is transferred to LiDAR segmentation by assigning each point the label of its voxel, a finer grid should help, and mIoU rises from 46.60 at 1.0\,m to 47.29 at 0.5\,m and 53.00 at 0.25\,m (Table~\ref{occnet:tab:lidarseg_resolution}, single runs). The per-class trends are not monotonic, however: bus IoU goes from 65.94 to 48.32 and back to 64.09, and trailer IoU falls from 33.94 to 22.05 as the voxels shrink. Three resolutions, one of which is inconsistent with Table~\ref{occnet:tab:frame_number_lidarseg} (see above), do not support an extrapolation of these results to $\Delta s\to0$.
 
-\begin{table}[t]
+\begin{table}[tbp]
   \centering
-  \caption[Effect of voxel resolution on LiDAR segmentation]{\textbf{Effect of voxel resolution on LiDAR segmentation} with OccNet (ResNet50) on the nuScenes validation set. The smallest voxel size $\Delta s$ performs best.}
+  \caption[Effect of voxel resolution on LiDAR segmentation]{\textbf{Effect of voxel resolution on LiDAR segmentation} with OccNet (ResNet50) on the nuScenes validation set, in single runs: (a)~mIoU and the six background classes; (b)~the ten foreground classes. The smallest voxel size $\Delta s$ gives the highest mIoU, but the per-class trends are not monotonic.}
   \label{occnet:tab:lidarseg_resolution}
+  \footnotesize
   \setlength{\tabcolsep}{3.5pt}
-  \resizebox{\textwidth}{!}{%
-  \begin{tabular}{@{}lcc*{16}{c}@{}}
+  (a) Mean IoU and background stuff\par\smallskip
+  \begin{adjustbox}{max width=\textwidth}
+  \begin{tabular}{@{}lcc*{6}{c}@{}}
     \toprule
-    Method & $\Delta s$ (m) & mIoU & \rotatebox{90}{barrier} & \rotatebox{90}{bicycle} & \rotatebox{90}{bus} & \rotatebox{90}{car} & \rotatebox{90}{const.\ veh.} & \rotatebox{90}{motorcycle} & \rotatebox{90}{pedestrian} & \rotatebox{90}{traffic cone} & \rotatebox{90}{trailer} & \rotatebox{90}{truck} & \rotatebox{90}{driv.\ surf.} & \rotatebox{90}{other flat} & \rotatebox{90}{sidewalk} & \rotatebox{90}{terrain} & \rotatebox{90}{manmade} & \rotatebox{90}{vegetation} \\
+    Method & $\Delta s$ (m) & mIoU & \rotatebox{90}{driv.\ surf.} & \rotatebox{90}{other flat} & \rotatebox{90}{sidewalk} & \rotatebox{90}{terrain} & \rotatebox{90}{manmade} & \rotatebox{90}{vegetation} \\
     \midrule
-    OccNet & 1.00 & 46.60 & 52.78 & 21.04 & 65.94 & 62.45 & 18.31 & 15.49 & 30.71 & 15.82 & 33.94 & 50.22 & 83.93 & 48.84 & 50.52 & 57.89 & 69.49 & 68.29 \\
-    OccNet & 0.50 & 47.29 & 59.06 & 20.63 & 48.32 & 63.05 & 24.12 & 20.24 & 41.82 & 18.84 & 23.38 & 41.12 & 86.46 & 53.12 & 52.03 & 59.14 & 71.55 & 73.68 \\
-    \rowcolor{perceive!10} OccNet & 0.25 & 53.00 & 65.93 & 22.84 & 64.09 & 72.69 & 32.73 & 28.73 & 52.21 & 17.64 & 22.05 & 51.26 & 89.05 & 57.41 & 58.06 & 64.30 & 75.09 & 73.92 \\
+    OccNet & 1.00 & 46.60 & 83.93 & 48.84 & 50.52 & 57.89 & 69.49 & 68.29 \\
+    OccNet & 0.50 & 47.29 & 86.46 & 53.12 & 52.03 & 59.14 & 71.55 & 73.68 \\
+    \rowcolor{perceive!10} OccNet & 0.25 & 53.00 & 89.05 & 57.41 & 58.06 & 64.30 & 75.09 & 73.92 \\
     \bottomrule
-  \end{tabular}}
+  \end{tabular}
+  \end{adjustbox}
+
+  \medskip
+  (b) Foreground objects\par\smallskip
+  \begin{adjustbox}{max width=\textwidth}
+  \begin{tabular}{@{}lc*{10}{c}@{}}
+    \toprule
+    Method & $\Delta s$ (m) & \rotatebox{90}{barrier} & \rotatebox{90}{bicycle} & \rotatebox{90}{bus} & \rotatebox{90}{car} & \rotatebox{90}{const.\ veh.} & \rotatebox{90}{motorcycle} & \rotatebox{90}{pedestrian} & \rotatebox{90}{traffic cone} & \rotatebox{90}{trailer} & \rotatebox{90}{truck} \\
+    \midrule
+    OccNet & 1.00 & 52.78 & 21.04 & 65.94 & 62.45 & 18.31 & 15.49 & 30.71 & 15.82 & 33.94 & 50.22 \\
+    OccNet & 0.50 & 59.06 & 20.63 & 48.32 & 63.05 & 24.12 & 20.24 & 41.82 & 18.84 & 23.38 & 41.12 \\
+    \rowcolor{perceive!10} OccNet & 0.25 & 65.93 & 22.84 & 64.09 & 72.69 & 32.73 & 28.73 & 52.21 & 17.64 & 22.05 & 51.26 \\
+    \bottomrule
+  \end{tabular}
+  \end{adjustbox}
 \end{table}
 
 %-----------------------------------------------------------------------
 \section{Visualisation Results}\label{occnet:app:visualization}
 
-We sample two scenes from the validation set and visualise the occupancy predictions of OccNet in detail in Fig.~\ref{occnet:fig:occ_pred}; OccNet describes the scene geometry and semantics in detail. Fig.~\ref{occnet:fig:planning2} compares rasterised occupancy with rasterised bounding boxes as the input of the planning module: with occupancy input, the planned trajectory keeps a greater safety distance from a truck.
+We sample two scenes from the validation set and visualise the occupancy predictions of OccNet in detail in Fig.~\ref{occnet:fig:occ_pred}; OccNet describes the scene geometry and semantics in detail. Fig.~\ref{occnet:fig:planning2} compares rasterised occupancy with rasterised bounding boxes as the input of the planning module: in this example, the trajectory planned with occupancy input keeps a greater distance from a truck.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.86\linewidth]{ch-occnet/images/fig_planning2_used.jpg}
-  \caption[Further visualisation of planning with boxes and occupancy]{\textbf{Visualisation of planning.} The blue line is the planned trajectory. The lower panels show the rasterised bounding boxes (left) and the rasterised occupancy (right) used as planning input. The trajectory obtained with rasterised occupancy keeps a greater safety distance from the truck, because occupancy represents its polygon more accurately.}
+  \caption[Further visualisation of planning with boxes and occupancy]{\textbf{Visualisation of planning} (experiments led by co-authors). The blue line is the planned trajectory. The lower panels show the rasterised bounding boxes (left) and the rasterised occupancy (right) used as planning input. In this example, the trajectory obtained with rasterised occupancy keeps a greater distance from the truck, whose outline occupancy follows more closely than its box.}
   \label{occnet:fig:planning2}
 \end{figure}
 

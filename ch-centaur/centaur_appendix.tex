@@ -1,6 +1,6 @@
 \chapter{Supplementary Material for Chapter~\ref{ch:centaur}}\label{app:centaur}
 
-This appendix complements Chapter~\ref{ch:centaur} with additional related work (Section~\ref{centaur:app:related}), additional methodological details (Section~\ref{centaur:app:method}), and experimental details together with further results and visualisations (Section~\ref{centaur:app:exp}).
+This appendix complements Chapter~\ref{ch:centaur} with additional related work (Section~\ref{centaur:app:related}), additional methodological details (Section~\ref{centaur:app:method}), and experimental details together with further results, visualisations and internal consistency checks of the reported results (Section~\ref{centaur:app:exp}).
 
 %-------------------------------------------------------------------------------
 \section{Additional Related Work}\label{centaur:app:related}
@@ -9,7 +9,7 @@ This appendix complements Chapter~\ref{ch:centaur} with additional related work 
 
 \paragraph{Semantic entropy.} One of the baselines, Semantic Entropy, is inspired by semantic uncertainty in large language models (LLMs)~\cite{kuhn2023semantic}, where uncertainty estimation is improved by addressing the limitations of traditional entropy measures, using clustering to reduce redundant uncertainty through linguistic invariance. Semantic entropy is calculated from probabilities across clusters rather than across individual responses. This captures uncertainty across genuinely different meanings rather than superficial differences in wording. We adopt a similar strategy to cluster the predicted trajectories and formulate an entropy over them.
 
-\paragraph{Safety-critical scenarios.} The evaluation of end-to-end driving models presents significant challenges. While traditional metrics such as the average displacement error (ADE) and final displacement error (FDE) have been widely used~\cite{hu2023uniad,jiang2023vad,hu2023gaia}, recent research~\cite{li2024ego} has highlighted their limitations in comprehensively assessing autonomous driving systems. This has led to the adoption of more sophisticated benchmarks such as NAVSIM~\cite{dauner2024navsim}, which evaluates models in non-reactive simulation along multiple dimensions, including safety, progress and traffic rule compliance. Bench2Drive~\cite{jia2024bench2drive} is a recently proposed benchmark designed to evaluate the diverse capabilities of end-to-end autonomous driving systems in a closed-loop setting, which tests driving models on 44 different individual scenarios. InterPlan~\cite{hallgarten2024interplan} constructs out-of-distribution test scenarios, such as dealing with a crash site in the middle of the road, and proposes using large language models to adapt the parameters of non-differentiable planners at test time. \texttt{navsafe} is built upon \texttt{navtest} and delves deeper into rare cases in which state-of-the-art planners may fail, to expose the performance gap in detail. Unlike InterPlan, it focuses on end-to-end driving, and unlike Bench2Drive, it is based on real-world data.
+\paragraph{Safety-critical scenarios.} The evaluation of end-to-end driving models presents substantial challenges. While traditional metrics such as the average displacement error (ADE) and final displacement error (FDE) have been widely used~\cite{hu2023uniad,jiang2023vad,hu2023gaia}, recent research~\cite{li2024ego} has highlighted their limitations in comprehensively assessing autonomous driving systems. This has led to the adoption of more sophisticated benchmarks such as NAVSIM~\cite{dauner2024navsim}, which evaluates models in non-reactive simulation along multiple dimensions, including safety, progress and traffic rule compliance. Bench2Drive~\cite{jia2024bench2drive} is a recently proposed benchmark designed to evaluate the diverse capabilities of end-to-end autonomous driving systems in a closed-loop setting, which tests driving models on 44 different individual scenarios. InterPlan~\cite{hallgarten2024interplan} constructs out-of-distribution test scenarios, such as dealing with a crash site in the middle of the road, and proposes using large language models to adapt the parameters of non-differentiable planners at test time. \texttt{navsafe} is built upon \texttt{navtest} and delves deeper into rare cases in which state-of-the-art planners may fail, to expose the performance gap in detail; its frames were selected after sorting \texttt{navtest} clips by the performance of Hydra-MDP (Section~\ref{centaur:sec:navsafe}). Unlike InterPlan, it focuses on end-to-end driving, and unlike Bench2Drive, it is based on real-world data, but it is evaluated on logged frames rather than in closed loop.
 
 \paragraph{Evidential uncertainty.} Amini \etal~\cite{amini2020deepevidential} propose Deep Evidential Regression for training deterministic neural networks to estimate both continuous targets and their associated uncertainties. The network infers the hyperparameters of evidential distributions, thereby capturing both aleatoric (data) and epistemic (model) uncertainty without requiring sampling during inference or out-of-distribution (OOD) examples for training. By applying regularisation that aligns the predicted evidence with the actual outputs, the method produces well-calibrated uncertainty estimates. It is scalable and robust, showing resistance to adversarial attacks and OOD samples, which makes it suitable for complex tasks in which uncertainty estimation is crucial. We adapt the evidential regression loss to TransFuser~\cite{chitta2023transfuser} to evaluate its suitability for TTT (Section~\ref{centaur:app:regression}).
 
@@ -85,7 +85,7 @@ where the imitation loss $\mathcal{L}_{im}$ is implemented as a distance-based c
 
 \subsection{Entropy Estimation}\label{centaur:app:entropy}
 
-\paragraph{Sampling of anchors and candidates.} We first sample $M=100$ trajectory candidates from the planning vocabulary, which has a size of 8192. The sampling process is a weighted random sampling in which the weight of each trajectory is its average ground-truth PDMS on the \texttt{navtrain} split. This is similar to the weight calculation used in the fallback-layer baseline. We then sample five anchors from the trajectory candidates via domain-specific criteria, following DriveLM~\cite{sima2024drivelm} (Section~\ref{centaur:sec:ce}). Unlike standard clustering algorithms such as k-means, this approach is computationally efficient and differentiable. Further, owing to the choice of fixed anchors, it ensures coverage of a large part of the drivable area, independent of the choice of feature space.
+\paragraph{Sampling of anchors and candidates.} We first sample $M=100$ trajectory candidates from the planning vocabulary, which has a size of 8192. The sampling process is a weighted random sampling in which the weight of each trajectory is its average ground-truth PDMS on the \texttt{navtrain} split. This is similar to the weight calculation used in the fallback baseline. The candidates are sampled once and then fixed for all test frames (Algorithm~\ref{centaur:alg:ttt}). Because the weights reflect how well each trajectory scores on average over \texttt{navtrain}, manoeuvres that are rare in training are less likely to be among the candidates. We then select five anchors from the trajectory candidates via domain-specific criteria, following the five steering categories of DriveLM~\cite{sima2024drivelm} (Section~\ref{centaur:sec:ce}). Unlike standard clustering algorithms such as k-means, this approach is computationally efficient and differentiable. Further, owing to the choice of fixed anchors, the clusters span the range of lateral directions, independent of the choice of feature space; they do not distinguish trajectories by speed (Section~\ref{centaur:sec:discussion}).
 
 \paragraph{Semantic Entropy.} Intuitively, when a policy expects many trajectories to result in similar outcomes, it is more `certain' than when it expects most trajectories to result in diverse outcomes. Semantic Entropy computes the nearest anchor to each of the $M$ trajectory candidates (in terms of $L_2$ distance) in a feature space, rather than in the Euclidean space of trajectories. While the choice of feature space is flexible, this adaptation prioritises simplicity. For the trajectory scoring planner, the output score features are directly used as the feature space. For trajectory regression, we consider two simple score features, $\{L_{\gamma}, L_{\mu}\}$, based on the evidential parameters $\alpha$, $\beta$, $\gamma$ and $\upsilon$. We first sample $N$ values of $\sigma$ via $\Gamma^{-1}(\alpha, \beta)$ and sample the corresponding $\mu$ via $\mathcal{N}(\gamma, \sigma^2 \upsilon^{-1})$. Then, for each of the $M$ candidates, we calculate its $L_2$ distance $L_{\gamma}$ to $\gamma$ and its $L_2$ distance $L_{\mu}$ to the closest $\mu$ among the $N$ sampled values. After identifying the nearest anchor for all $M$ candidates in the selected feature space, the entropy $H$ is defined as the Shannon entropy of the resulting five-way categorical distribution.
 
@@ -94,7 +94,7 @@ where the imitation loss $\mathcal{L}_{im}$ is implemented as a distance-based c
 %-------------------------------------------------------------------------------
 \section{Experimental Details}\label{centaur:app:exp}
 
-\paragraph{Hyper-parameters.} For all experiments with Hydra-MDP, we adopt a planning vocabulary of 8192 trajectories, following the state-of-the-art setting~\cite{li2024hydramdp}. For all experiments with TransFuser, we equip each waypoint regression head with an evidential regression loss, following the implementation of Deep Evidential Regression~\cite{amini2020deepevidential}. The output of both the trajectory scoring and the trajectory regression planners is a 40-waypoint trajectory over 4 seconds, sampled at 10\,Hz, with each waypoint defined by its $x$, $y$ and heading values. The clustering threshold is $\tau=0.06$ for Hydra-SE and $\tau=0.02$ for TransFuser-SE. For TransFuser, we use a single NVIDIA A100 GPU, a batch size of 64 and a learning rate of $10^{-4}$.
+\paragraph{Hyper-parameters.} For all experiments with Hydra-MDP, we adopt a planning vocabulary of 8192 trajectories, following the state-of-the-art setting~\cite{li2024hydramdp}. For all experiments with TransFuser, we equip each waypoint regression head with an evidential regression loss, following the implementation of Deep Evidential Regression~\cite{amini2020deepevidential}. The output of both the trajectory scoring and the trajectory regression planners is a 40-waypoint trajectory over 4 seconds, sampled at 10\,Hz, with each waypoint defined by its $x$, $y$ and heading values. The clustering threshold is $\tau=0.06$ for Hydra-SE and $\tau=0.02$ for TransFuser-SE; like the other TTT settings, these values are reported only on \texttt{navtest} (Section~\ref{centaur:sec:setup}). For TransFuser, we use a single NVIDIA A100 GPU, a batch size of 64 and a learning rate of $10^{-4}$.
 
 \subsection{Motivation of Baselines}\label{centaur:app:baselines}
 
@@ -102,12 +102,13 @@ We selected the baselines for uncertainty estimation and deployment strategy bas
 \begin{itemize}
   \item \textbf{KL Divergence as an uncertainty baseline for trajectory scoring planners.} This baseline is motivated by a visualisation of the score feature distributions in success and failure cases, which reveals inconsistencies between the score distributions of different metrics, especially those of NC and DAC (Fig.~\ref{centaur:fig:vis_group}). We therefore examine whether such inconsistency can serve as an indicator of possible failure cases.
   \item \textbf{Evidential uncertainty as an uncertainty baseline for trajectory regression planners.} As many regression problems use evidential uncertainty as a baseline method, we follow this default setting as a baseline for TTT with TransFuser.
-  \item \textbf{Fallback layer as a deployment-strategy baseline for end-to-end planners.} We compare test-time training with a fallback layer because the latter is common practice in industry and, unlike test-time trajectory optimisation, can be implemented without access to explicit representations. When a fallback layer is used as the deployment strategy, inference proceeds as follows:
+  \item \textbf{Uncertainty-triggered fallback to prior trajectories as a deployment-strategy baseline for end-to-end planners.} We compare test-time training with a fallback because fallback layers are common practice in industry and, unlike test-time trajectory optimisation, can be implemented without access to explicit representations. Our baseline is a simplified variant: it is triggered by the planner's uncertainty rather than by a check of the plan for collisions or feasibility, and it falls back to the nearest of 20 fixed trajectories rather than to a rule-based planner as in SafetyNet~\cite{vitelli2022safetynet}. It therefore represents neither SafetyNet nor rule-based safeguards in general. When the fallback is used as the deployment strategy, inference proceeds as follows:
   \begin{itemize}
     \item Infer all frames with the base end-to-end planner.
-    \item Run uncertainty estimation for failure case classification over all frames to select the possible failure cases. The classification setting is discussed with Table~\ref{centaur:tab:fail_class}.
-    \item Run the fallback layer on the frames selected as likely failures.
+    \item Run uncertainty estimation for failure case classification over all frames to select the possible failure cases. The classification setting, including the thresholds, is that of Table~\ref{centaur:tab:fail_class}.
+    \item Run the fallback on the frames selected as likely failures.
   \end{itemize}
+  The trigger rates implied by these thresholds are inconsistent with the ego progress reported for the fallback (Section~\ref{centaur:app:consistency}).
 \end{itemize}
 
 \begin{figure}[t]
@@ -129,7 +130,7 @@ We selected the baselines for uncertainty estimation and deployment strategy bas
     \textbf{Model} & \textbf{Deployment} & \textbf{NC} $\uparrow$ & \textbf{DAC} $\uparrow$ & \textbf{EP} $\uparrow$ & \textbf{C} $\uparrow$ & \textbf{TTC} $\uparrow$ & \textbf{PDMS} $\uparrow$ \\
     \midrule
     \multirow{2}{*}{UniAD~\cite{hu2023uniad}} & None & $97.8$ & $91.9$ & $78.8$ & $100.0$ & $92.9$ & $83.4$ \\
-    & Optimization & $95.4$ & $86.0$ & $71.9$ & $99.3$ & $87.3$ & $75.2$ \\
+    & Optimisation & $95.4$ & $86.0$ & $71.9$ & $99.3$ & $87.3$ & $75.2$ \\
     \midrule
     PARA-Drive~\cite{weng2024paradrive} & None & $97.9$ & $92.4$ & $79.3$ & $99.8$ & $93.0$ & $84.0$ \\
     + Occupancy Head & None & $97.8$ & $92.0$ & $78.3$ & $99.7$ & $93.7$ & $83.6$ \\
@@ -147,33 +148,33 @@ We selected the baselines for uncertainty estimation and deployment strategy bas
   \end{adjustbox}
 \end{table}
 
-\paragraph{NAVSIM v1.0.} For completeness, Table~\ref{centaur:tab:navtest_all_supp} compares Centaur with additional baselines on NAVSIM v1.0; in this single-seed comparison, Centaur obtains the highest PDMS of all methods. The table also includes TransFuser-SE, our baseline for applying TTT to trajectory regression models. Similar to Centaur, it obtains an improvement of 2.3 PDMS over its base model, TransFuser without TTT. Interestingly, UniAD~\cite{hu2023uniad}, which uses optimisation with an expert-designed cost function, deteriorates with this optimisation step. This is due to a reduction in ego progress (EP), much like the findings with a fallback layer in Table~\ref{centaur:tab:navtest_ablation}. Furthermore, the results of PARA-Drive~\cite{weng2024paradrive} show that incorporating an explicit representation of 3D occupancy into the end-to-end model can reduce its planning performance. These results show the need for an alternative means of ensuring safety during deployment, such as the proposed TTT.
+\paragraph{NAVSIM v1.0.} For completeness, Table~\ref{centaur:tab:navtest_all_supp} compares Centaur with additional baselines on NAVSIM v1.0; in this single-seed comparison, Centaur obtains the highest PDMS of all methods. The table also includes TransFuser-SE, our baseline for applying TTT to trajectory regression models. Similar to Centaur, it obtains an improvement of 2.3 PDMS over its base model, TransFuser without TTT. UniAD~\cite{hu2023uniad}, which uses optimisation with an expert-designed cost function, deteriorates with this optimisation step in every sub-score: NC falls from 97.8 to 95.4, DAC from 91.9 to 86.0, EP from 78.8 to 71.9, C from 100.0 to 99.3 and TTC from 92.9 to 87.3. Unlike the fallback of Table~\ref{centaur:tab:navtest_ablation}, the optimisation therefore does not trade progress for safety. Adding an explicit 3D occupancy head to PARA-Drive~\cite{weng2024paradrive} changes its PDMS from 84.0 to 83.6, a difference too small to establish an effect in single runs. These results do not show that explicit representations or cost functions are harmful in general; they show only that the two hand-designed additions evaluated here did not improve PDMS on NAVSIM v1.0.
 
-\begin{table}[t]
+\begin{sidewaystable}
   \centering
-  \caption[Additional ablations on \texttt{navtest}, with latency]{\textbf{Ablations on \texttt{navtest}.} Additional results complementing Table~\ref{centaur:tab:navtest_ablation}. TTT$^{*}$ combines the history gradients using their SVD instead of averaging them. Hydra-SE$^{\mathbf{f}}$ refers to using $f$ history frames. The shaded row (\colorbox{gray!50}{Hydra-SE$^{\mathbf{4}}$}) applies TTT at inference only on selected frames whose uncertainty is higher than a threshold. We report the \textbf{amortised latency} on \texttt{navtest}.}
+  \caption[Additional ablations on \texttt{navtest}, with latency]{\textbf{Ablations on \texttt{navtest}.} Additional results complementing Table~\ref{centaur:tab:navtest_ablation}; all rows are single runs evaluated with NAVSIM v1.0. Fallback: the uncertainty-triggered fallback to prior trajectories of Section~\ref{centaur:sec:setup}; its rows are inconsistent with the thresholds used and must be recomputed (Section~\ref{centaur:app:consistency}). TTT$^{*}$ combines the history gradients using their SVD instead of averaging them. Hydra-SE$^{\mathbf{f}}$ refers to using $f$ history frames. The shaded row (\colorbox{gray!50}{Hydra-SE$^{\mathbf{4}}$}) applies TTT at inference only on selected frames whose uncertainty is higher than a threshold. We report the \textbf{amortised latency} on \texttt{navtest}; the latency of Centaur (Cluster Entropy) is not reported.}
   \label{centaur:tab:navtest_ablation_supp}
-  \begin{adjustbox}{max width=\textwidth}
+  \begin{adjustbox}{max width=\linewidth}
   \begin{tabular}{l|ll|rrrr|rr|c}
     \toprule
     \textbf{Model} & \textbf{Deployment} & \textbf{Uncertainty} & \textbf{NC} $\uparrow$ & \textbf{DAC} $\uparrow$ & \textbf{EP} $\uparrow$ & \textbf{C} $\uparrow$ & \textbf{TTC} $\uparrow$ & \textbf{PDMS} $\uparrow$ & \textbf{Latency (ms)} $\downarrow$ \\
     \midrule
     \multirow{4}{*}{TransFuser~\cite{chitta2023transfuser}} & - & - & $97.1$ & $91.9$ & $79.3$ & $100.0$ & $91.9$ & $83.4$ & $103.1$ \\
-    & Fallback Layer & Evidential & $98.8$ & $97.4$ & $13.1$ & $100.0$ & $97.9$ & $60.6$ & $108.7$ \\
-    & Fallback Layer & Semantic Entropy & $99.2$ & $97.2$ & $14.6$ & $99.8$ & $96.5$ & $59.9$ & $109.9$ \\
+    & Fallback & Evidential & $98.8$ & $97.4$ & $13.1$ & $100.0$ & $97.9$ & $60.6$ & $108.7$ \\
+    & Fallback & Semantic Entropy & $99.2$ & $97.2$ & $14.6$ & $99.8$ & $96.5$ & $59.9$ & $109.9$ \\
     & TTT & Evidential & $97.9$ & $92.5$ & $79.6$ & $100.0$ & $92.9$ & $84.2$ & $149.3$ \\
     \midrule
     \multirow{2}{*}{TransFuser-SE} & TTT & \multirow{2}{*}{Semantic Entropy} & $97.9$ & $92.9$ & $80.1$ & $100.0$ & $94.1$ & $85.7$ & $153.8$ \\
     & TTT$^{*}$ & & $97.4$ & $89.3$ & $78.3$ & $100.0$ & $91.1$ & $83.8$ & $157.6$ \\
     \midrule
     \multirow{4}{*}{Hydra-MDP~\cite{li2024hydramdp}} & - & - & $98.4$ & $97.8$ & $86.5$ & $100.0$ & $93.9$ & $90.3$ & $243.9$ \\
-    & Fallback Layer & KL Divergence & $99.1$ & $99.2$ & $9.6$ & $100.0$ & $96.7$ & $63.1$ & $263.2$ \\
-    & Fallback Layer & Semantic Entropy & $99.7$ & $99.5$ & $10.4$ & $100.0$ & $98.9$ & $65.3$ & $256.4$ \\
+    & Fallback & KL Divergence & $99.1$ & $99.2$ & $9.6$ & $100.0$ & $96.7$ & $63.1$ & $263.2$ \\
+    & Fallback & Semantic Entropy & $99.7$ & $99.5$ & $10.4$ & $100.0$ & $98.9$ & $65.3$ & $256.4$ \\
     & TTT & KL Divergence & $98.9$ & $98.1$ & $86.0$ & $100.0$ & $94.4$ & $91.5$ & $357.1$ \\
     \midrule
     \multirow{4}{*}{Hydra-MDP-ViT-L} & - & - & $98.4$ & $97.7$ & $85.0$ & $100.0$ & $94.5$ & $89.9$ & $237.2$ \\
-    & Fallback Layer & KL Divergence & $99.7$ & $99.2$ & $10.4$ & $100.0$ & $98.9$ & $67.4$ & $259.5$ \\
-    & Fallback Layer & Semantic Entropy & $99.6$ & $97.5$ & $11.8$ & $100.0$ & $94.1$ & $61.0$ & $255.7$ \\
+    & Fallback & KL Divergence & $99.7$ & $99.2$ & $10.4$ & $100.0$ & $98.9$ & $67.4$ & $259.5$ \\
+    & Fallback & Semantic Entropy & $99.6$ & $97.5$ & $11.8$ & $100.0$ & $94.1$ & $61.0$ & $255.7$ \\
     & TTT & KL Divergence & $99.1$ & $98.2$ & $89.6$ & $100.0$ & $96.7$ & $90.9$ & $354.1$ \\
     \midrule
     Hydra-SE$^{\mathbf{4}}$ & \multirow{4}{*}{TTT} & \multirow{4}{*}{Semantic Entropy} & $99.2$ & $98.5$ & $85.7$ & $100.0$ & $97.1$ & $91.8$ & \multirow{4}{*}{$312.5$} \\
@@ -185,11 +186,11 @@ We selected the baselines for uncertainty estimation and deployment strategy bas
     \bottomrule
   \end{tabular}
   \end{adjustbox}
-\end{table}
+\end{sidewaystable}
 
 \begin{table}[t]
   \centering
-  \caption[Failure identification with other planners and thresholds]{\textbf{Failure identification.} Additional results complementing Table~\ref{centaur:tab:fail_class}, with other planners and uncertainty thresholds.}
+  \caption[Failure identification with other planners and thresholds]{\textbf{Failure identification.} Additional results complementing Table~\ref{centaur:tab:fail_class}, with other planners and uncertainty thresholds. The failure rates given by the Select All rows (24.1\% for TransFuser and 15.6\% for Hydra-MDP) are inconsistent with the mean PDMS of the two planners and must be recomputed (Section~\ref{centaur:app:consistency}).}
   \label{centaur:tab:fail_class_supp}
   \begin{tabular}{l|l|c|rr}
     \toprule
@@ -220,18 +221,68 @@ We selected the baselines for uncertainty estimation and deployment strategy bas
   \end{tabular}
 \end{table}
 
-\paragraph{Latency.} We count the forward pass time in milliseconds. For planners with uncertainty estimation and a deployment strategy, we count the forward pass time once and then add the time for the corresponding deployment method (test-time training or fallback layer). For test-time training, we include the time for the gradient calculation as well as the model update; for the fallback layer, we include the nearest-neighbour search that selects the safe trajectory closest to the predicted trajectory in terms of $L_2$ distance. The hardware used for this inference test is as follows:
+\paragraph{Latency.} We count the forward pass time in milliseconds. For planners with uncertainty estimation and a deployment strategy, we count the forward pass time once and then add the time for the corresponding deployment method (test-time training or fallback). For test-time training, we include the time for the gradient calculation as well as the model update; for the fallback, we include the nearest-neighbour search that selects the safe trajectory closest to the predicted trajectory in terms of $L_2$ distance. The hardware used for this inference test is as follows:
 \begin{itemize}
   \item GPU: 1 $\times$ NVIDIA A100, driver version 535.54.03;
   \item CPU: AMD EPYC 9124 16-Core Processor;
   \item RAM: 500\,GB.
 \end{itemize}
-As shown in Table~\ref{centaur:tab:navtest_ablation_supp}, a direct comparison of the base TransFuser and Hydra-MDP models, without the proposed deployment and uncertainty enhancements, reveals a significant performance gap in favour of Hydra-MDP. This can be attributed to their different backbone architectures. TransFuser uses an efficient ResNet-34 backbone which, although it sacrifices performance, has a substantially lower latency of 103.1\,ms, compared with 243.9\,ms for Hydra-MDP. In contrast, the more computationally expensive \mbox{V2-99} backbone of Hydra-MDP contributes to its higher performance by around 7 PDMS. We reiterate that the gradient calculation time is currently included in the latency measured for TTT methods. It could be reduced by parallelising execution in our implementation, or by applying TTT only on selected frames where the uncertainty exceeds a threshold (Table~\ref{centaur:tab:navtest_ablation_supp}, bottom row).
+As shown in Table~\ref{centaur:tab:navtest_ablation_supp}, a direct comparison of the base TransFuser and Hydra-MDP models, without the proposed deployment and uncertainty enhancements, reveals a large performance gap in favour of Hydra-MDP. This can be attributed to their different backbone architectures. TransFuser uses an efficient ResNet-34 backbone which, although it sacrifices performance, has a substantially lower latency of 103.1\,ms, compared with 243.9\,ms for Hydra-MDP. In contrast, the more computationally expensive \mbox{V2-99} backbone of Hydra-MDP contributes to its higher performance by around 7 PDMS. We reiterate that the gradient calculation time is currently included in the latency measured for TTT methods, and that the latency of Centaur with Cluster Entropy is not reported. It could be reduced by parallelising execution in our implementation, which we have not done, or by applying TTT only on selected frames where the uncertainty exceeds a threshold (Table~\ref{centaur:tab:navtest_ablation_supp}, bottom row).
 
 \paragraph{TTT with SVD.} Following~\cite{Gao2024fstta}, an alternative implementation of test-time adaptation applies singular-value decomposition (SVD) to the history gradients to find the most useful ones for updating the model. As shown in Table~\ref{centaur:tab:navtest_ablation_supp}, in our case TTT$^{*}$ (using SVD) performs worse on TransFuser-SE than TTT with averaged gradients.
 
-\paragraph{ViT-L backbone.} Table~\ref{centaur:tab:navtest_ablation_supp} also ablates the influence of different backbones on Hydra-MDP under different uncertainty measures and deployment strategies. Overall, the \mbox{V2-99} backbone used in Hydra-MDP performs better than the ViT-L backbone. However, with a fallback layer and KL Divergence, the ViT-L backbone surpasses \mbox{V2-99} by around 4 PDMS.
+\paragraph{ViT-L backbone.} Table~\ref{centaur:tab:navtest_ablation_supp} also ablates the influence of different backbones on Hydra-MDP under different uncertainty measures and deployment strategies. Overall, the \mbox{V2-99} backbone used in Hydra-MDP performs better than the ViT-L backbone. With the fallback and KL Divergence, the ViT-L backbone scores around 4 PDMS higher than \mbox{V2-99}, but the fallback rows are subject to the inconsistency described in Section~\ref{centaur:app:consistency}.
 
-\paragraph{Buffer length $F$.} Table~\ref{centaur:tab:navtest_ablation_supp} shows the influence of the number of history frames used by Hydra-SE on \texttt{navtest}. We observe a slight performance gain when increasing the number of history frames ($F=2$ gives the lowest performance). Overall, the performance is consistent across all settings of $F$, indicating the robustness of the approach.
+\paragraph{Buffer length $F$.} Table~\ref{centaur:tab:navtest_ablation_supp} shows the influence of the number of history frames used by Hydra-SE on \texttt{navtest}. $F=4$ gives the highest PDMS and $F=2$ the lowest, but the four settings span only 0.5 PDMS in single runs, so the table does not establish a trend with buffer length; every setting improves on Hydra-MDP.
 
-\paragraph{Failure identification thresholds.} Table~\ref{centaur:tab:fail_class_supp} investigates the effect of different uncertainty thresholds on the identification of possible failure cases. For both TransFuser with evidential uncertainty and Hydra-MDP with Semantic Entropy, increasing the threshold decreases the TPR for failure cases and increases the overall accuracy. The reason is that \texttt{navtest} has a long-tailed distribution in which failure cases account for a small portion of the test samples, which makes it hard to pick true failure cases without misidentifying true successes. Consequently, at every threshold listed, the accuracy of each measure stays below that of the corresponding Select None baseline. Threshold-free metrics such as AUROC, which would summarise the whole trade-off between true and false positives, were not reported.
+\paragraph{Failure identification thresholds.} Table~\ref{centaur:tab:fail_class_supp} investigates the effect of different uncertainty thresholds on the identification of possible failure cases. For both TransFuser with evidential uncertainty and Hydra-MDP with Semantic Entropy, increasing the threshold decreases the TPR for failure cases and increases the overall accuracy. The reason is that \texttt{navtest} has a long-tailed distribution in which failure cases account for a small portion of the test samples, which makes it hard to pick true failure cases without misidentifying true successes. Consequently, at every threshold listed, the accuracy of each measure stays below that of the corresponding Select None baseline, and accuracy says little about the quality of a detector at this prevalence. Threshold-free metrics such as AUROC and AUPRC, which would summarise the whole trade-off between true and false positives, are not reported; they would require only the per-frame uncertainty values and failure labels, not new training.
+
+\subsection{Internal Consistency Checks}\label{centaur:app:consistency}
+
+This section gives the arithmetic behind three inconsistencies in the reported results that Chapter~\ref{ch:centaur} flags for recomputation. All values are computed from the rounded values in Tables~\ref{centaur:tab:navtest_ablation}, \ref{centaur:tab:fail_class}, \ref{centaur:tab:navsafe}, \ref{centaur:tab:navtest_all_supp}, \ref{centaur:tab:navtest_ablation_supp} and~\ref{centaur:tab:fail_class_supp}. They check the reported numbers against one another and are not new results.
+
+\paragraph{Failure base rate.} The Select All row of Table~\ref{centaur:tab:fail_class} implies that 15.6\% of the \texttt{navtest} frames are failures of Hydra-MDP, defined as frames with a PDMS of 0. Since the PDMS of a frame lies between 0 and 100, this would cap the mean PDMS of Hydra-MDP at 84.4, below the 90.3 of Table~\ref{centaur:tab:navtest_ablation}. Moreover, by Eq.~\eqref{centaur:eq:pdms}, a frame has a PDMS of 0 only if its NC or DAC is 0, or if its TTC, C and EP are all 0, which a mean comfort score of 100.0 rules out. With a mean NC of 98.4 and a mean DAC of 97.8, at most $1.6 + 2.2 = 3.8$\% of the frames can have an NC or a DAC of 0. The same holds for TransFuser: a failure rate of 24.1\% (Table~\ref{centaur:tab:fail_class_supp}) would cap its PDMS at 75.9, against the 83.4 of Table~\ref{centaur:tab:navtest_all_supp}, and its NC of 97.1 and DAC of 91.9 allow at most 11.0\% of frames with a PDMS of 0. Either the failure definition used for Tables~\ref{centaur:tab:fail_class} and~\ref{centaur:tab:fail_class_supp} differs from a PDMS of 0, or the failure rates were computed on a different set of frames.
+
+\paragraph{Trigger rates of the fallback.} For a detector with true-positive rate $\mathrm{TPR}$ and accuracy $a$ on a set of frames with failure rate $p$, the fraction of frames flagged is $1 - p - a + 2p\,\mathrm{TPR}$, and the false-positive rate is $(1 - p - a + p\,\mathrm{TPR})/(1 - p)$. Table~\ref{centaur:tab:implied_rates} applies these expressions to the thresholds of Table~\ref{centaur:tab:fail_class}, which are also the thresholds at which the fallback is triggered (Sections~\ref{centaur:sec:setup} and~\ref{centaur:app:baselines}). They flag between 29.0\% and 33.3\% of the frames. The flagged fraction depends only on the uncertainty values and the threshold, not on how failures are defined; because the three rates of Table~\ref{centaur:tab:fail_class} describe a single confusion matrix, these fractions hold whatever failure definition was used, provided that Tables~\ref{centaur:tab:navtest_ablation} and~\ref{centaur:tab:fail_class} refer to the same frames. If exactly these frames were replaced and every replacement made no progress at all, the mean ego progress would still be at least the 86.5 of Hydra-MDP minus the flagged percentage, \ie at least 53.2. To reach the reported ego progress of 8.2 to 13.2, between 73.3\% and 78.3\% of the frames would have to be replaced. The implied trigger rates also contradict two readings of Table~\ref{centaur:tab:navtest_ablation}: Full Entropy, not Cluster Entropy, would trigger the fallback most often, and the fallback PDMS rises rather than falls with the trigger rate (63.1, 64.2, 65.3 and 65.9 for 29.0\%, 30.4\%, 31.7\% and 33.3\% of frames flagged). The same check applies to TransFuser with Semantic Entropy at the threshold of 0.8 (TPR of 35.3\%, accuracy of 63.1\% and failure rate of 24.1\%; Table~\ref{centaur:tab:fail_class_supp}): about 29.8\% of the frames would be flagged, so ego progress could not fall from 79.3 below about 49.5, against the reported 14.6 (Table~\ref{centaur:tab:navtest_ablation_supp}). The threshold used for the evidential fallback of TransFuser is not stated.
+
+\begin{table}[t]
+  \centering
+  \caption[Flagging rates implied by the failure-identification thresholds]{\textbf{Flagging rates implied by the thresholds of Table~\ref{centaur:tab:fail_class}}, computed from Tables~\ref{centaur:tab:navtest_ablation} and~\ref{centaur:tab:fail_class} with the reported failure rate of 15.6\%. Flagged: fraction of \texttt{navtest} frames above the threshold. FPR: false-positive rate. EP bound: the lowest mean ego progress possible if exactly the flagged frames were replaced by trajectories without progress. Needed: the fraction of frames that would have to be replaced to reach the reported ego progress of the fallback. Rates are in \%; EP is on the scale of Table~\ref{centaur:tab:navtest_ablation}.}
+  \label{centaur:tab:implied_rates}
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{l|rr|rr|rrr}
+    \toprule
+    \textbf{Uncertainty} & \textbf{TPR} & \textbf{Acc.} & \textbf{Flagged} & \textbf{FPR} & \makecell{\textbf{EP}\\\textbf{bound}} & \makecell{\textbf{Reported}\\\textbf{EP}} & \textbf{Needed} \\
+    \midrule
+    KL Divergence & $41.3$ & $68.3$ & $29.0$ & $26.7$ & $57.5$ & $9.6$ & $76.9$ \\
+    Full Entropy & $61.7$ & $70.4$ & $33.3$ & $28.0$ & $53.2$ & $13.2$ & $73.3$ \\
+    Semantic Entropy & $62.5$ & $72.2$ & $31.7$ & $26.0$ & $54.8$ & $10.4$ & $76.1$ \\
+    Cluster Entropy & $62.8$ & $73.6$ & $30.4$ & $24.4$ & $56.1$ & $8.2$ & $78.3$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\paragraph{\texttt{navsafe} Overall.} Table~\ref{centaur:tab:navsafe_overall} compares the reported Overall of Table~\ref{centaur:tab:navsafe} with the simple mean of the ten category scores and with their frame-weighted mean. Because the frame counts of the ten categories sum to the 229 frames of \texttt{navsafe}, the frame-weighted mean equals the mean of per-frame PDMS over \texttt{navsafe} if every frame belongs to exactly one category. For six of the eight rows, the reported Overall lies within 1.5 points of the simple mean; for the human trajectories it equals it. For Hydra-MDP, however, it is 8.14 points above the simple mean and 7.11 points above the frame-weighted mean, and for Centaur it is 2.18 and 5.28 points above them. Under both computed aggregations, Centaur still has the highest score of the evaluated planners, and its margin over Hydra-MDP is 23.63 (simple mean) or 19.50 (frame-weighted) points rather than the reported 17.67. Hydra-MDP, however, falls from third to fifth place among the seven planners, below LTF and TransFuser, which is consistent with the selection of \texttt{navsafe} on its performance (Section~\ref{centaur:sec:navsafe}).
+
+\begin{table}[htb]
+  \centering
+  \caption[\texttt{navsafe} Overall under two aggregations]{\textbf{\texttt{navsafe} Overall under two aggregations}, computed from the category scores and frame counts of Table~\ref{centaur:tab:navsafe}. Mean: unweighted mean of the ten category scores. Frame-weighted: mean of the category scores weighted by their numbers of frames. Because the category scores are rounded to one decimal, the computed values are accurate to about $\pm 0.05$.}
+  \label{centaur:tab:navsafe_overall}
+  \begin{tabular}{l|r|rr}
+    \toprule
+    \textbf{Planner} & \textbf{Reported Overall} & \textbf{Mean} & \textbf{Frame-weighted} \\
+    \midrule
+    Constant Velocity~\cite{dauner2024navsim} & $3.41$ & $3.42$ & $3.52$ \\
+    Ego Status MLP~\cite{dauner2024navsim} & $24.10$ & $25.15$ & $27.39$ \\
+    LTF~\cite{chitta2023transfuser} & $53.74$ & $53.97$ & $58.46$ \\
+    TransFuser~\cite{chitta2023transfuser} & $51.87$ & $52.74$ & $53.52$ \\
+    Hydra-MDP~\cite{li2024hydramdp} & $56.47$ & $48.33$ & $49.36$ \\
+    \midrule
+    Hydra-SE & $62.84$ & $64.26$ & $62.65$ \\
+    Centaur & $74.14$ & $71.96$ & $68.86$ \\
+    \midrule
+    \textit{Human Trajectory} & $\mathit{94.65}$ & $\mathit{94.65}$ & $\mathit{94.83}$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
