@@ -1,82 +1,105 @@
-\chapter{Introduction}\label{ch:intro}
+\chapter{Introduction}\label{ch:intro}\label{ch:background}\label{ch:methodology}
 
-A vehicle drives through a city it has never visited and meets a truck carrying an oddly shaped load that overhangs its bed. A robot that has learned to fold shirts from hours of human demonstrations is handed a garment crumpled in a way that no demonstrator ever produced. Neither situation is exotic; each happens every day somewhere. Yet each is, for the agent concerned, a condition that its training data did not contain. This thesis is about such conditions, and about how physical agents can be built to cope with them.
-
-% ==============================================================================
-\section{Physical Agents and the Curse of Reality}\label{sec:intro:curse}
-
-A \emph{physical agent} perceives the world through sensors, reasons about what it perceives, and acts on the world through actuators, in a closed loop. Autonomous vehicles and robot manipulators are the two kinds of physical agents studied in this thesis. Over the past decade, both have increasingly been built by learning from data: perception models are trained on annotated sensor recordings, planners and control policies are trained to imitate human demonstrations, and, most recently, foundation models pre-trained on internet-scale data have been adapted to driving and manipulation.
-
-Learning from data brings a fundamental difficulty with it. A learned model is reliable only on data that resemble its training data, whereas a physical agent is deployed in an open world. Rare events are individually improbable, but so numerous that, taken together, they occur all the time; for autonomous vehicles this has been called the \emph{curse of rarity}~\cite{liu2024curse}. In addition, a physical agent acts in closed loop: its own actions determine the situations it encounters next, so a policy that has only seen an expert's behaviour drifts into states the expert never visited, and its errors compound~\cite{ross2011dagger}. This thesis refers to the combination of these difficulties as the \emph{curse of reality}: whatever data an agent is trained on, the real world will keep presenting conditions the agent has never seen. The term is an organising label rather than a new theoretical concept. It gathers distribution shift, the long tail of rare events and the open-world character of deployment under one heading, so that remedies at different stages of an agent can be compared; Chapter~\ref{ch:methodology} makes it more precise by decomposing it into four kinds of shift.
-
-The curse of reality is more severe for physical agents than for most other applications of machine learning, for four reasons. Their mistakes have physical consequences, so failures on rare inputs cannot be dismissed as statistically negligible. Their data are expensive, because every recording requires a vehicle or a robot and every annotation of 3D structure or of a manipulation trajectory requires skilled effort. Their loop is closed, so small errors do not stay small. And their deployment platforms impose hard limits on latency, memory and computation, so that robustness cannot be bought simply by running larger models.
+A vehicle drives through an unfamiliar city and encounters a flatbed truck carrying an overhanging crane boom. A dual-arm robot trained to fold garments from human teleoperation is handed a T-shirt crumpled in an unseen configuration. Neither situation is exotic, yet each lies outside the agent's training distribution. This dissertation studies such conditions and how physical agents can be built and evaluated to cope with them across the perceive--reason--act loop.
 
 % ==============================================================================
-\section{From Modular Pipelines to End-to-End Physical Agents}\label{sec:intro:context}
+\section{Motivation}\label{sec:intro:context}\label{sec:intro:problem}\label{sec:intro:rq}\label{sec:method:framework}\label{sec:method:evaluation}\label{sec:method:practice}\label{sec:method:validity}\label{sec:bg:manip}
 
-The research in this thesis was carried out between 2021 and 2026, a period in which the design of physical agents changed substantially. Autonomous driving systems were traditionally built as modular pipelines, in which separately trained perception, prediction and planning modules communicate through hand-designed interfaces such as lists of 3D bounding boxes. Two developments challenged this design. The first was the rise of unified scene representations learned directly from multiple cameras, such as the bird's-eye-view (BEV) representation of BEVFormer~\cite{li2022bevformer}, which made it possible to train one network for many perception tasks and to share features across them~\cite{li2023bevdevils}. The second was end-to-end planning: UniAD showed that when all modules are trained jointly towards the final planning objective, planning error and collisions drop substantially~\cite{hu2023uniad}.
+A \emph{physical agent} perceives its surroundings through onboard sensors, reasons about scene semantics and multi-agent interactions, and acts through physical actuators in a closed control loop. This dissertation focuses on two representative embodiments: autonomous vehicles and robotic manipulators. Over the past decade, both fields have shifted from hand-engineered pipelines toward learning from data. Perception modules are trained on annotated multi-sensor logs, motion planners and visuomotor policies imitate human demonstrations, and large foundation models pretrained on web-scale vision and language corpora are adapted to driving and manipulation.
 
-A third development followed: foundation models. Vision-language models (VLMs) trained on web-scale data carry broad knowledge about the world and can express their reasoning in language, which raised the prospect of drivers that can explain their decisions and generalise to unfamiliar situations~\cite{sima2024drivelm}. In robotics, vision-language-action models and large, openly released robot datasets promised generalist manipulation policies~\cite{bu2025agibot_iros}. Each of these developments helps against the curse of reality in some respects and introduces new risks in others: unified representations must still describe objects they were not designed for, end-to-end planners are hard to guard with rules, language outputs can look competent without being grounded~\cite{xie2025vlms}, and large policies trained on large data still fail when training and deployment conditions diverge~\cite{sima2026kai0}. This thesis studies these risks and proposes ways to address them.
+Between 2021 and 2026, when the research in this dissertation was conducted, three developments shaped the architecture of data-driven physical agents. Multi-camera BEV models such as BEVFormer replaced isolated per-camera detections with shared spatiotemporal features for detection, mapping, and tracking~\cite{li2022bevformer,li2023bevdevils}. UniAD then trained perception, forecasting, and planning jointly, reducing open-loop planning error by optimising upstream features for the driving objective~\cite{hu2023uniad}. Most recently, multimodal foundation models brought web-scale visual and linguistic priors to driving and paired those priors with large manipulation datasets and generalist robot policies~\cite{sima2024drivelm,bu2025agibot_iros,black2025pi05}.
 
-% ==============================================================================
-\section{Research Questions}\label{sec:intro:rq}
+Learning from finite datasets, however, confronts a fundamental obstacle when deployed in the physical world. Formally, let $s$ denote the underlying world state, $o$ the sensor observation, and $a$ the agent's action. Offline imitation learning draws training pairs from
+\begin{equation}
+  p_{\mathrm{train}}(o,a) \;=\; \sum_{s} p_{\mathrm{train}}(s)\; p_{\mathrm{train}}(o \mid s)\; \pi^{*}(a \mid o),
+  \label{eq:method:train}
+\end{equation}
+where $\pi^{*}$ denotes the human demonstrator or expert controller; for continuous states, the sum in Eq.~\eqref{eq:method:train} becomes an integral. The equation is a one-step observation--action model and should not be confused with the closed-loop visitation distribution. At deployment, a learned policy $\pi$ encounters a different state distribution $p_{\mathrm{deploy}}(s)$ and sensor model $p_{\mathrm{deploy}}(o \mid s)$, induces its own visitation distribution $d_{\pi}$ rather than $d_{\pi^{*}}$, and acts through imperfect hardware dynamics $a_{\mathrm{exec}} \sim p(a_{\mathrm{exec}} \mid a)$. These differences allow stepwise errors to compound~\cite{ross2010efficient,ross2011dagger}. They also interact with the \emph{curse of rarity}: individually uncommon hazards occur frequently in aggregate~\cite{liu2024curse}. This dissertation uses \emph{curse of reality} for this combined mismatch across $p(s)$, $p(o \mid s)$, $d_{\pi}$, and $p(a_{\mathrm{exec}} \mid a)$: whatever finite dataset an agent is trained on, physical deployment keeps presenting conditions absent from training.
 
-The central question of this thesis is: \emph{how can physical agents be made robust to the conditions that the real world presents but their training data do not contain?} Following the perceive--reason--act loop, it is divided into four research questions.
+Used here as an organising analytical lens, the curse of reality can be decomposed into four overlapping distribution shifts alongside two structural failure sources:
+\begin{enumerate}[leftmargin=*, itemsep=2pt]
+  \item \textbf{Perceptual shift and representational limits.} Changes in the sensing distribution $p(o \mid s)$ arise from day-to-night illumination changes~\cite{li2023bevdevils}, camera--LiDAR feature-fusion limitations~\cite{gao2023sdf}, or cross-dataset camera-rig changes (such as transferring from nuScenes~\cite{caesar2020nuscenes} to Waymo~\cite{sun2020waymo}). Distinct from sensing shift is \emph{representational limitation}: fixed 3D bounding boxes presuppose rigid cuboids and cannot faithfully represent articulated trailers, construction vehicles with protruding booms, or arbitrary roadside debris even for known categories~\cite{sima2023occnet}.
+  \item \textbf{Semantic shift.} Changes in the world state distribution $p(s)$ expose the agent to unseen object categories or unusual multi-agent interactions; separately, 3D lane and topology benchmarks represent variation in road structure~\cite{chen2022persformer,wang2023openlanev2}. While pre-trained VLMs offer broad semantic priors, naive language conditioning can rely on ungrounded linguistic shortcuts without attending to visual evidence~\cite{xie2025vlms}.
+  \item \textbf{Behavioural shift and rare scenarios.} In sequential control, closed-loop execution causes $d_{\pi}$ to drift away from expert demonstrations $d_{\pi^{*}}$, while rare tail scenarios expose miscalibrated trajectory scoring in end-to-end planners~\cite{sima2024centaur}.
+  \item \textbf{Deployment shift and demonstrator inconsistency.} In physical robot manipulation, discrepancies arise across recorded human demonstrations $P_{\mathrm{train}}$, the learned policy distribution $Q_{\mathrm{model}}$, and hardware-executed trajectories $P_{\mathrm{test}}$ due to state-space coverage gaps, action-chunk boundary discontinuities, and multimodal or suboptimal human demonstrators $\pi^{*}$~\cite{sima2026kai0}.
+\end{enumerate}
 
-\begin{description}[leftmargin=1.2cm, labelwidth=1cm, itemsep=4pt]
-  \item[RQ1] \textbf{Perceive.} How should a physical agent represent its 3D surroundings so that the representation remains valid for the open set of objects and structures met in the real world, while remaining learnable from cameras and useful for planning?
-  \item[RQ2] \textbf{Reason.} How can the general knowledge of vision-language models be grounded in driving in a structured and verifiable way that mirrors how humans reason from perception through prediction to planning, and does such reasoning help a driving agent generalise to unseen situations?
-  \item[RQ3] \textbf{Act.} How can a learned policy remain reliable when the deployment distribution departs from its training distribution: (a) for end-to-end driving, can a planner correct its own per-frame decisions at test time, without test-time rules, cost functions or additional labels; and (b) for real-world robot manipulation, under inconsistent demonstrations and a limited budget of data and computation?
-  \item[RQ4] \textbf{Architecture.} What design lessons for self-correcting physical agents, in which perception, reasoning and action can correct one another after deployment, follow from the answers to RQ1--RQ3?
-\end{description}
-
-RQ1 to RQ3 are each answered by one or two core chapters. Chapter~\ref{ch:centaur} studies RQ3(a) on logged driving frames in non-reactive simulation, where the planner's errors cannot compound, so it answers the question for per-frame decisions and leaves closed-loop behaviour open. RQ4 is a synthesis question: Chapter~\ref{ch:discussion} answers it with a set of design lessons drawn from RQ1--RQ3 and from related work, and grades each lesson by the strength of the evidence behind it. No integrated self-correcting system is built or evaluated in this thesis.
-
-% ==============================================================================
-\section{Approach}\label{sec:intro:approach}
-
-The research can be described by a benchmark-driven framework, which Chapter~\ref{ch:methodology} reconstructs from the author's projects. A project begins with a failure observed, or anticipated, in the real world. The failure is formalised as a task with a representation and a metric, turned into a public benchmark, and addressed with a simple and scalable baseline method; the benchmark is then opened to the community, often through a public challenge. The residual failures found in this way start the next iteration. Each method was evaluated at one level of fidelity, which is stated with each claim: open-loop evaluation on logged data for perception and reasoning (Chapters~\ref{ch:occnet} and~\ref{ch:drivelm}), non-reactive simulation on logged driving frames for the driving policy (Chapter~\ref{ch:centaur}), and real robots for manipulation (Chapter~\ref{ch:kai0}). Higher-fidelity evaluation was feasible for Chapters~\ref{ch:drivelm} and~\ref{ch:centaur} but was not attempted (Section~\ref{sec:method:evaluation}).
-
-The two ingredients of the curse of reality are not tested to the same extent. Conditions absent from training are tested mainly in Chapter~\ref{ch:drivelm}, with a new sensor configuration and an unseen object class; compounding errors in closed loop arise only in the real-robot experiments of Chapter~\ref{ch:kai0}. Chapter~\ref{ch:occnet} tests no distribution shift, and Chapter~\ref{ch:centaur} evaluates on logged frames, where errors cannot compound. Table~\ref{tab:method:tests} in Chapter~\ref{ch:methodology} records what each core chapter tests. Fig.~\ref{fig:intro:overview} shows how the core chapters of the thesis map onto the perceive--reason--act loop and the research questions.
+The curse of reality is especially acute for physical agents for four reasons: control mistakes carry physical safety consequences; collecting and annotating dense 3D driving logs or long-horizon robot trajectories is expensive; closed-loop execution compounds small prediction errors; and onboard latency, memory, and compute budgets preclude achieving reliability solely by scaling model parameters at inference time.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\textwidth]{ch-introduction/figures/thesis_overview.pdf}
-  \caption[Overview of the thesis]{Overview of the thesis. The core chapters follow the perceive--reason--act loop of a physical agent facing the curse of reality: Chapter~\ref{ch:occnet} addresses perception (RQ1), Chapter~\ref{ch:drivelm} reasoning (RQ2), and Chapters~\ref{ch:centaur} and~\ref{ch:kai0} acting in driving and manipulation (RQ3). Chapter~\ref{ch:discussion} synthesises them into design lessons for the architectural question RQ4. Chapter~\ref{ch:methodology} describes the research framework that underlies all of them. Works marked $^{*}$ are co-authored rather than led by the author.}
+  \caption[Overview of the thesis]{Overview of the dissertation. The core chapters follow the perceive--reason--act loop of a physical agent confronting the curse of reality: Chapter~\ref{ch:occnet} addresses 3D occupancy perception (Stage~1, RQ1), Chapter~\ref{ch:drivelm} addresses graph-structured vision-language reasoning (Stage~2, RQ2), and Chapters~\ref{ch:centaur} and~\ref{ch:kai0} address reliable action via test-time planner adaptation and resource-aware manipulation alignment (Stage~3, RQ3). Chapter~\ref{ch:conclusion} synthesises these findings into an evidence-graded architecture for self-correcting physical agents (RQ4). Works marked $^{*}$ are co-authored rather than led by the author; $\blacklozenge$ denotes a method and $\blacksquare$ denotes a dataset or benchmark.}
   \label{fig:intro:overview}
 \end{figure}
+
+To address these challenges systematically, this dissertation asks: \emph{how can physical agents be made robust to conditions that the physical world presents but their training data do not contain?} Following the perceive--reason--act loop illustrated in Fig.~\ref{fig:intro:overview}, we investigate four research questions across a progressive three-stage research programme:
+\begin{description}[leftmargin=1.2cm, labelwidth=1cm, itemsep=3pt]
+  \item[RQ1] \textbf{Perceive (Stage~1).} How should a physical agent represent its 3D surroundings so that the representation remains geometrically valid for arbitrary obstacle shapes while remaining learnable from multi-view cameras and queryable by downstream driving tasks (Chapter~\ref{ch:occnet})?
+  \item[RQ2] \textbf{Reason (Stage~2).} How can the world knowledge of pretrained vision-language models be grounded in driving scenes through structured, verifiable perception-to-planning reasoning, and when does such reasoning improve generalisation under sensor and semantic shifts (Chapter~\ref{ch:drivelm})?
+  \item[RQ3] \textbf{Act (Stage~3).} How can a learned policy remain reliable when deployment departs from training: (a) for end-to-end autonomous driving, can a planner adapt its per-frame decisions at test time without ground-truth labels or hand-crafted fallback rules (Chapter~\ref{ch:centaur}); and (b) for real-world robot manipulation, how can distributional inconsistencies across demonstrations, policy learning, and hardware execution be tamed under bounded data and compute budgets (Chapter~\ref{ch:kai0})?
+  \item[RQ4] \textbf{Architecture (Synthesis).} What design principles and architectural requirements for self-correcting physical agents follow from Stages~1--3, and what is the strength of the empirical evidence supporting each element (Chapter~\ref{ch:conclusion})?
+\end{description}
+
+Methodologically, the works in this dissertation follow a design-science paradigm~\cite{simon1996sciences,hevner2004design} built around a benchmark-driven research cycle: observing a deployment failure mode, formalising a task representation and metric, curating a public benchmark, establishing a scalable baseline, organising open community challenges (including the CVPR 2023 3D Occupancy Challenge and the 152-team CVPR 2024 ``Driving with Language'' Challenge), and analysing residual failures to motivate subsequent iterations. Fig.~\ref{fig:method:lineage} traces the technical and dataset lineage across the twenty publications to which the author contributed between 2021 and 2026.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{ch-methodology/figures/lineage.pdf}
+  \caption[Research lineage of the author's publications]{Research lineage of the publications to which the author contributed, organised by year and perceive--reason--act pillar. Solid arrows denote direct technical or data inheritance; dashed arrows denote motivation or contrast; dark bold outlines mark the five author-led core-chapter works; squares mark dataset and benchmark releases. Two capsules (\textsf{PersFormer + OpenLane} and \textsf{OccNet + OpenOcc}) pair a method and benchmark from the same paper, so the 18 capsules represent the 20 outputs in Section~\ref{sec:intro:publications}.}
+  \label{fig:method:lineage}
+\end{figure}
+
+To prevent claims from being overstated across simulation regimes, every experimental result in this dissertation is reported at its explicit evaluation fidelity along a four-level ladder: \textbf{L0} open-loop evaluation on logged sensor frames (Chapters~\ref{ch:occnet} and~\ref{ch:drivelm}, where ego-status shortcuts must be accounted for on nuScenes~\cite{zhai2023rethinking,li2024ego}); \textbf{L1} non-reactive short-horizon rollout simulation from logged states in NAVSIM~\cite{dauner2024navsim} (Chapter~\ref{ch:centaur}, which evaluates 4-second trajectories with kinematic simulation but resets to logged states at each frame so closed-loop errors cannot compound); \textbf{L2} reactive closed-loop simulation in CARLA~\cite{dosovitskiy2017carla} (used by the rule-based PDM-Lite expert to generate DriveLM-CARLA in Chapter~\ref{ch:drivelm}); and \textbf{L3} closed-loop deployment on physical robots (Chapter~\ref{ch:kai0}). Furthermore, following statistical best practices for empirical AI and robotics~\cite{agarwal2021precipice,brown2001interval,kressgazit2024robot}, single-seed training runs, benchmark construction biases (such as non-held-out stress-split selection in \texttt{navsafe} and answer-distribution skew in DriveLM-Data~\cite{xie2025vlms}), co-author-led experiments, and Wilson 95\% confidence intervals for finite-trial robot evaluations are stated explicitly throughout the dissertation.
 
 % ==============================================================================
 \section{Contributions}\label{sec:intro:contributions}
 
-The contributions of this thesis are the following. C1--C4 are tested in the core chapters; C5 is a reflective synthesis and research agenda, not a contribution on a par with them.
+The main contributions of this dissertation are organised along the three stages of the perceive--reason--act loop, followed by related co-authored contributions.
 
-\begin{enumerate}[label=\textbf{C\arabic*}, leftmargin=1.1cm, itemsep=4pt]
-  \item \textbf{Occupancy as a geometry-open scene representation (Chapter~\ref{ch:occnet}).} We propose to describe driving scenes by 3D semantic occupancy instead of 3D boxes, together with OccNet, a camera-based network that reconstructs occupancy through a cascade of voxel decoders, and OpenOcc, a dense occupancy benchmark with 34,149 frames, more than 1.4 billion annotated voxels and flow for foreground objects. Occupancy is open in geometry, since it can express the shape of whatever occupies space, but its semantics remain a closed set of 16 classes. On OpenOcc, OccNet reaches 26.98 mIoU in semantic scene completion, against 23.67 for TPVFormer retrained on the same benchmark; occupancy describes irregularly shaped objects of known classes better than voxelised boxes, and it serves as a pre-training target for detection when fine-tuning on small subsets of the training data. In open-loop evaluation on nuScenes, planning on predicted occupancy gave slightly lower collision rates than planning on boxes predicted by OccNet's detection head (0.06--0.24 percentage points, single runs; not statistically established; experiments led by co-authors). Robustness to distribution shift was not tested. OccNet builds on the BEV encoder of BEVFormer (co-authored by the author), and its 3D deformable attention extends 2D deformable attention to voxels, close in spirit to the deformable voxel queries of the concurrent VoxFormer~\cite{li2023voxformer}; what is new is the cascade voxel decoder with voxel-based temporal attention, the annotation pipeline of OpenOcc, and, at the time of publication, the use of one occupancy descriptor across perception and planning tasks. We also describe OpenScene, a data release led by the author that redistributes more than 120 hours of nuPlan driving with occupancy labels; its data, rather than its occupancy labels, later supported the end-to-end driving and predictive world-model tracks of the CVPR 2024 Autonomous Grand Challenge and the NAVSIM track in 2025.
-  \item \textbf{Structured reasoning with vision-language models (Chapter~\ref{ch:drivelm}).} We introduce Graph Visual Question Answering, in which perception, prediction, planning, behaviour and motion questions are linked by logical dependencies, together with the DriveLM-nuScenes and DriveLM-CARLA datasets (4,871 frames with 91.4 question--answer pairs per frame, and about 1.6 million question--answer pairs, respectively) and the DriveLM-Agent baseline, which combines BLIP-2 with the trajectory tokenisation of RT-2; the contribution lies in the task, the data and the metrics rather than in the model. In zero-shot transfer from nuScenes to the Waymo sensor configuration, the baseline had a lower trajectory error than a driving-specific model (ADE 2.63 against 4.16), mostly owing to its pre-trained vision-language backbone. This comparison is confounded by input asymmetry (the driving-specific UniAD-Single loses its rear camera, whereas DriveLM-Agent uses the front camera only) and by model scale (3.9B against 132M parameters). Graph context improved speed decisions under this shift (speed accuracy 43.90 to 54.29), but in-domain it degraded open-loop planning and behaviour accuracy (ADE 1.39 to 1.74, collision rate 1.67 to 1.89, behaviour accuracy 61.45 to 57.49). On pedestrians unseen in CARLA training, the gain relied on an added question written with knowledge of the missing class, an injected human prior (experiment led by co-authors). All of these are single runs. The benchmark underpinned the ``Driving with Language'' track of the CVPR 2024 Autonomous Grand Challenge, with 152 participating teams.
-  \item \textbf{Test-time adaptation for end-to-end driving (Chapter~\ref{ch:centaur}).} We propose Centaur, which adapts a trajectory-scoring planner by test-time training on Cluster Entropy, a new label-free measure of the planner's uncertainty over five driving directions. It uses no rules at test time, although the planner distils rule-based scores during training. Evaluated on logged frames in the non-reactive simulation of NAVSIM v1, where the planner's errors cannot compound, Centaur raised the driving score of Hydra-MDP, a planner developed by other authors, several of whom co-authored Centaur, from 90.3 to 92.6 in a single run on NAVSIM v1.0. Its three-seed mean of 92.10 $\pm$ 0.33 on NAVSIM v1.1 ranked first among three-seed entries on the \texttt{navtest} leaderboard at the time of submission (March 2025), but no matched three-seed baseline without test-time training was run. Every test-time training variant improved its base planner by 0.4 to 2.3 PDMS (single runs), whereas the uncertainty-triggered fallback to prior trajectories that we implemented lowered the score of every planner to which it was applied; the margin over a semantic-entropy variant of the same method is small (0.23 PDMS over three seeds). We also introduce \texttt{navsafe}, 229 safety-critical frames of \texttt{navtest} in ten categories; they were selected with the help of the base planner's scores and are not held out, and they expose the remaining gap to human driving. Behavioural shift and drift under repeated updates in closed loop are not tested.
-  \item \textbf{Robust manipulation under distributional inconsistency (Chapter~\ref{ch:kai0}).} In a co-led project, we analyse the failures of real-world manipulation policies as inconsistencies between the distributions of the demonstrations, of the learned policy, and of what is executed on hardware, and propose \chiz, which addresses them with Model Arithmetic, Stage Advantage and Train--Deploy Alignment. The author contributed to Model Arithmetic and Train--Deploy Alignment; Stage Advantage is a co-author's component (see the statement of contribution in Chapter~\ref{ch:kai0}). Post-training the pre-trained $\pi_{0.5}$ policy with about 20 hours of data per task and eight A100 GPUs, \chiz raised the success rate on a real-robot T-shirt flattening-and-folding task from about 27\% to about 97\% over 30 trials, and throughput roughly tenfold (approximate values read from a bar chart). That inconsistency rather than scale is the main obstacle to robustness is a hypothesis supported by this integrated result on one task: scale was not varied at a matched budget, and the largest single gain came from targeted recovery (DAgger) data.
-  \item \textbf{A reflective synthesis and research agenda (Chapters~\ref{ch:methodology} and~\ref{ch:discussion}).} Drawing on the twenty publications to which the author contributed, including co-authored ones, Chapter~\ref{ch:methodology} reconstructs in hindsight the benchmark-driven framework behind the research: a vocabulary of four kinds of shift, a research cycle, five design principles and a ladder of evaluation fidelity, together with a record of what each core chapter actually tests. Chapter~\ref{ch:discussion} synthesises the findings into a research agenda for self-correcting agents whose elements are graded by the strength of their evidence. Neither the framework nor its decision procedure has been tested on projects other than those from which it was derived.
-\end{enumerate}
+\medskip
+\noindent\textbf{Stage 1: Perceiving Open-World 3D Geometry.}
+
+\noindent\textbf{OccNet, OpenOcc, and OpenScene (Chapter~\ref{ch:occnet}).}
+Stage~1 contributes OccNet, OpenOcc, and OpenScene. OccNet extends a BEVFormer encoder with a coarse-to-fine 3D voxel decoder (contemporary with VoxFormer~\cite{li2023voxformer}); OpenOcc supplies 34,149 nuScenes keyframes with more than 1.4 billion labelled voxels across 16 classes and flow for the eight movable foreground classes; and OpenScene scales related supervision to more than 120 hours of nuPlan logs~\cite{sima2023occnet,sima2023openscene}. On OpenOcc, OccNet reaches 26.98 mIoU and 41.08 $\text{IoU}_{\text{geo}}$, compared with 23.67 and 37.47 for our retrained TPVFormer~\cite{huang2023tpvformer}, and reaches 60.46 mIoU when queried at nuScenes LiDAR points. Occupancy also fits irregular vehicle geometry more closely than voxelised boxes (by 2.21 to 3.51 mIoU as voxel size tightens from 0.50\,m to 0.25\,m) and supports low-data detection pre-training. These findings are bounded: the vocabulary is closed at 16 classes, distribution shift was not tested, the 0.06--0.24 percentage-point planning advantage comes from single runs, and occupancy-based mechanisms did not improve the two NAVSIM planners examined in Chapter~\ref{ch:centaur}.
+
+\medskip
+\noindent\textbf{Stage 2: Structured Reasoning with Vision-Language Models.}
+
+\noindent\textbf{DriveLM (Chapter~\ref{ch:drivelm}).}
+Stage~2 introduces Graph Visual Question Answering (GVQA), DriveLM-nuScenes, DriveLM-CARLA, and the DriveLM-Agent baseline~\cite{sima2024drivelm}. GVQA connects perception ($P_1$), prediction ($P_2$), planning ($P_3$), behaviour ($B$), and motion ($M$) questions in a directed acyclic graph. The two datasets contain 4,871 nuScenes keyframes with 91.4 QA pairs per frame and about 1.6 million rule-generated CARLA QA pairs collected with PDM-Lite~\cite{beisswenger2024pdmlite}, respectively, and supported the 152-team CVPR 2024 ``Driving with Language'' Challenge. Under zero-shot transfer to 1,000 Waymo frames, full graph context yields 2.63\,m ADE (versus 4.16\,m for UniAD-Single) and raises speed accuracy from 43.90\% to 54.29\%. Most of the trajectory advantage over UniAD-Single is already present without graph context, however, and the comparison is confounded by a roughly thirtyfold parameter difference and asymmetric camera inputs. In-domain graph context worsens behaviour accuracy, ADE, and collision rate; on withheld CARLA pedestrians, recovery requires a class-specific prompt.
+
+\medskip
+\noindent\textbf{Stage 3: Self-Correction and Alignment in Action.}
+
+\noindent\textbf{Centaur (Chapter~\ref{ch:centaur}).}
+To adapt end-to-end driving planners at deployment without ground-truth labels or hand-crafted fallback rules, we propose Centaur~\cite{sima2024centaur}, which updates planner decoder parameters via a single gradient step of test-time training (TTT) minimising Cluster Entropy, a label-free uncertainty measure computed over five lateral driving-direction clusters inspired by DriveLM. We also curate \texttt{navsafe}, a 229-frame, ten-category safety-critical diagnostic subset of \texttt{navtest}. In non-reactive L1 NAVSIM v1 simulation on logged frames (where states reset every frame so multi-step errors cannot compound), Centaur improves Hydra-MDP from 90.3 to 92.6 PDMS in a single-seed NAVSIM v1.0 run and achieves $92.10 \pm 0.33$ PDMS across three seeds on the official NAVSIM v1.1 leaderboard (ranking first among three-seed entries in March 2025, vs.\ 94.8 for human trajectories). Across ablation studies, all four TTT objectives on Hydra-MDP gain 1.2--2.3 PDMS (0.8--2.3 PDMS across base planners, or 0.4 with SVD gradient projection) whereas uncertainty-triggered fallback to prior trajectories degrades all tested planners to 59.9--67.4 PDMS (63.1--65.9 PDMS on Hydra-MDP). Key qualifications are stated explicitly: the three-seed v1.1 margin over standard semantic entropy is small ($92.10 \pm 0.33$ vs.\ $91.87 \pm 0.19$, 0.23 PDMS) and lacks a matched three-seed unadapted Hydra-MDP entry; Cluster Entropy's standalone failure classification accuracy at a fixed cutoff (73.6\%, TPR 62.8\%) trails a trivial never-flag baseline (84.4\% at a 15.6\% failure rate); and on \texttt{navsafe} (which was selected using base-planner scores rather than held out), Centaur improves frame-weighted mean PDMS from 49.4 to 68.9 but regresses on yielding (59.3 vs.\ 71.6) because lateral clustering omits longitudinal stop-or-go ambiguity.
+
+\noindent\textbf{$\chi_0$ (Chapter~\ref{ch:kai0}).}
+Extending reliable action to closed-loop physical robot manipulation (L3 fidelity), we formulate long-horizon deformable manipulation failures as distributional inconsistencies across human demonstrations $P_{\mathrm{train}}$, policy-induced trajectory distribution $Q_{\mathrm{model}}$, and hardware execution $P_{\mathrm{test}}$, and introduce \chiz~\cite{sima2026kai0} (co-led with L.~Chen). \chiz combines three modules under a bounded post-training budget ($\sim$20 hours of base demonstrations per task, or 22.5 to 33.6 hours including targeted DAgger recovery rollouts, on eight A100 GPUs): Model Arithmetic (merging checkpoints trained on diverse data subsets in weight space; author contribution), Stage Advantage (stage-aware progress estimation for advantage-weighted policy training; co-author component by L.~Zhao), and Train--Deploy Alignment (combining targeted DAgger failure-recovery trajectories, spatiotemporal observation augmentation, heuristic temporal chunk smoothing, and real-time chunking; author contribution). When post-training $\pi_{0.5}$~\cite{black2025pi05} on dual-arm bimanual garment manipulation, \chiz raises 30-trial Task~A (T-shirt flattening and folding) completion rate from $\sim$27\% to $\sim$97\% (8/30 vs.\ 29/30 successes, chart-read from the factorial progression; Wilson 95\% confidence intervals 14--44\% vs.\ 83--99\%) while increasing hourly throughput roughly elevenfold ($\approx 6$ to $\approx 66$ tasks/h) across long-horizon cyclic rollouts. We note that targeted DAgger recovery data accounts for the largest single-step improvement and that total dataset size was not varied against alignment at a matched resource budget.
+
+\medskip
+\noindent\textbf{Additional Contributions.}
+Beyond the four core chapters, fifteen additional publications (including first-authored and co-first-authored works) and three US patents trace the broader perceive--reason--act programme (Fig.~\ref{fig:method:lineage}). In 3D perception and architecture, PersFormer and the OpenLane benchmark~\cite{chen2022persformer} (co-first author) established single-camera 3D lane detection; BEVFormer~\cite{li2022bevformer} and our T-PAMI BEV survey~\cite{li2023bevdevils} (co-first author, winning 1st place in the 2022 Waymo 3D Camera-Only Detection Challenge) established multi-camera BEV perception recipes; SDF~\cite{gao2023sdf} and VCD~\cite{huang2023vcd} addressed camera--LiDAR feature fusion and LiDAR-guided distillation, respectively; OpenLane-V2~\cite{wang2023openlanev2} introduced road-topology reasoning; and UniAD~\cite{hu2023uniad} (CVPR 2023 Best Paper Award) unified perception, prediction, and planning in a single end-to-end network. In language-grounded reasoning, Hint-AD~\cite{ding2024hint} aligned natural-language explanations with end-to-end driving features; DriveBench~\cite{xie2025vlms} audited VLM driving reliability, exposing visual-grounding shortcuts and dataset answer skew in DriveLM-Data; ETA~\cite{hamdan2025eta} mitigated VLM inference latency via an asynchronous dual-speed fast--slow architecture; and FLARE~\cite{xie2026flare} distilled future-aware VLM latent priors without test-time text generation. In embodied manipulation and simulation, LSH-SMILE~\cite{sima2021lshsmile} (first author) accelerated physics simulation and learning via locality-sensitive hashing; AgiBot World Colosseo~\cite{bu2025agibot_iros} (IROS 2025 Best Paper Finalist) established a 1-million-trajectory, 100-robot manipulation platform and the GO-1 policy; PerturBot~\cite{liu2026perturbot} diagnosed and mitigated visual-language-motor shortcuts in VLA policies; and our CVPRW 2026 perspective paper~\cite{chen2025robot} formulated self-directed robot learning beyond human imitation.
 
 % ==============================================================================
 \section{Thesis Outline}\label{sec:intro:outline}
 
-The remainder of the thesis is organised as follows. Chapter~\ref{ch:background} reviews the literature on distribution shift for physical agents, 3D scene representations, end-to-end driving, language models in driving, adaptation methods, robot manipulation learning, and benchmarks, and identifies the gaps that motivate the research questions. Chapter~\ref{ch:methodology} presents the research methodology. Chapters~\ref{ch:occnet} to~\ref{ch:kai0} present the core contributions along the perceive--reason--act loop: occupancy perception, graph-structured reasoning, test-time training for driving, and robust manipulation. Chapter~\ref{ch:discussion} interprets the findings across chapters, answers the research questions, and discusses limitations. Chapter~\ref{ch:conclusion} concludes the thesis and outlines directions for future work. The appendices contain supplementary material for each core chapter.
+The remainder of this dissertation is organised into five chapters following the perceive--reason--act loop, with recurring abbreviations listed in Table~\ref{tab:intro:abbrev}.
 
-% ==============================================================================
-\section{Publications}\label{sec:intro:publications}
+\textbf{Chapter~\ref{ch:occnet}} (\emph{Perceive: Scene as Occupancy}) introduces 3D semantic occupancy prediction, the OccNet cascade voxel-decoder architecture, the OpenOcc benchmark on nuScenes, and the large-scale OpenScene dataset on nuPlan, evaluating multi-task 3D perception and open-loop motion planning at L0 fidelity.
 
-The core chapters are based on the following publications, and the author's role in each is stated at the beginning of the corresponding chapter: Chapter~\ref{ch:occnet} on~\cite{sima2023occnet,sima2023openscene}, Chapter~\ref{ch:drivelm} on~\cite{sima2024drivelm}, Chapter~\ref{ch:centaur} on~\cite{sima2024centaur}, and Chapter~\ref{ch:kai0} on~\cite{sima2026kai0}. The co-authored works that inform Chapters~\ref{ch:methodology} and~\ref{ch:discussion} are~\cite{li2022bevformer,chen2022persformer,li2023bevdevils,hu2023uniad,gao2023sdf,wang2023openlanev2,huang2023vcd,ding2024hint,xie2025vlms,hamdan2025eta,bu2025agibot_iros,chen2025robot,xie2026flare,liu2026perturbot}, and the author's earlier work on efficient simulation and learning is~\cite{sima2021lshsmile}. The complete list is given in the List of Publications at the beginning of this thesis, with the author's role where it is not evident from the author order.
+\textbf{Chapter~\ref{ch:drivelm}} (\emph{Reason: Driving with Graph Visual Question Answering}) formulates Graph Visual Question Answering (GVQA), presents the DriveLM-nuScenes and DriveLM-CARLA datasets and evaluation metrics, and evaluates the DriveLM-Agent baseline on in-domain VQA as well as zero-shot cross-sensor (Waymo) and unseen-object (CARLA) transfer at L0 fidelity.
 
-% ==============================================================================
-\section{Abbreviations and Notation}\label{sec:intro:abbrev}
+\textbf{Chapter~\ref{ch:centaur}} (\emph{Act I: Robust End-to-End Driving via Test-Time Training}) presents Centaur, which adapts end-to-end trajectory-scoring planners online via single-step test-time training on Cluster Entropy, and evaluates per-frame adaptation and failure detection on NAVSIM \texttt{navtest} and the 229-frame \texttt{navsafe} diagnostic split at L1 fidelity.
 
-Table~\ref{tab:intro:abbrev} lists the abbreviations used in more than one chapter; the category codes of the \texttt{navsafe} split are defined with Table~\ref{centaur:tab:navsafe}. Symbols are defined within each chapter, and a few letters are reused: $H$ denotes Cluster Entropy in Chapter~\ref{ch:centaur} and the task horizon in Chapter~\ref{ch:kai0}, and $M$ denotes the number of attention heads in Eq.~\eqref{occnet:eq:3dda}, the motion stage in Chapter~\ref{ch:drivelm} and the number of trajectory candidates in Chapter~\ref{ch:centaur}.
+\textbf{Chapter~\ref{ch:kai0}} (\emph{Act II: Resource-Aware Robust Manipulation}) analyses distributional inconsistencies across demonstration collection, policy training, and hardware execution in real-world robot manipulation, and evaluates \chiz (Model Arithmetic, Stage Advantage, and Train--Deploy Alignment) on physical dual-arm garment manipulation tasks at L3 fidelity.
+
+\textbf{Chapter~\ref{ch:conclusion}} (\emph{Conclusion}) summarises the stage-by-stage contributions, synthesises a unified perspective and evidence-graded architecture for self-correcting physical agents, and discusses thesis-wide limitations and future research directions.
 
 \begin{table}[t]
   \centering
-  \caption[Abbreviations]{Abbreviations used in more than one chapter.}
+  \caption[Abbreviations]{Recurring abbreviations used across chapters (\texttt{navsafe} scenario codes are defined in Table~\ref{centaur:tab:navsafe}). Mathematical symbols are defined locally within each chapter.}
   \label{tab:intro:abbrev}
   \footnotesize
   \renewcommand{\arraystretch}{1.1}
@@ -85,14 +108,130 @@ Table~\ref{tab:intro:abbrev} lists the abbreviations used in more than one chapt
     Abbreviation & Meaning & Abbreviation & Meaning \\
     \midrule
     3D-DA & 3D deformable attention & NC, DAC & no at-fault collision, drivable area compliance (NAVSIM) \\
-    ADE, FDE & average and final displacement error & PDMS & PDM score of NAVSIM \\
+    ADE, FDE & average and final displacement error & PDMS & predictive driver model score (NAVSIM) \\
     BEV & bird's-eye view & RQ & research question \\
-    DAgger & dataset aggregation (here: collection of recovery data) & SA & Stage Advantage (Chapter~\ref{ch:kai0}) \\
+    DAgger & dataset aggregation (targeted recovery data) & SA & Stage Advantage (Chapter~\ref{ch:kai0}) \\
     EP, C, TTC & ego progress, comfort, time to collision (NAVSIM) & SSC & semantic scene completion \\
     GVQA & graph visual question answering & TDA & Train--Deploy Alignment (Chapter~\ref{ch:kai0}) \\
-    L0--L3 & levels of evaluation fidelity (Fig.~\ref{fig:method:ladder}) & TTT & test-time training \\
+    L0--L3 & levels of evaluation fidelity & TTT & test-time training \\
     MA & Model Arithmetic (Chapter~\ref{ch:kai0}) & VLA & vision-language-action model \\
     mIoU & mean intersection over union & VLM, VQA & vision-language model, visual question answering \\
     \bottomrule
   \end{tabularx}
 \end{table}
+
+% ==============================================================================
+\section{Related Publications}\label{sec:intro:publications}
+
+\noindent $^{*}$ denotes equal contribution; $^{\dagger}$ denotes project lead. The author's role is stated for every entry: ``first author'', ``co-first author'' (equal contribution), ``project lead'' or ``co-project lead'', or ``co-author'' where the author is neither first author nor project lead.
+
+\subsection*{Core Publications Included in This Dissertation}
+
+\begin{enumerate}[label={[\arabic*]}, leftmargin=2.4em, labelwidth=1.8em, labelsep=0.6em, align=left, itemsep=4pt]
+  \item W. Tong$^{*}$, \textbf{C. Sima}$^{*\dagger}$, T. Wang, L. Chen, S. Wu, H. Deng, Y. Gu, L. Lu, P. Luo, D. Lin, and H. Li$^{\dagger}$.
+        ``Scene as Occupancy''~\cite{sima2023occnet}.
+        In \emph{IEEE/CVF International Conference on Computer Vision (ICCV)}, pp.~8406--8415, 2023.
+        \emph{Role:} co-first author and co-project lead (ICCV proceedings list W.~Tong first; arXiv:2306.02851 lists C.~Sima first). Lead organiser of the CVPR 2023 3D Occupancy Prediction Challenge (co-hosted with Occ3D on Occ3D-nuScenes) and contributor of OpenOcc v2 to the CVPR 2024 Autonomous Grand Challenge.
+        \hfill (Chapter~\ref{ch:occnet})
+  \item OpenScene Contributors.
+        ``OpenScene: The Largest Up-to-Date 3D Occupancy Prediction Benchmark in Autonomous Driving''~\cite{sima2023openscene}.
+        Dataset and toolkit release, \url{https://github.com/OpenDriveLab/OpenScene}, 2023. A 2\,Hz redistribution of nuPlan with occupancy and flow labels.
+        \emph{Role:} project lead (with the OpenScene Contributors).
+        \hfill (Chapter~\ref{ch:occnet})
+  \item \textbf{C. Sima}$^{*}$, K. Renz$^{*}$, K. Chitta, L. Chen, H. Zhang, C. Xie, J. Bei{\ss}wenger, P. Luo, A. Geiger$^{\dagger}$, and H. Li$^{\dagger}$.
+        ``DriveLM: Driving with Graph Visual Question Answering''~\cite{sima2024drivelm}.
+        In \emph{European Conference on Computer Vision (ECCV)}, pp.~256--274, 2024. \textbf{Oral presentation.}
+        \emph{Role:} co-first author, and lead organiser of the ``Driving with Language'' track of the CVPR 2024 Autonomous Grand Challenge (152 teams).
+        \hfill (Chapter~\ref{ch:drivelm})
+  \item \textbf{C. Sima}$^{*}$, K. Chitta$^{*}$, Z. Yu, S. Lan, P. Luo, A. Geiger, H. Li, and J. M. Alvarez.
+        ``Centaur: Robust End-to-End Autonomous Driving with Test-Time Training''~\cite{sima2024centaur}.
+        \emph{arXiv preprint arXiv:2503.11650}, 2025.
+        \emph{Role:} co-first author.
+        \hfill (Chapter~\ref{ch:centaur})
+  \item C. Yu, \textbf{C. Sima}$^{\dagger}$, G. Jiang, H. Zhang, H. Mai, H. Li, H. Wang, J. Chen, K. Wu, L. Chen$^{\dagger}$, L. Zhao, M. Shi, P. Luo, Q. Bu, S. Peng, T. Li, and Y. Yuan.
+        ``$\chi_0$: Resource-Aware Robust Manipulation via Taming Distributional Inconsistencies''~\cite{sima2026kai0}.
+        \emph{arXiv preprint arXiv:2602.09021}, 2026.
+        \emph{Role:} co-project lead, with L.~Chen (authors listed alphabetically by first name).
+        \hfill (Chapter~\ref{ch:kai0})
+\end{enumerate}
+
+\subsection*{Other Related Publications}
+
+\begin{enumerate}[label={[\arabic*]}, leftmargin=2.4em, labelwidth=1.8em, labelsep=0.6em, align=left, itemsep=4pt, resume]
+  \item Y. Hu, J. Yang, L. Chen, K. Li, \textbf{C. Sima}, X. Zhu, S. Chai, S. Du, T. Lin, W. Wang, L. Lu, X. Jia, Q. Liu, J. Dai, Y. Qiao, and H. Li.
+        ``Planning-oriented Autonomous Driving'' (UniAD)~\cite{hu2023uniad}.
+        In \emph{IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)}, pp.~17853--17862, 2023. \textbf{Best Paper Award.}
+        \emph{Role:} co-author.
+  \item AgiBot-World-Contributors: Q. Bu, J. Cai, L. Chen, X. Cui, Y. Ding, S. Feng, X. He, X. Huang, \etal\ (including \textbf{C. Sima}).
+        ``AgiBot World Colosseo: A Large-Scale Manipulation Platform for Scalable and Intelligent Embodied Systems''~\cite{bu2025agibot_iros}.
+        In \emph{IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}, 2025. \textbf{Best Paper Finalist.}
+        \emph{Role:} co-author; the cited IROS release lists contributors alphabetically by surname, and the public contributor roster is version-dependent (co-led manuscript preparation).
+  \item M. Liu, \textbf{C. Sima}, T. Feng, H. Wang, C. Chen, H. Chen, and C. Shen.
+        ``PerturBot: Breaking Shortcut Priors in Vision-Language-Action Models with Perturbative Training''~\cite{liu2026perturbot}.
+        \emph{arXiv preprint arXiv:2610.04616}, 2026.
+        \emph{Role:} co-author.
+  \item C. Xie, \textbf{C. Sima}, T. Li, B. Sun, J. Wu, Z. Hao, and H. Li.
+        ``FLARE: Learning Future-Aware Latent Representations from Vision-Language Models for Autonomous Driving''~\cite{xie2026flare}.
+        \emph{arXiv preprint arXiv:2601.05611}, 2026.
+        \emph{Role:} co-author.
+  \item L. Chen, \textbf{C. Sima}, K. Chitta, A. Loquercio, P. Luo, Y. Ma, and H. Li.
+        ``Intelligent Robot Manipulation Requires Self-Directed Learning''~\cite{chen2025robot}.
+        In \emph{IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW)}, pp.~842--853, 2026.
+        \emph{Role:} co-author.
+  \item S. Hamdan, \textbf{C. Sima}, Z. Yang, H. Li, and F. G{\"u}ney.
+        ``ETA: Efficiency Through Thinking Ahead, A Dual Approach to Self-Driving with Large Models''~\cite{hamdan2025eta}.
+        In \emph{IEEE/CVF International Conference on Computer Vision (ICCV)}, pp.~26529--26538, 2025.
+        \emph{Role:} co-author.
+  \item S. Xie, L. Kong, Y. Dong, \textbf{C. Sima}, W. Zhang, Q. A. Chen, Z. Liu, and L. Pan.
+        ``Are VLMs Ready for Autonomous Driving? An Empirical Study from the Reliability, Data, and Metric Perspectives'' (DriveBench)~\cite{xie2025vlms}.
+        In \emph{IEEE/CVF International Conference on Computer Vision (ICCV)}, pp.~6585--6597, 2025.
+        \emph{Role:} co-author.
+  \item K. Ding, B. Chen, Y. Su, H.-a. Gao, B. Jin, \textbf{C. Sima}, W. Zhang, X. Li, P. Barsch, H. Li, and H. Zhao.
+        ``Hint-AD: Holistically Aligned Interpretability in End-to-End Autonomous Driving''~\cite{ding2024hint}.
+        In \emph{Proceedings of the 8th Conference on Robot Learning (CoRL 2024)}, PMLR 270, pp.~3742--3765, published 2025.
+        \emph{Role:} co-author.
+  \item H. Wang, T. Li, Y. Li, L. Chen, \textbf{C. Sima}, Z. Liu, B. Wang, P. Jia, Y. Wang, S. Jiang, F. Wen, H. Xu, P. Luo, J. Yan, W. Zhang, and H. Li.
+        ``OpenLane-V2: A Topology Reasoning Benchmark for Unified 3D HD Mapping''~\cite{wang2023openlanev2}.
+        In \emph{Advances in Neural Information Processing Systems (NeurIPS), Datasets and Benchmarks Track}, vol.~36, pp.~18873--18884, 2023.
+        \emph{Role:} co-author.
+  \item L. Huang, Z. Li, \textbf{C. Sima}, W. Wang, J. Wang, Y. Qiao, and H. Li.
+        ``Leveraging Vision-Centric Multi-Modal Expertise for 3D Object Detection'' (VCD)~\cite{huang2023vcd}.
+        In \emph{Advances in Neural Information Processing Systems (NeurIPS)}, vol.~36, pp.~38504--38519, 2023.
+        \emph{Role:} co-author.
+  \item Y. Gao, \textbf{C. Sima}, S. Shi, S. Di, S. Liu, and H. Li.
+        ``Sparse Dense Fusion for 3D Object Detection'' (SDF)~\cite{gao2023sdf}.
+        In \emph{IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}, pp.~10939--10946, 2023.
+        \emph{Role:} co-author.
+  \item H. Li$^{*}$, \textbf{C. Sima}$^{*}$, J. Dai$^{*}$, W. Wang$^{*}$, L. Lu$^{*}$, H. Wang$^{*}$, J. Zeng$^{*}$, Z. Li$^{*}$, J. Yang$^{*}$, H. Deng$^{*}$, \etal
+        ``Delving into the Devils of Bird's-Eye-View Perception: A Review, Evaluation and Recipe''~\cite{li2023bevdevils}.
+        \emph{IEEE Transactions on Pattern Analysis and Machine Intelligence (T-PAMI)}, vol.~46, no.~4, pp.~2151--2170, 2024 (published online in 2023).
+        \emph{Role:} co-first author.
+  \item L. Chen$^{*}$, \textbf{C. Sima}$^{*}$, Y. Li$^{*}$, Z. Zheng, J. Xu, X. Geng, H. Li, C. He, J. Shi, Y. Qiao, and J. Yan.
+        ``PersFormer: 3D Lane Detection via Perspective Transformer and the OpenLane Benchmark''~\cite{chen2022persformer}.
+        In \emph{European Conference on Computer Vision (ECCV)}, LNCS 13698, pp.~550--567, 2022. \textbf{Oral presentation.}
+        \emph{Role:} co-first author.
+  \item Z. Li, W. Wang, H. Li, E. Xie, \textbf{C. Sima}, T. Lu, Y. Qiao, and J. Dai.
+        ``BEVFormer: Learning Bird's-Eye-View Representation from Multi-Camera Images via Spatiotemporal Transformers''~\cite{li2022bevformer}.
+        In \emph{European Conference on Computer Vision (ECCV)}, pp.~1--18, 2022.
+        \emph{Role:} co-author.
+  \item \textbf{C. Sima} and Y. Xue.
+        ``LSH-SMILE: Locality Sensitive Hashing Accelerated Simulation and Learning''~\cite{sima2021lshsmile}.
+        In \emph{Advances in Neural Information Processing Systems (NeurIPS)}, vol.~34, pp.~7484--7496, 2021.
+        \emph{Role:} first author.
+\end{enumerate}
+
+\subsection*{Patents}
+
+\noindent The author is a co-inventor of the following US patents and patent applications:
+
+\begin{enumerate}[label={[P\arabic*]}, leftmargin=*, itemsep=4pt]
+  \item H. Li, Z. Li, W. Wang, \textbf{C. Sima}, L. Chen, Y. Li, Y. Qiao, and J. Dai.
+        ``Image Processing Method, Apparatus and Device, and Computer-Readable Storage Medium.''
+        US Patent 12,469,277, 2025.
+  \item H. Li, L. Chen, S. Gao, J. Yang, Y. Qiu, \textbf{C. Sima}, T. Li, J. Zeng, Y. Li, H. Wang, J. Yan, P. Luo, and Y. Qiao.
+        ``Method for Training Autonomous Driving Model, Electronic Device, and Storage Medium.''
+        US Patent Application 18/936,908, 2025.
+  \item H. Li, L. Chen, S. Gao, J. Yang, Y. Qiu, \textbf{C. Sima}, T. Li, J. Zeng, Y. Li, H. Wang, J. Yan, P. Luo, and Y. Qiao.
+        ``Method for Training Autonomous Driving Model, Method for Predicting Autonomous Driving Video, Electronic Device, and Storage Medium.''
+        US Patent Application 18/888,671, 2025.
+\end{enumerate}

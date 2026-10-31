@@ -3,7 +3,7 @@
 \PassOptionsToPackage{hyphens}{url}
 \PassOptionsToPackage{hyperfootnotes=false}{hyperref}
 
-\documentclass[a4paper,12pt,custommargin,numbered,print]{Classes_final/PhDThesisPSnPDF}
+\documentclass[a4paper,12pt,default,numbered,print]{Classes_final/PhDThesisPSnPDF}
 
 \input{Preamble_final/packages}
 \input{Preamble_final/preamble}
@@ -45,7 +45,6 @@
 \include{Declaration/genai_statement}
 \include{Acknowledgement/acknowledgement}
 \include{Abstract/abstract}
-\include{Publications/publications}
 
 \tableofcontents
 \listoffigures
@@ -54,24 +53,17 @@
 \mainmatter
 
 \include{ch-introduction/introduction}
-\include{ch-background/background}
-\include{ch-methodology/methodology}
 \include{ch-occnet/occnet}
 \include{ch-drivelm/drivelm}
 \include{ch-centaur/centaur}
 \include{ch-kai0/kai0}
-\include{ch-discussion/discussion}
 \include{ch-conclusion/conclusion}
-
-\appendix
-\include{ch-occnet/occnet_appendix}
-\include{ch-drivelm/drivelm_appendix}
-\include{ch-centaur/centaur_appendix}
-\include{ch-kai0/kai0_appendix}
 
 \backmatter
 
 \begin{spacing}{1}
+\small
+\setlength{\bibsep}{2pt plus 0.5pt}
 \bibliographystyle{unsrtnat}
 \cleardoublepage
 \bibliography{references}

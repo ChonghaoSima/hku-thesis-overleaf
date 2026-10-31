@@ -1,229 +1,192 @@
 \chapter{Act II: Resource-Aware Robust Manipulation}\label{ch:kai0}
 
 \begin{contribution}
-This chapter adapts the preprint~\cite{sima2026kai0}, which lists all seventeen authors alphabetically by given name. In the published author-contribution record, I served as co-project lead alongside Li Chen and as one of seven core contributors. Specifically, I formulated the distributional-inconsistency perspective ($P_{\mathrm{train}}, Q_{\mathrm{model}}, P_{\mathrm{test}}$), co-designed Model Arithmetic with Modi Shi, and co-designed Train--Deploy Alignment (covering heuristic DAgger recovery collection, spatio-temporal augmentation and temporal chunk-wise smoothing) with Checheng Yu, Kaiyang Wu and Yibo Yuan. I also co-designed the real-robot evaluation benchmarks, participated in data collection, hardware deployment and maintenance, and led the manuscript writing and figure preparation. The third technical module, Stage Advantage, was led by co-author Lirui Zhao and is presented here so that the full system remains self-contained. Hongyang Li and Ping Luo provided computing resources and academic supervision.
+Adapted from our alphabetically ordered seventeen-author preprint~\cite{sima2026kai0}, this chapter reflects my work as co-project lead alongside Li Chen and as one of seven core contributors. I formulated the distributional framework across $P_{\mathrm{train}}$, $Q_{\mathrm{model}}$, and $P_{\mathrm{test}}$, co-developed Model Arithmetic with Modi Shi, and co-developed Train--Deploy Alignment (covering heuristic DAgger recovery, spatiotemporal augmentation, and chunk-wise smoothing) with Checheng Yu, Kaiyang Wu, and Yibo Yuan. I also co-designed the physical benchmarks, assisted with data capture and robot maintenance, and led manuscript writing and figure design. Co-author Lirui Zhao developed Stage Advantage, which is included here to keep the system presentation self-contained; Hongyang Li and Ping Luo provided compute resources and academic guidance.
 \end{contribution}
 
-In Chapter~\ref{ch:centaur}, we examined non-reactive simulation over logged driving states and demonstrated that an end-to-end planner can adjust its frame-by-frame outputs at test time by reducing predictive uncertainty without ground-truth supervision~\cite{sima2024centaur}. Here we extend the Act pillar to a second physical domain. Research question RQ3(b) investigates how a learned policy can preserve reliability once deployment conditions diverge from training in \emph{real-world robot manipulation}. Physical realities pose distinct obstacles in this setting. Handling deformable cloth involves contact-rich dynamics over a high-dimensional configuration space starting from arbitrary crumpled states. Human teleoperation demonstrations are mutually inconsistent and sample only a small fraction of valid solution trajectories. Both data acquisition and computation are constrained: recording expert teleoperation consumes robot and operator hours, while post-training a large vision-language-action (VLA) backbone requires substantial GPU time. Moreover, policies trained offline on recorded trajectories must act on physical hardware, where control delays and mechanical bounds cause executed motions to diverge from model predictions.
+Chapter~\ref{ch:centaur} showed in non-reactive driving simulation that an end-to-end planner can adjust frame-level predictions at test time by lowering predictive uncertainty without ground-truth supervision~\cite{sima2024centaur}. Extending the Act pillar to physical robotics, RQ3(b) asks how a learned controller can stay dependable once test-time conditions diverge from offline training in \emph{real-world robot manipulation}. Deformable cloth manipulation entails contact-rich dynamics across a high-dimensional configuration space from arbitrary crumpled initial states, whereas human teleoperation samples only a narrow fraction of feasible trajectories. Practical resource limits add further constraints: recording demonstrations consumes substantial operator and robot time, post-training a large vision-language-action (VLA) model requires considerable GPU compute, and closed-loop control delays plus mechanical limits cause physically executed motions to drift from offline predictions.
 
-We posit that under such practical resource constraints, data and model scale is not the sole bottleneck to reliable execution; a central barrier lies in the discrepancy among three probability distributions across the robot learning loop: the distribution of human expert demonstrations $P_{\mathrm{train}}$, the conditional action distribution learned by the policy $Q_{\mathrm{model}}$ at each state, and the trajectory distribution physically realised on the robot at test time, $P_{\mathrm{test}}$. Within the taxonomy of Chapter~\ref{ch:methodology}, this mismatch represents a deployment shift between training conditions and test-time execution. Expressed in the notation of Section~\ref{sec:method:framework}, $P_{\mathrm{train}}$ maps to $p_{\mathrm{train}}$ while $P_{\mathrm{test}}$ corresponds to the physically executed component of $p_{\mathrm{deploy}}$, and $Q_{\mathrm{model}}$ reflects both the demonstration data and the architectural bias of the policy family. Throughout this chapter, these three distributions act as an analytical framework for structuring our method rather than directly estimated densities (Section~\ref{kai0:sec:distributions}). Instead of brute-force expansion of unfiltered demonstrations or network parameters, we pair each mismatch between the three distributions with a dedicated alignment mechanism, including targeted DAgger-style recovery collection.
+Resource limits make data and model scale only part of the manipulation problem. We analyse reliability through three linked objects across the learning loop: the recorded human demonstrations $P_{\mathrm{train}}$, the policy-induced trajectory distribution $Q_{\mathrm{model}}$, and the trajectories produced on hardware $P_{\mathrm{test}}$. In the terminology of Chapter~\ref{ch:methodology} (Section~\ref{sec:method:framework}), these correspond to training data $p_{\mathrm{train}}$, policy-induced behaviour, and the physically executed component of deployment $p_{\mathrm{deploy}}$. They are conceptual distributions rather than fitted density models (Section~\ref{kai0:sec:distributions}), so the experiments test interventions associated with each mismatch rather than measured reductions in distributional divergence. The \chiz\footnote{Project page: \url{https://mmlab.hk/research/kai0}. Code: \url{https://github.com/OpenDriveLab/KAI0}.} framework links this analysis to three modules:
+\begin{enumerate}[label=(\alph*)]
+  \item \emph{Model Arithmetic} (MA) fits separate checkpoints on disjoint subsets of $P_{\mathrm{train}}$ and interpolates their weights using convex coefficients tuned on out-of-distribution (OOD) DAgger recovery rollouts, reconciling $Q_{\mathrm{model}}$ with $P_{\mathrm{train}}$ without enlarging the primary training corpus (though gathering the validation rollouts still requires DAgger interventions).
+  \item \emph{Stage Advantage} (SA), designed by co-author Lirui Zhao, regresses relative task progress directly from observation pairs conditioned on discrete semantic stages and converts the prediction into binary weights for advantage-weighted imitation, guiding $Q_{\mathrm{model}}$ toward productive actions with lower temporal variance than subtracting independent state-value estimates.
+  \item \emph{Train--Deploy Alignment} (TDA) shifts $P_{\mathrm{train}}$ toward $P_{\mathrm{test}}$ via heuristic DAgger recovery collection and spatiotemporal augmentation while mitigating inference-to-actuation latency at run time through temporal chunk-wise smoothing.
+\end{enumerate}
 
-Our resulting framework, \chiz,\footnote{Project page: \url{https://mmlab.hk/research/kai0}. Code: \url{https://github.com/OpenDriveLab/KAI0}.} comprises three modules. First, \emph{Model Arithmetic} (MA) trains separate policies on disjoint partitions of the demonstration corpus and combines their parameters via convex interpolation, tuning the mixing weights against validation loss on out-of-distribution DAgger recovery rollouts; this procedure seeks to reconcile $Q_{\mathrm{model}}$ with $P_{\mathrm{train}}$ without expanding the demonstration pool, though acquiring the validation rollouts itself entails DAgger collection. Second, \emph{Stage Advantage} (SA), developed by co-author Lirui Zhao (see the contribution statement above), estimates advantage directly from observation pairs conditioned on the semantic stage of a multi-step task, converting the estimate into a binary optimality indicator for advantage-weighted behaviour cloning; this direct formulation yields a less noisy signal than subtracting independent value predictions and guides $Q_{\mathrm{model}}$ towards productive actions during execution. Third, \emph{Train--Deploy Alignment} (TDA) shifts $P_{\mathrm{train}}$ closer to $P_{\mathrm{test}}$ via heuristic DAgger collection and spatio-temporal augmentation, while mitigating inference-to-actuation delay at test time through temporal chunk-wise smoothing.
+We evaluate \chiz on two bimanual platforms across garment flattening, folding, conditional sorting, and rack hanging. The full system is compared with the base policy on Task~A (T-shirt flattening and folding), while Tasks~B and~C provide module-level tests. In 30 Task~A rollouts (with values read from the plotted evaluation summaries; Section~\ref{kai0:sec:protocol}), completion rises from approximately 8/30 (27\%; 95\% Wilson interval 14--44\%) for the $\pi_{0.5}$ baseline to 29/30 (97\%; 83--99\%) for \chiz (Table~\ref{kai0:tab:taskA}). Post-training uses a pre-trained $\pi_{0.5}$ backbone, about 20 hours of base demonstrations per task, and eight A100 GPUs; total compute, robot time, and operator time across all sub-experiments were not separately recorded. Because targeted DAgger recovery data supply the largest individual gain (Section~\ref{kai0:sec:exp_tda}) and no matched-budget data-scaling baseline was run, the experiment supports alignment as a useful complement to scale, not as evidence that alignment is the dominant bottleneck (Section~\ref{kai0:sec:limitations}).
 
-We test the approach on bimanual collaborative garment manipulation across two dual-arm platforms, covering cloth flattening, folding, conditional sorting and rack hanging. End-to-end evaluation against the base policy is performed on Task~A (T-shirt flattening and folding), whereas Tasks~B and~C serve for module-level ablations. Across 30 real-robot rollouts per configuration on Task~A, task completion increases from roughly 27\% (about 8 of 30 trials) for the $\pi_{0.5}$ baseline to roughly 97\% (about 29 of 30) for \chiz, corresponding to a relative gain of about 250\% (Table~\ref{kai0:tab:taskA}). This gap far exceeds binomial sampling variability for 30 trials, with approximate 95\% Wilson confidence intervals of 14--44\% versus 83--99\%. Numerical metrics reported in the text and tables are taken from the plotted evaluation summaries (Section~\ref{kai0:sec:protocol}). These gains are achieved by post-training a pre-trained $\pi_{0.5}$ backbone using roughly 20 hours of demonstrations per task on 8 A100 GPUs. Because we fine-tune an existing foundation policy rather than training from scratch, we characterise the recipe as resource-aware, while noting that exact GPU, robot and operator hour totals are not logged separately (Section~\ref{kai0:sec:limitations}). Since data scale was not varied under a fixed resource budget and the single largest performance jump stems from targeted DAgger recovery trajectories (Section~\ref{kai0:sec:exp_tda}), the proposition that distributional alignment matters alongside raw scale remains an empirical hypothesis supported by the integrated Task~A benchmark.
-
-The chapter proceeds as follows. Section~\ref{kai0:sec:intro} introduces our distributional perspective on manipulation reliability, followed by a literature review in Section~\ref{kai0:sec:related}. Section~\ref{kai0:sec:problem} defines the three distributions and their three systematic mismatches. Section~\ref{kai0:sec:method} details Model Arithmetic, Stage Advantage and Train--Deploy Alignment, while Section~\ref{kai0:sec:setup} covers the dual-arm hardware, task definitions, evaluation metrics, experimental protocol and dataset construction. System-level findings appear in Section~\ref{kai0:sec:exp}, module ablations in Section~\ref{kai0:sec:ablation}, limitations in Section~\ref{kai0:sec:limitations}, and concluding remarks in Section~\ref{kai0:sec:summary}. Additional technical and experimental details are provided in Appendix~\ref{app:kai0}.
+The rest of this chapter covers motivation (Section~\ref{kai0:sec:intro}), prior literature (Section~\ref{kai0:sec:related}), problem formulation (Section~\ref{kai0:sec:problem}), the three alignment modules (Section~\ref{kai0:sec:method}), hardware and benchmark protocols (Section~\ref{kai0:sec:setup}), system-level and component-level experiments (Sections~\ref{kai0:sec:exp} and~\ref{kai0:sec:ablation}), limitations (Section~\ref{kai0:sec:limitations}), implementation details and supplementary ablations (Section~\ref{app:kai0}), and conclusions (Section~\ref{kai0:sec:summary}).
 
 % =============================================================================
 \section{Motivation}\label{kai0:sec:intro}
 
-Reliable deployment in open-world environments remains a central goal for robotics. In autonomous driving, wheeled navigation agents now operate routinely across dense urban traffic~\cite{Kusano2025waymocrash,tesla2025fsd,waymo2025blog}. Bringing comparable dependability and user trust to physical manipulation in unstructured settings remains unresolved. A manipulation controller must act over a high-dimensional action space while tolerating wide physical variations in object geometry and lighting. To cope with this complexity, recent industry efforts have prioritised scale, training larger foundation backbones on massive compute clusters~\cite{black2024pi0,black2025pi05,amin2026pistar06,generalist2025gen0,sunday2025act1,zheng2025xvla,beingbeyond2026beingh05} and assembling large-scale teleoperation repositories such as AgiBot World~\cite{bu2025agibot_iros} (co-authored by the author), which contains over one million trajectories gathered across more than 100 physical robots.
+Learned driving systems now operate on public roads in both rider-only automated services and supervised driver-assistance deployments~\cite{Kusano2025waymocrash,tesla2025fsd,waymo2025blog}, whereas physical manipulation in open-ended environments remains fragile because controllers must act over high-dimensional joint spaces under wide variations in cloth geometry and lighting. Recent robotic foundation efforts have scaled VLA backbones on large compute clusters~\cite{black2024pi0,sunday2025act1,black2025pi05,zheng2025xvla,amin2026pistar06,beingbeyond2026beingh05,generalist2025gen0} and assembled large teleoperation datasets such as AgiBot World~\cite{bu2025agibot_iros} (co-authored by the author, comprising over one million trajectories across more than 100 robots). While network capacity and dataset scale are necessary, they do not by themselves ensure reliable closed-loop execution: a key barrier is \emph{the distributional mismatch across data collection ($P_{\mathrm{train}}$), policy-induced trajectory distribution ($Q_{\mathrm{model}}$; Eq.~\eqref{kai0:eq:qmodel}), and physical deployment ($P_{\mathrm{test}}$)}, which affects task completion, motion continuity, hourly throughput, and corrective retry counts~\cite{chen2025benchmarking,shi2025diversity,bu2025agibot_iros,jiang2025behavior,amin2026pistar06}.
 
-While model capacity and dataset volume are indispensable, we argue that raw scale is not the sole determinant of dependable execution: in high-dimensional physical environments, a critical barrier to reliability is \emph{the distributional mismatch across the three stages of the robot learning workflow: data acquisition, policy training and hardware execution}. Such mismatches affect not only binary task completion, but also motion continuity, overall task throughput and the frequency of corrective retries required per episode~\cite{chen2025benchmarking,bu2025agibot_iros,shi2025diversity,amin2026pistar06,jiang2025behavior}. To structure our analysis, we characterise the learning loop through three distributions:
-\begin{itemize}
-  \item $\bm{P_{\mathrm{train}}}$, representing the empirical distribution of human teleoperation trajectories collected for imitation learning;
-  \item $\bm{Q_{\mathrm{model}}}$, denoting the action distribution conditioned on state learned from $P_{\mathrm{train}}$ (Eq.~\eqref{kai0:eq:qmodel}), which encodes both the training demonstrations and the inductive bias of the network architecture;
-  \item $\bm{P_{\mathrm{test}}}$, capturing the trajectory distribution physically executed on the robot at test time, which departs from raw policy predictions due to inference latency and low-level controller constraints.
-\end{itemize}
-
-During physical rollouts, observed failure modes cluster into three recurring mismatches among these distributions (Fig.~\ref{kai0:fig:teaser}). First, because deformable manipulation unfolds in a vast state space, $P_{\mathrm{train}}$ covers only a sparse subset of valid solution paths, biasing $Q_{\mathrm{model}}$ towards narrow demonstration modes. Second, communication and computation delays between policy evaluation ($Q_{\mathrm{model}}$) and actuator execution ($P_{\mathrm{test}}$) create a temporal offset that degrades otherwise valid action sequences at run time~\cite{black2025rtc,tang2025vlash}. Third, because expert demonstrations rarely contain error states, the learned policy struggles to self-correct: even when starting near the support of $P_{\mathrm{train}}$, small execution disturbances in $P_{\mathrm{test}}$ can initiate compounding errors from which the controller fails to recover~\cite{hu2025rac,pan2026sop,amin2026pistar06}.
+In physical rollouts, observed failures fall into three systematic mismatches across these distributions, as shown in Fig.~\ref{kai0:fig:teaser}. First, because deformable cloth spans a high-dimensional state space, $P_{\mathrm{train}}$ covers only a sparse set of valid trajectories, biasing $Q_{\mathrm{model}}$ toward narrow demonstration habits. Second, computation and communication delays between policy inference ($Q_{\mathrm{model}}$) and physical actuation ($P_{\mathrm{test}}$) introduce temporal offsets that disrupt action sequences at chunk boundaries~\cite{black2025rtc,tang2025vlash}. Third, because expert demonstrations rarely visit error states, minor disturbances during execution in $P_{\mathrm{test}}$ trigger compounding deviations from which the policy cannot recover~\cite{hu2025rac,pan2026sop,amin2026pistar06}. Standard remedies such as broader data collection~\cite{oneill2024openx,khazatsky2024droid,bu2025agibot_iros}, synthetic augmentation~\cite{cubuk2019autoaugment,cubuk2020randaugment,laskin2020reinforcement}, or deployment-time adaptation~\cite{sun2020ttt,wang2022cotta,hansen2021pad} are difficult to apply directly when teleoperation is expensive, control loops are latency-critical, and VLA post-training is compute-intensive.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-kai0/images/kai0_teaser_v5_4_compress.pdf}
-  \caption[Overview and technical philosophy of \chiz]{\textbf{Top: platform overview.} Two ALOHA-style bimanual robots collaborate on multi-stage garment manipulation tasks spanning flattening, folding and rack hanging. \textbf{Bottom: distributional alignment and Task~A summary.} We organise the robot learning cycle around three conceptual distributions ($P_{\mathrm{train}}$: human demonstrations; $Q_{\mathrm{model}}$: learned policy; $P_{\mathrm{test}}$: executed trajectories). \chiz addresses each pairwise discrepancy: Model Arithmetic reconciles $Q_{\mathrm{model}}$ with $P_{\mathrm{train}}$, Train--Deploy Alignment bridges $P_{\mathrm{train}}$ and $P_{\mathrm{test}}$, and Stage Advantage steers $Q_{\mathrm{model}}$ towards $P_{\mathrm{test}}$. The bar chart summarises Task~A (T-shirt flattening and folding) metrics from Fig.~\ref{kai0:fig:exp_triple}, where \chiz lifts the completion rate of the $\pi_{0.5}$ baseline~\cite{black2025pi05} from roughly 27\% to roughly 97\% across 30 rollouts, a relative gain of about 250\% (Table~\ref{kai0:tab:taskA}).}
+  \caption[System overview and distributional alignment in \chiz]{\textbf{Top: platform overview.} Two ALOHA-style bimanual stations collaborate on multi-stage garment flattening, folding, and rack hanging. \textbf{Bottom: distributional alignment and Task~A summary.} Across the learning loop ($P_{\mathrm{train}}$, $Q_{\mathrm{model}}$, $P_{\mathrm{test}}$), MA reconciles $Q_{\mathrm{model}}$ with $P_{\mathrm{train}}$, TDA bridges $P_{\mathrm{train}}$ and $P_{\mathrm{test}}$, and SA steers $Q_{\mathrm{model}}$ toward $P_{\mathrm{test}}$. On Task~A (Fig.~\ref{kai0:fig:exp_triple}), \chiz lifts $\pi_{0.5}$~\cite{black2025pi05} completion from roughly 27\% (8/30) to roughly 97\% (29/30) over 30 rollouts (Table~\ref{kai0:tab:taskA}).}
   \label{kai0:fig:teaser}
 \end{figure}
 
-In general machine learning, researchers counter distributional shift via dataset expansion~\cite{wiles2022fine,higgins2017beta,radford2021learning}, synthetic or learned data augmentation~\cite{wiles2022fine,cubuk2020randaugment,cubuk2019autoaugment} and test-time or domain adaptation~\cite{wiles2022fine,liu2021just,schneider2020improving}. Directly transferring these recipes to physical manipulation is difficult because teleoperated demonstrations are costly to record, inference latency cannot be ignored during closed-loop control, and fine-tuning large VLA models requires substantial compute.
-
-\chiz addresses these three discrepancies under practical robotics budgets, pairing each distributional gap with a dedicated module (Fig.~\ref{kai0:fig:teaser}, bottom):
-\begin{enumerate}[label=(\alph*)]
-  \item \textbf{Model Arithmetic (MA)} seeks to better align the trained policy ($Q_{\mathrm{model}}$) with the demonstration distribution ($P_{\mathrm{train}}$). By interpolating parameters across checkpoints trained on disjoint splits of $P_{\mathrm{train}}$, it combines behavioural modes that a single fine-tuning run may overlook.
-  \item \textbf{Stage Advantage (SA)}, contributed by co-author Lirui Zhao, guides the policy ($Q_{\mathrm{model}}$) towards actions that advance task completion during deployment ($P_{\mathrm{test}}$). It partitions a multi-step task into semantic stages and supplies stage-conditioned advantage weights for behaviour cloning~\cite{peng2019awr}. Trained on the recorded trajectories, it produces a less noisy supervision signal than a value-difference baseline patterned after $\pi^{*}_{0.6}$~\cite{amin2026pistar06} (Section~\ref{kai0:sec:exp_sa}).
-  \item \textbf{Train--Deploy Alignment (TDA)} broadens $P_{\mathrm{train}}$ towards $P_{\mathrm{test}}$ using heuristic DAgger recovery trajectories and spatio-temporal augmentation to cover states frequently encountered at test time. At execution time, it applies temporal chunk-wise smoothing to blend successive action chunks and counteract inference delay, achieving higher throughput than RTC-only control~\cite{black2025rtc} in two out of three augmentation regimes on Task~A (Section~\ref{kai0:sec:exp_tda}).
-\end{enumerate}
-
-We benchmark \chiz on multi-stage collaborative cloth manipulation tasks involving flattening, folding and hanging diverse garments. Deformable cloth dynamics and frequent recovery from crumpled states expose all three distributional gaps. Our empirical findings across the three tasks are summarised below; all numbers reflect 30 evaluation trials per setting taken from the plotted summaries, where differences of up to four trials fall within binomial sampling noise (Section~\ref{kai0:sec:protocol}).
+To counter these three discrepancies under practical robotics budgets, \chiz pairs each distributional mismatch with a targeted module (bottom panel of Fig.~\ref{kai0:fig:teaser}): (a)~\textbf{Model Arithmetic (MA)} interpolates parameters across checkpoints trained on disjoint splits of $P_{\mathrm{train}}$ to combine behavioural modes that a single training run can miss; (b)~\textbf{Stage Advantage (SA)}, contributed by co-author Lirui Zhao, partitions a multi-step task into semantic stages and supplies stage-conditioned advantage weights for behaviour cloning~\cite{peng2019awr}, yielding a less noisy signal than a $\pi^{*}_{0.6}$-style value-differencing baseline~\cite{amin2026pistar06} (see Section~\ref{kai0:sec:exp_sa}); and (c)~\textbf{Train--Deploy Alignment (TDA)} expands $P_{\mathrm{train}}$ toward $P_{\mathrm{test}}$ via heuristic DAgger recovery trajectories and spatiotemporal augmentation while applying temporal chunk-wise smoothing at run time to counter inference delay, outperforming RTC-only control~\cite{black2025rtc} in throughput under two of three augmentation regimes on Task~A (see Section~\ref{kai0:sec:exp_tda}). Across 30 evaluation rollouts per setting taken from the plotted summaries (where differences of up to four successes fall within binomial sampling variation; Section~\ref{kai0:sec:protocol}), our primary findings are:
 \begin{enumerate}
-  \item \textbf{Integrated system.} On Task~A, combining all three modules lifts $\pi_{0.5}$ completion from roughly 27\% to roughly 97\%. While this end-to-end gain supports our alignment framework, we did not benchmark against $\pi_{0.5}$ trained on an equal total volume of unaugmented demonstrations, so the experiment does not isolate distributional alignment from total data volume.
-  \item \textbf{Train--Deploy Alignment.} Recovery trajectories collected via DAgger provide the largest individual boost: on Task~A, heuristic or standard DAgger elevates $\pi_{0.5}$ completion from roughly 23\% to 87--93\%, and on Task~C from roughly 10\% to 43--53\%. This improvement stems from targeted recovery collection. Heuristic DAgger increases the average number of retries in all tested settings, whereas standard DAgger keeps retry counts nearly unchanged except for $\pi_{0}$ on Task~A. Spatio-temporal augmentation alone shows no consistent advantage on Task~A. Temporal chunk-wise smoothing outperforms RTC in completion rate under two of three augmentation conditions on Task~A while incurring the highest retry counts in two conditions; pairing chunk-wise smoothing with RTC yields the strongest unaugmented control setup.
-  \item \textbf{Model Arithmetic.} On Task~C, all weight-merged policies surpass both the best single-split checkpoint and the full-data checkpoint in mean completion rate and throughput, though only the top-performing merge strategy exceeds the full-data baseline beyond sampling variability, and certain merge rules increase retry counts. On Tasks~A and~B, weight merging improves over baselines in the majority of settings. When applied in isolation to $\pi_{0.5}$ on Task~A, MA leaves completion nearly unchanged (roughly 30\% versus 27\%) and reduces the milestone score (roughly 35 versus 41), whereas combining MA with TDA or SA adds roughly 30 percentage points in completion rate. Using DAgger rollouts for validation produces the strongest merged checkpoint on Task~C, though its margin over in-domain validation remains within sampling noise there and varies across Tasks~A and~B.
-  \item \textbf{Stage Advantage.} Across all three tasks, Stage Advantage produces smoother temporal advantage estimates than the value-difference baseline. Temporal smoothness does not guarantee accuracy against ground-truth progress, which was not evaluated on held-out annotations. In policy rollouts, completion rises on Task~A (roughly 80\% versus 67\%, within sampling variability); on Task~B, Stage Advantage reduces retry count and raises milestone score but trails in completion rate (roughly 17\% versus 23\%) and throughput; on Task~C, completion rate, throughput and milestone score all decline.
+  \item \textbf{Integrated system.} On Task~A, combining all three modules lifts $\pi_{0.5}$ completion from roughly 27\% to roughly 97\%; without an equal-volume unaugmented baseline, this gain does not separate distributional alignment from total data volume.
+  \item \textbf{Train--Deploy Alignment.} DAgger recovery data provide the largest standalone improvement, raising $\pi_{0.5}$ completion from roughly 23\% to 87--93\% on Task~A and from roughly 10\% to 43--53\% on Task~C. Heuristic DAgger raises retry counts across all tested settings, whereas standard DAgger leaves retries nearly unchanged except on $\pi_{0}$ in Task~A. Spatiotemporal augmentation alone shows mixed effects on Task~A; temporal chunk-wise smoothing beats RTC in completion rate under two of three augmentation conditions, and combining both yields the strongest unaugmented controller.
+  \item \textbf{Model Arithmetic.} On Task~C, every weight-merged policy exceeds both the single-best subset checkpoint and the full-data checkpoint in mean completion rate and throughput, though only the OOD-validated greedy merge clears sampling noise over the full-data baseline. Across Tasks~A and~B, merging surpasses unmerged baselines on most metrics. On Task~A, MA alone leaves $\pi_{0.5}$ completion nearly unchanged (roughly 30\% vs.\ 27\%) and lowers the rubric score (35 vs.\ 41), whereas pairing MA with TDA or SA adds roughly 30 percentage points in completion rate.
+  \item \textbf{Stage Advantage.} Across all three tasks, Stage Advantage produces smoother temporal advantage traces than value differencing (without ground-truth verification). In closed-loop rollouts, completion rises on Task~A (roughly 80\% vs.\ 67\%, within sampling noise); on Task~B, Stage Advantage reduces retries and raises the rubric score but trails in completion rate (roughly 17\% vs.\ 23\%) and throughput; on Task~C, completion rate, throughput, and score all decrease.
 \end{enumerate}
 
 % =============================================================================
 \section{Related Work}\label{kai0:sec:related}
 
 \subsection{Imitation Learning and Real-World Policy Deployment}\label{kai0:sec:related_il}
-Behaviour cloning from expert demonstrations has become a standard recipe for robotic manipulation, spanning compact transformer controllers~\cite{zhao2023aloha,chi2024umi,chi2023diffusion,zeng2024learning} as well as large VLA backbones pre-trained on broad robot corpora~\cite{brohan2023rt1,zitkovich2023rt2,kim2024openvla,team2024octo,bu2025univla,black2025pi05,amin2026pistar06}. Within this family, the $\pi$ models~\cite{black2024pi0,black2025pi05,amin2026pistar06} achieve strong transfer by leveraging large-scale multi-robot pre-training. Assembling such demonstration repositories~\cite{khazatsky2024droid,oneill2024openx,bu2025agibot_iros,jiang2025galaxea,walke2023bridgedata} nevertheless requires major hardware and operator investment. To improve sample efficiency, prior studies have investigated interactive DAgger aggregation~\cite{ross2011dagger,kelly2019hgdagger,hu2025rac,amin2026pistar06} alongside visual and kinematic augmentation~\cite{laskin2020reinforcement,kostrikov2020image,yu2023scaling,li2025gr}. Standard DAgger, however, depends on continuous human monitoring during live policy execution~\cite{ross2011dagger}, keeping collection labour-intensive. Physical execution introduces an additional hurdle: communication and forward-pass delays create a discrepancy between predicted action chunks and executed joint trajectories. Existing controllers counter this delay via run-time trajectory blending or inpainting~\cite{zhao2023aloha,black2025rtc,tang2025vlash}, often trading off computational overhead. Consequently, prior solutions typically treat data collection, policy fitting or run-time control in isolation rather than jointly aligning distributions across the full robot learning loop~\cite{chen2025retaining,tajwar2024preference}. Here we formulate these challenges through the triplet $(P_{\mathrm{train}}, Q_{\mathrm{model}}, P_{\mathrm{test}})$ and design \chiz to address all three pairwise gaps.
+Imitation learning for robot manipulation spans compact transformer policies~\cite{zhao2023aloha,chi2023diffusion,chi2024umi,zeng2024learning} and pre-trained VLA backbones~\cite{brohan2023rt1,kim2024openvla,zitkovich2023rt2,bu2025univla,team2024octo,black2025pi05,amin2026pistar06}, with the $\pi$ series~\cite{black2024pi0,black2025pi05,amin2026pistar06} demonstrating strong multi-robot transfer. Because collecting large demonstration corpora~\cite{khazatsky2024droid,bu2025agibot_iros,oneill2024openx,walke2023bridgedata,jiang2025galaxea} requires major hardware and operator investment, prior work explores interactive DAgger collection~\cite{ross2011dagger,hu2025rac,kelly2019hgdagger,amin2026pistar06}, visual and kinematic augmentation~\cite{laskin2020reinforcement,yu2023scaling,kostrikov2020image,li2025gr}, and run-time trajectory blending or inpainting to counter inference delay~\cite{zhao2023aloha,black2025rtc,tang2025vlash}. Whereas existing studies typically address data collection, policy training, or run-time control separately~\cite{chen2025retaining,tajwar2024preference}, \chiz jointly targets all three pairwise gaps among $(P_{\mathrm{train}}, Q_{\mathrm{model}}, P_{\mathrm{test}})$. In complementary co-authored work, PerturBot~\cite{liu2026perturbot} diagnoses how fine-tuned VLA policies rely on visual, language, and motor shortcut priors via an offline \texttt{GroundFscore} diagnostic. PerturBot then breaks these shortcuts through perturbative training, complementing \chiz's system-level distributional alignment across $(P_{\mathrm{train}}, Q_{\mathrm{model}}, P_{\mathrm{test}})$.
 
 \subsection{Model Merging and Weight Interpolation}\label{kai0:sec:related_merge}
-Weight-space interpolation provides a compute-efficient mechanism for combining capabilities across multiple trained networks. Studies in vision and natural language processing established that averaging parameters across checkpoints trained with varied hyper-parameters~\cite{wortsman2022soups} or across task-specific fine-tuning runs~\cite{wortsman2022soups,ilharco2023task,yadav2023ties} can enhance out-of-distribution robustness. Subsequent work has adapted parameter merging to large language models~\cite{Akiba2024EvolutionaryOO,Yang2024ModelMI,Team2025KimiKS}, motion planning~\cite{Lee2025InteractionMergedMP} and embodied control~\cite{wang2024fleet}. Most existing recipes tune interpolation coefficients on in-distribution validation splits, which poorly reflect the state shifts encountered during contact-rich manipulation. Concurrent work on RETAIN~\cite{Yadav2025RobustFO} merges VLA checkpoints to preserve general pre-trained skills during downstream adaptation. In contrast, our Model Arithmetic module targets the coverage bias that arises when a policy is fine-tuned on a small set of demonstrations. We select interpolation weights using an out-of-distribution validation set composed of DAgger recovery trajectories, favouring parameter combinations that handle states absent from normal demonstrations, and we systematically compare uniform averaging, inverse-loss weighting, gradient-based weight optimisation and greedy soup construction.
+Interpolating parameters across checkpoints trained with varied hyper-parameters or fine-tuning splits improves out-of-distribution generalisation across vision, language, motion planning, and embodied control~\cite{wortsman2022soups,yadav2023ties,ilharco2023task,Yang2024ModelMI,Akiba2024EvolutionaryOO,Lee2025InteractionMergedMP,wang2024fleet}. While RETAIN~\cite{Yadav2025RobustFO} merges VLA checkpoints to preserve general pre-trained capabilities and standard recipes tune mixing weights on in-domain splits, our Model Arithmetic module targets narrow demonstration coverage by selecting convex combinations (across uniform averaging, inverse-loss weighting, gradient optimisation, and greedy soup construction) using an OOD validation set of DAgger recovery rollouts.
 
 \subsection{Advantage Estimation for Long-Horizon Tasks}\label{kai0:sec:related_adv}
-Conditioning imitation policies on returns, value estimates or advantages is a well-established strategy for steering long-horizon decision-making~\cite{schmidhuber2019reinforcement,emmons2022rvs,zheng2022online,wu2023elastic,kuba2023advantage}. Advantage-weighted regression (AWR), in particular, reweights behaviour cloning updates towards high-advantage transitions~\cite{peng2019awr}. Extending this principle to VLA models, $\pi^{*}_{0.6}$ fits a distributional value network to compute state-action advantages for conditioned policy training~\cite{amin2026pistar06}. In practice, deriving advantages by subtracting two separate value estimates, $V(s') - V(s)$, often suffers from high variance because independent frame-level prediction errors compound over multi-stage rollouts. Stage Advantage, developed by co-author Lirui Zhao for \chiz, mitigates this variance by regressing relative progress directly from paired visual observations while conditioning on discrete semantic task stages. This joint prediction yields a smoother temporal signal (Section~\ref{kai0:sec:exp_sa}) that is then thresholded into a binary optimality label for policy training~\cite{chen2025robot,amin2026pistar06}.
+Conditioning imitation learning on returns, values, or advantages helps guide multi-step decision-making~\cite{schmidhuber2019reinforcement,zheng2022online,emmons2022rvs,kuba2023advantage,wu2023elastic}, with advantage-weighted regression (AWR) upweighting high-advantage transitions~\cite{peng2019awr} and $\pi^{*}_{0.6}$ computing VLA advantages from distributional value differences $V(s') - V(s)$~\cite{amin2026pistar06}. Because subtracting two independent frame-level value predictions compounds estimation noise, Stage Advantage (developed by co-author Lirui Zhao) regresses relative progress directly from paired frames conditioned on semantic task stages~\cite{sima2026kai0}, producing a smoother signal (see Section~\ref{kai0:sec:exp_sa}) that is thresholded into a binary optimality indicator~\cite{amin2026pistar06}.
 
 % =============================================================================
 \section{Distributional Inconsistencies in Robot Learning}\label{kai0:sec:problem}
 
-We now set out the formal notation for the three distributions introduced in Section~\ref{kai0:sec:intro} and specify the three mismatches targeted by \chiz. As noted in Section~\ref{kai0:sec:distributions}, these definitions provide a structured vocabulary for the alignment objectives of each module rather than empirically estimated densities.
-
 \subsection{Preliminaries}\label{kai0:sec:prelim}
-Let the manipulation task be modelled as a finite-horizon Markov decision process (MDP) with state space $\mathcal{S}$, action space $\mathcal{A}$ and episode horizon $H$. A rollout trajectory $\tau = (s_0, a_0, s_1, a_1, \dots, s_H)$ is governed by physical transition dynamics $s_{t+1} \sim T(\cdot \mid s_t, a_t, \xi)$ under environment parameters $\xi$ and initial state distribution $\mu(s_0)$. Under a stochastic policy $\pi(a \mid s; \phi)$, the resulting distribution over trajectories takes the standard form~\cite{schulman2015trust,levine2018reinforcement}
+We model manipulation over horizon $H$ with state space $\mathcal{S}$, action space $\mathcal{A}$, initial state distribution $\mu(s_0)$, and transition kernel $s_{t+1} \sim T(\cdot \mid s_t, a_t, \xi)$ under environment parameters $\xi$. Under policy $\pi(a \mid s; \phi)$, a trajectory $\tau = (s_0, a_0, s_1, a_1, \dots, s_H)$ has density~\cite{schulman2015trust,levine2018reinforcement}:
 \begin{equation}
   P_{\pi}(\tau) = \mu(s_0) \prod_{t=0}^{H-1} \pi(a_t \mid s_t; \phi)\, T(s_{t+1} \mid s_t, a_t, \xi),
   \label{kai0:eq:traj_distrib}
 \end{equation}
-which we denote simply by $P$ whenever the underlying policy $\pi$ is clear from context.
+written as $P$ whenever $\pi$ is clear from context.
 
 \subsection{Three Distributions of the Robot Learning Cycle}\label{kai0:sec:distributions}
-To establish a reference, let $P_{\mathrm{real}}$ denote the target distribution over trajectories that successfully solve the task. Writing $\mathcal{G}$ for the set of successful trajectories,
+Denoting successful task trajectories by $\mathcal{G}$ and a base kinematic trajectory measure by $P_{0}(\tau)$, the target trajectory distribution is
 \begin{equation}
-  P_{\mathrm{real}}(\tau) \propto \mathbf{1}\{\tau \in \mathcal{G}\}
+  P_{\mathrm{real}}(\tau) \propto P_{0}(\tau)\,\mathbb{I}(\tau \in \mathcal{G}).
   \label{kai0:eq:preal}
 \end{equation}
-defines the support of valid action sequences that achieve task completion under the physical environment dynamics. Relative to $P_{\mathrm{real}}$, we define the three distributions across the learning loop that \chiz seeks to align.
-
-\paragraph{Training distribution.} We denote by $P_{\mathrm{train}}$ the empirical distribution induced by human teleoperation on the physical robot, from which the finite demonstration dataset $\mathcal{D} = \{\tau^{(i)}\}_{i=1}^{N}$ is sampled.
-
-\paragraph{Model distribution.} In what follows, $Q_{\mathrm{model}}$ refers to the learned policy distribution, $Q_{\mathrm{model}} \triangleq \pi(a \mid s; \hat{\phi})$, fitted by maximising log-likelihood $\sum_{t} \log \pi(a_t \mid s_t; \phi)$ across the recorded demonstrations $\mathcal{D}$~\cite{ross2011dagger,osa2018algorithmic}:
-\begin{equation}
-  \hat{\phi} = \argmax_{\phi} \sum_{\tau \in \mathcal{D}} \sum_{t} \log \pi(a_t \mid s_t; \phi).
-  \label{kai0:eq:qmodel}
-\end{equation}
-How $Q_{\mathrm{model}}$ extrapolates outside $\mathcal{D}$ is governed by the architectural priors and pre-trained initialisation of the policy class, which are intrinsic to the learned policy itself.
-
-\paragraph{Test distribution.} Physical rollout on the robot generates $P_{\mathrm{test}}$ by coupling $Q_{\mathrm{model}}$ with an execution operator $I(\tilde{a}_t \mid a_t, s_t)$, where $\tilde{a}_t$ is the command physically applied to the actuators:
-\begin{equation}
-  P_{\mathrm{test}}(\tau) = \mu(s_0) \prod_{t=0}^{H-1} \pi(a_t \mid s_t; \hat{\phi})\, \tilde{T}(s_{t+1} \mid s_t, a_t, \xi),
-  \label{kai0:eq:ptest}
-\end{equation}
-with effective transition kernel
-\begin{equation}
-  \tilde{T}(s_{t+1} \mid s_t, a_t, \xi) \triangleq \mathbb{E}_{\tilde{a}_t \sim I(\cdot \mid a_t, s_t)} \big[ T(s_{t+1} \mid s_t, \tilde{a}_t, \xi) \big].
-  \label{kai0:eq:ttilde}
-\end{equation}
-This operator $I$ captures the discrepancy noted in Section~\ref{kai0:sec:intro} between predicted commands and physically realised motions under inference latency and controller limits.
-
-\paragraph{Status of the formalism.} We do not explicitly fit density estimators for $P_{\mathrm{train}}$, $Q_{\mathrm{model}}$ or $P_{\mathrm{test}}$, nor do we compute statistical divergences or support-coverage metrics among them before and after each module. Phrases such as ``aligning $Q_{\mathrm{model}}$ with $P_{\mathrm{train}}$'' therefore express the design rationale of each component rather than a directly quantified divergence reduction, and the t-SNE projections in Fig.~\ref{kai0:fig:consistency} serve as qualitative visualisations. Directly measuring these shifts, for instance via action likelihoods on held-out DAgger states or embedding-space coverage ratios between test rollouts and training demonstrations, remains an open direction for subsequent work.
+Relative to $P_{\mathrm{real}}$, we distinguish three distributions in the learning loop:
+\begin{itemize}
+  \item \textbf{Training distribution ($P_{\mathrm{train}}$)}: the empirical trajectory distribution of human teleoperation demonstrations, yielding dataset $\mathcal{D} = \{\tau^{(i)}\}_{i=1}^{N}$.
+  \item \textbf{Model distribution ($Q_{\mathrm{model}}$)}: the policy-induced trajectory distribution $Q_{\mathrm{model}}(\tau) = P_{\pi(\cdot\mid\cdot;\hat{\phi})}(\tau)$ induced via Eq.~\eqref{kai0:eq:traj_distrib} by rolling out the learned policy $\pi(a \mid s; \hat{\phi})$ fitted by maximum likelihood on $\mathcal{D}$~\cite{ross2011dagger,osa2018algorithmic}:
+  \begin{equation}
+    \hat{\phi} = \argmax_{\phi} \sum_{\tau \in \mathcal{D}} \sum_{t} \log \pi(a_t \mid s_t; \phi),
+    \label{kai0:eq:qmodel}
+  \end{equation}
+  so that $Q_{\mathrm{model}}$ lives on the same trajectory space as $P_{\mathrm{train}}$ and $P_{\mathrm{test}}$, with extrapolation outside $\mathcal{D}$ reflecting architectural priors and pre-trained weights (for flow-matching policies such as $\pi_{0.5}$~\cite{black2024pi0,black2025pi05}, maximum-likelihood training in Eq.~\eqref{kai0:eq:qmodel} is instantiated by minimising the conditional flow-matching velocity-field regression loss over action chunks).
+  \item \textbf{Test distribution ($P_{\mathrm{test}}$)}: the closed-loop rollout distribution when $Q_{\mathrm{model}}$ acts through a hardware execution operator $I(\tilde{a}_t \mid a_t, s_t)$ mapping predicted actions $a_t$ to applied commands $\tilde{a}_t$ under latency and actuator bounds:
+  \begin{equation}
+    P_{\mathrm{test}}(\tau) = \mu(s_0) \prod_{t=0}^{H-1} \pi(a_t \mid s_t; \hat{\phi})\, \tilde{T}(s_{t+1} \mid s_t, a_t, \xi),
+    \label{kai0:eq:ptest}
+  \end{equation}
+  \begin{equation}
+    \tilde{T}(s_{t+1} \mid s_t, a_t, \xi) \triangleq \mathbb{E}_{\tilde{a}_t \sim I(\cdot \mid a_t, s_t)} \big[ T(s_{t+1} \mid s_t, \tilde{a}_t, \xi) \big].
+    \label{kai0:eq:ttilde}
+  \end{equation}
+\end{itemize}
+Because we do not fit explicit density estimators or compute divergences among $P_{\mathrm{train}}$, $Q_{\mathrm{model}}$, and $P_{\mathrm{test}}$, these definitions serve as a conceptual lens for each module's objective rather than measured divergence reductions, and the t-SNE projections (Fig.~\ref{kai0:fig:consistency}) are qualitative.
 
 \subsection{Three Systematic Inconsistencies}\label{kai0:sec:inconsistencies}
-Failures observed during physical evaluation fall into three recurring mismatches among the three distributions across different stages of the learning loop:
-\begin{enumerate}[label=(\roman*)]
-  \item \textbf{Coverage deficiency.} Because $P_{\mathrm{train}}$ samples the high-dimensional target manifold $P_{\mathrm{real}}$ sparsely, $Q_{\mathrm{model}}$ becomes overfitted to the narrow modes present in the collected demonstrations.
-  \item \textbf{Temporal mismatch.} Multi-stage tasks often exhibit visually similar cloth configurations at distinct stages of completion, causing $Q_{\mathrm{model}}$ to confuse temporal context; concurrently, communication and inference delays introduce an execution offset between predicted and applied commands. Both effects surface in $P_{\mathrm{test}}$ as stalled motion or stage errors.
-  \item \textbf{Failure cascade.} Since unperturbed demonstrations in $P_{\mathrm{train}}$ rarely include corrective manoeuvres, the policy lacks self-recovery skills once minor disturbances push trajectories off course in $P_{\mathrm{test}}$.
-\end{enumerate}
-The three modules of \chiz target these mismatches in turn, as detailed next.
+Observed rollout failures correspond to three recurring mismatches among these distributions: (i)~\textbf{coverage deficiency}, where sparse sampling of $P_{\mathrm{real}}$ by $P_{\mathrm{train}}$ causes $Q_{\mathrm{model}}$ to overfit narrow demonstration modes; (ii)~\textbf{temporal mismatch}, where visually similar cloth states at different task stages confuse $Q_{\mathrm{model}}$ while inference latency offsets applied commands in $P_{\mathrm{test}}$; and (iii)~\textbf{failure cascade}, where the lack of corrective manoeuvres in $P_{\mathrm{train}}$ leaves the policy unable to recover once disturbances push trajectories off course in $P_{\mathrm{test}}$.
 
 % =============================================================================
 \section{Method}\label{kai0:sec:method}
 
 \subsection{Overview of the Framework}\label{kai0:sec:pipeline}
-To counter the three mismatches identified in Section~\ref{kai0:sec:inconsistencies} under practical compute and data budgets, \chiz combines three modules across the learning pipeline (Fig.~\ref{kai0:fig:pipeline}). Model Arithmetic (Section~\ref{kai0:sec:ma}) broadens policy coverage in parameter space by interpolating checkpoints trained on disjoint data splits. Stage Advantage (Section~\ref{kai0:sec:sa}) mitigates temporal ambiguity during policy fitting through stage-conditioned advantage estimation, yielding less noisy supervision across multi-step episodes. Train--Deploy Alignment (Section~\ref{kai0:sec:tda}) links physical execution back to training by combining run-time chunk smoothing with targeted recovery collection and data augmentation.
+To counter the three mismatches of Section~\ref{kai0:sec:inconsistencies} within practical data and compute budgets, \chiz coordinates three modules across the learning pipeline (Fig.~\ref{kai0:fig:pipeline}). Model Arithmetic (Section~\ref{kai0:sec:ma}) expands policy coverage in weight space by interpolating checkpoints trained on disjoint data partitions. Stage Advantage (Section~\ref{kai0:sec:sa}) resolves temporal ambiguity during imitation learning via stage-conditioned advantage estimation, providing lower-variance supervision across multi-stage tasks. Train--Deploy Alignment (Section~\ref{kai0:sec:tda}) connects physical execution back to training by combining run-time chunk smoothing with targeted recovery data and spatiotemporal augmentation.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-kai0/images/pipeline_v6_compress.pdf}
-  \caption[Pipeline of \chiz]{\textbf{Architecture of \chiz.} Three modules target distributional mismatches across the learning loop. \textbf{Left} ($P_{\mathrm{train}}$): heuristic DAgger collection and spatio-temporal augmentation broaden state coverage, while stage labels support advantage estimation. \textbf{Middle} ($Q_{\mathrm{model}}$): Model Arithmetic interpolates subset-trained checkpoints in weight space alongside stage-conditioned advantage weighting. \textbf{Right} ($P_{\mathrm{test}}$): temporal chunk-wise smoothing stabilises physical control, and on-policy DAgger feeds recovery rollouts back into training.}
+  \caption[Pipeline of \chiz]{\textbf{Architecture of \chiz.} \textbf{Left} ($P_{\mathrm{train}}$): heuristic DAgger recovery collection, spatiotemporal augmentation, and stage annotations. \textbf{Middle} ($Q_{\mathrm{model}}$): Model Arithmetic weight interpolation and Stage Advantage conditioning. \textbf{Right} ($P_{\mathrm{test}}$): temporal chunk-wise smoothing and on-policy DAgger feedback.}
   \label{kai0:fig:pipeline}
 \end{figure}
 
 \subsection{Model Arithmetic}\label{kai0:sec:ma}
-When initial teleoperation budgets are modest, $P_{\mathrm{train}}$ exhibits sparse state coverage, biasing a single fine-tuned policy towards narrow manipulation habits. While collecting orders of magnitude more demonstrations could eventually bring $P_{\mathrm{train}}$ closer to $P_{\mathrm{real}}$, doing so for bimanual garment manipulation demands prohibitive robot and operator time. This motivates a practical question: \emph{how can we reduce coverage bias in the learned policy without collecting additional raw demonstrations?}
-
-Model Arithmetic (MA) addresses this by interpolating the parameters of checkpoints trained on disjoint subsets of the demonstration corpus, using held-out validation loss to choose the mixing weights. Unlike mixture-of-experts (MoE) architectures that require learned routing networks and specialised training objectives~\cite{shazeer2017outrageously,fedus2022switch}, or output-level ensembles that multiply inference cost by running multiple networks in parallel~\cite{lakshminarayanan2017simple}, MA collapses multiple checkpoints into a single parameter vector at zero extra run-time cost. Specifically, we partition the training dataset $\mathcal{D}$ randomly into $n$ disjoint splits $\{\mathcal{D}_1, \mathcal{D}_2, \dots, \mathcal{D}_n\}$ drawn from $P_{\mathrm{train}}$, fine-tune an independent policy checkpoint $\theta_i$ on each split, and form the merged parameter vector via convex combination:
+Under modest teleoperation budgets, $P_{\mathrm{train}}$ samples the state space sparsely, biasing a single fine-tuned checkpoint toward narrow manipulation routines. How can we reduce this coverage bias in $Q_{\mathrm{model}}$ without collecting additional raw demonstrations? Unlike mixture-of-experts architectures that require learned routers~\cite{shazeer2017outrageously,fedus2022switch} or output ensembles that multiply forward-pass latency~\cite{lakshminarayanan2017simple}, Model Arithmetic (MA) combines multiple checkpoints into a single weight vector at zero run-time overhead. Specifically, we partition $\mathcal{D} \sim P_{\mathrm{train}}$ randomly into $n$ disjoint subsets $\{\mathcal{D}_1, \mathcal{D}_2, \dots, \mathcal{D}_n\}$, fine-tune an independent checkpoint $\theta_i$ on each subset, and form the deployed parameters via convex combination:
 \begin{equation}
-  \theta_{\mathrm{merged}} = \sum_{i=1}^{n} \alpha_i \theta_i, \qquad \text{s.t.}\quad \alpha_i \ge 0, \quad \sum_{i=1}^{n} \alpha_i = 1.
+  \theta_{\mathrm{merged}} = \sum_{i=1}^{n} \alpha_i \theta_i, \qquad \text{s.t.}\quad \alpha_i \ge 0, \quad \sum_{i=1}^{n} \alpha_i = 1,
   \label{kai0:eq:arith}
 \end{equation}
-Here the mixing weights $\{\alpha_i\}$ are chosen to minimise validation loss on a held-out split, producing a single deployed policy $Q_{\mathrm{model}}$ parameterised by $\theta_{\mathrm{merged}}$. The underlying intuition is that checkpoints fitted to distinct data partitions may capture complementary behavioural modes across the solution manifold; we therefore evaluate several strategies for selecting the interpolation coefficients.
+where the coefficients $\{\alpha_i\}$ are selected to reduce validation loss on a held-out set, consolidating complementary behavioural modes across partitions.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.75\linewidth]{ch-kai0/images/arithmetic_v4.pdf}
-  \caption[Souping strategies in Model Arithmetic]{\textbf{Weight-merging schemes in Model Arithmetic.} Checkpoints fine-tuned on disjoint data partitions are combined via convex weight interpolation. \textbf{Top}: inverse-loss weighting allocates larger weights to checkpoints achieving lower held-out loss. \textbf{Bottom}: uniform averaging, gradient-based optimisation and greedy selection.}
+  \caption[Souping strategies in Model Arithmetic]{\textbf{Weight-merging schemes in Model Arithmetic.} Checkpoints trained on disjoint subsets are merged via convex weight interpolation using inverse-loss weighting (\textbf{top}) or uniform averaging, gradient optimisation, and greedy selection (\textbf{bottom}).}
   \label{kai0:fig:arithmetic}
 \end{figure}
 
-\paragraph{Out-of-distribution validation.} A key factor in weight merging is how the validation set is constructed. Rather than evaluating checkpoints on in-domain subsets drawn from the same demonstration distribution, we assemble an out-of-distribution (OOD) validation set that probes recovery states absent from the initial demonstrations. Concretely, we gather DAgger recovery rollouts~\cite{ross2011dagger,kelly2019hgdagger} by executing the subset-trained policies on the physical robot with human corrective interventions. While MA does not expand the primary training splits, acquiring this OOD validation split does involve physical rollouts and operator supervision, a collection cost noted in Section~\ref{kai0:sec:limitations}.
+\paragraph{Out-of-distribution validation.} Rather than tuning $\{\alpha_i\}$ only on in-domain demonstrations, we construct an OOD validation split from DAgger recovery rollouts~\cite{ross2011dagger,kelly2019hgdagger} gathered by running the subset policies on the physical robot with human corrective interventions. Although MA does not enlarge the primary training splits, collecting this OOD validation set still entails physical rollouts and operator time (Section~\ref{kai0:sec:limitations}).
 
-\paragraph{Merging strategies.} Using this validation split, we benchmark four weight-souping schemes~\cite{wortsman2022soups} for computing $\theta_{\mathrm{merged}}$ (Fig.~\ref{kai0:fig:arithmetic}):
+\paragraph{Merging strategies.} Using this validation set, we evaluate four weight-souping rules~\cite{wortsman2022soups} (Fig.~\ref{kai0:fig:arithmetic}; Sections~\ref{kai0:sec:exp_ma} and~\ref{kai0:app:ma}):
 \begin{itemize}
-  \item \emph{Average weighting}~\cite{wortsman2022soups} sets equal coefficients $\alpha_i = 1/n$ across all $n$ checkpoints.
-  \item \emph{Inverse-loss weighting}~\cite{maiti2025souper} scales each weight in inverse proportion to the validation loss $L_i$ of checkpoint $i$ prior to normalisation:
+  \item \emph{Average weighting}~\cite{wortsman2022soups} assigns uniform coefficients $\alpha_i = 1/n$.
+  \item \emph{Inverse-loss weighting}~\cite{maiti2025souper} weights each checkpoint $i$ inversely to its validation loss $L_i$ with scalar hyper-parameters $\delta$ and $p$:
   \begin{equation}
-    \alpha_i \propto \frac{1}{(L_i + \delta)^{p}},
+    \alpha_i \propto \frac{1}{(L_i + \delta)^{p}}.
     \label{kai0:eq:invloss}
   \end{equation}
-  where $\delta$ and $p$ are scalar hyper-parameters.
-  \item \emph{Gradient descent}~\cite{ilharco2023task}, along with an adaptive-step variant, parameterises the simplex weights through a softmax transformation and directly minimises the validation loss $\mathcal{L}_{\mathrm{val}}$ of the interpolated network $\theta_{\mathrm{merged}}$ via gradient updates:
+  \item \emph{Gradient descent}~\cite{sima2026kai0} (plus an adaptive-step variant) parameterises the simplex weights via a softmax map and directly minimises the validation loss $\mathcal{L}_{\mathrm{val}}$ of $\theta_{\mathrm{merged}}$:
   \begin{equation}
     \bm{\alpha} = \operatorname{softmax}(\mathbf{w}), \qquad \min_{\mathbf{w}}\ \mathcal{L}_{\mathrm{val}}\Big(\sum_{i} \alpha_i \theta_i\Big).
     \label{kai0:eq:gd}
   \end{equation}
-  \item \emph{Greedy search}~\cite{wortsman2022soups} builds the soup incrementally, retaining at each step the candidate checkpoint that yields the largest reduction in validation loss when uniformly averaged with the current active set.
+  \item \emph{Greedy search}~\cite{wortsman2022soups} incrementally adds the candidate checkpoint that achieves the largest validation-loss drop when uniformly averaged with the active set.
 \end{itemize}
-By selecting convex combinations in parameter space against held-out recovery data, MA seeks to consolidate behavioural modes from separate data splits into one policy without enlarging the demonstration set. We compare these four schemes empirically in Section~\ref{kai0:sec:exp_ma} and provide further implementation notes in Appendix~\ref{kai0:app:ma}.
 
 \subsection{Stage Advantage}\label{kai0:sec:sa}
-Stage Advantage was designed by co-author Lirui Zhao (see the contribution statement) and is included here to give a complete account of the integrated \chiz pipeline. Whereas Model Arithmetic targets coverage bias in $Q_{\mathrm{model}}$, a merged policy can still falter during multi-stage rollouts in $P_{\mathrm{test}}$ due to temporal ambiguity. When visually similar cloth states occur in different phases of a manipulation sequence, the policy may trigger actions appropriate for an earlier or later phase, accumulating errors across long horizons. Resolving this ambiguity requires a progress signal that evaluates action utility relative to the active phase of the task~\cite{chen2025robot}. The central design question is thus \emph{how to construct a low-variance, stage-aware progress signal for long-horizon policy learning}.
+Developed by co-author Lirui Zhao (see the contribution statement), Stage Advantage (SA) addresses temporal ambiguity in $P_{\mathrm{test}}$ when visually similar cloth states recur at different phases of a multi-stage sequence, providing a low-variance, stage-aware progress signal for policy training~\cite{sima2026kai0}.
 
-\paragraph{Advantage as a difference of values.} Prior work such as $\pi^{*}_{0.6}$~\cite{amin2026pistar06} pairs advantage-weighted regression~\cite{wu2023elastic,kuba2023advantage} with an implicit advantage estimate computed as the difference between two separate state-value predictions:
+\paragraph{Value differencing vs.\ direct stage-conditioned advantage.} Prior VLA methods such as $\pi^{*}_{0.6}$~\cite{amin2026pistar06} pair AWR~\cite{wu2023elastic,kuba2023advantage} with state-value differences,
 \begin{equation}
-  A(s, a) = V(s') - V(s).
+  A(s, a) = V(s') - V(s),
   \label{kai0:eq:adv_vdiff}
 \end{equation}
-Subtracting two independently regressed values compounds per-frame prediction noise, producing high-variance weights during training. In addition, predicting a single global progress scalar $V(s)$ without stage conditioning becomes ill-posed whenever distinct stages of a task produce visually similar observations.
-
-\paragraph{Direct advantage.} To reduce temporal noise in the supervision signal, Stage Advantage regresses the transition advantage directly from a pair of observations:
+which compounds per-frame errors $e, e'$ with variance $\operatorname{Var}(e) + \operatorname{Var}(e') - 2\operatorname{Cov}(e, e')$ ($\operatorname{Cov}(e, e') \approx 0$) and becomes ill-posed when separate stages look visually similar. SA instead regresses relative timestamp progress directly from frame pairs $(s, s')$ ($s' = s_{t+\Delta}$ across varied step offsets $\Delta$) via a VLM estimator $f_{\theta}$ (Fig.~\ref{kai0:fig:pipeline}):
 \begin{equation}
   A(s, a) = f_{\theta}(s, s'),
   \label{kai0:eq:adv_direct}
 \end{equation}
-where $f_{\theta}$ outputs the relative progress between $s$ and $s'$. Although the ground-truth training target is still defined as the difference in normalised timestamp progress between $s'$ and $s$ (Appendix~\ref{kai0:app:sa}), predicting that difference jointly with a single network alters the error structure. Specifically, if two separate value calls incur errors $e$ and $e'$, the difference $V(s') - V(s)$ has error variance $\operatorname{Var}(e) + \operatorname{Var}(e') - 2\operatorname{Cov}(e, e')$ with $\operatorname{Cov}(e, e') \approx 0$; a joint estimator conditioned on both frames $(s, s')$ can induce positive error correlation across the pair, lowering the resulting variance. We evaluate this smoothness effect empirically in Section~\ref{kai0:sec:exp_sa}. Architecturally, $f_{\theta}$ is implemented as a VLM backbone that ingests paired camera frames (Fig.~\ref{kai0:fig:pipeline}), with training pairs formed by sampling variable step offsets $\Delta$ and setting $s' = s_{t+\Delta}$ so the estimator does not overfit to a single time stride.
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=0.58\linewidth]{ch-kai0/images/advantage_v4_1_compress.pdf}
-  \caption[Cumulative value based on Stage Advantage]{\textbf{Cumulative progress curves from Stage Advantage.} Green and red shading indicate positive and negative predicted advantage, respectively. \textbf{Top}: Task~A trace illustrating a cloth slip followed by recovery. \textbf{Middle}: Task~B trace showing garment retrieval and placement correction. \textbf{Bottom}: Task~C trace under rack pull-over and partial occlusion.}
-  \label{kai0:fig:advantage}
-\end{figure}
-
-\paragraph{Stage conditioning.} To eliminate ambiguity when similar visual states recur across different phases of a task, Stage Advantage partitions each long-horizon task into $S$ sequential semantic sub-goals, referred to as stages. Rather than scoring progress across the entire episode at once, the network conditions its prediction on the active stage indicator $g$:
+inducing positive error correlation across the pair to lower temporal variance (Section~\ref{kai0:sec:exp_sa}). To disambiguate similar cloth states across $S$ manual semantic stages, $f_{\theta}(s, s' \mid g)$ acts as a stage-conditioned multi-step progress predictor conditioned on the normalised stage index $g$ (written $A_{\mathrm{stage}}$ following the paper's terminology):
 \begin{equation}
   A_{\mathrm{stage}}(s, a, g) = f_{\theta}(s, s' \mid g), \qquad g \in \Big\{0, \frac{1}{S}, \dots, \frac{S-1}{S}\Big\}.
   \label{kai0:eq:adv_stage}
 \end{equation}
-Here $g$ is a normalised scalar obtained from manual stage boundaries across the $S$ stages (Fig.~\ref{kai0:fig:pipeline}). Figure~\ref{kai0:fig:advantage} illustrates the resulting cumulative progress traces across the three benchmark tasks of Section~\ref{kai0:sec:tasks}.
-
-\paragraph{Binary optimality indicator.} In line with~\cite{chen2025robot,amin2026pistar06}, the continuous stage-conditioned advantage is converted into a binary optimality label via thresholding:
+Figure~\ref{kai0:fig:advantage} plots the resulting cumulative progress curves across Tasks~A--C (Section~\ref{kai0:sec:tasks}). Following the binary optimality construction in $\pi^{*}_{0.6}$~\cite{amin2026pistar06}, $A_{\mathrm{stage}}$ is converted into a binary optimality indicator for advantage-weighted behaviour cloning:
 \begin{equation}
   I = \mathbf{1}[A_{\mathrm{stage}} > \epsilon],
   \label{kai0:eq:indicator}
 \end{equation}
-where $\epsilon$ partitions transitions into productive and non-productive updates. Rather than fixing a constant cutoff, we set $\epsilon$ by quantile ranking: transitions are ordered by predicted advantage and the upper fraction $q = 0.3$ is assigned $I = 1$, placing $\epsilon$ at the 70th percentile of predicted values (Appendix~\ref{kai0:app:sa}). During policy training, this indicator upweights demonstration segments in $P_{\mathrm{train}}$ that advance the active sub-goal, aiming to reduce stalling and repetitive motions during deployment ($P_{\mathrm{test}}$); we assess its impact on task-level metrics in Section~\ref{kai0:sec:exp_sa}. Pair sampling, quantile selection and task stage definitions are detailed in Appendix~\ref{kai0:app:sa}.
+where $\epsilon$ is set at the 70th percentile so the top fraction $q = 0.3$ of transitions receives $I = 1$, upweighting productive demonstration segments in $P_{\mathrm{train}}$ to reduce stalling in $P_{\mathrm{test}}$ (Sections~\ref{kai0:sec:exp_sa} and~\ref{kai0:app:sa}).
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.58\linewidth]{ch-kai0/images/advantage_v4_1_compress.pdf}
+  \caption[Cumulative value based on Stage Advantage]{\textbf{Cumulative progress curves from Stage Advantage.} Green and red shading indicate positive and negative predicted advantage on Task~A (cloth slip and recovery, \textbf{top}), Task~B (retrieval and placement adjustment, \textbf{middle}), and Task~C (rack pull-over under occlusion, \textbf{bottom}).}
+  \label{kai0:fig:advantage}
+\end{figure}
 
 \subsection{Train--Deploy Alignment}\label{kai0:sec:tda}
-Even when a policy is well regularised over multi-step horizons, deploying it on physical hardware introduces discrepancies between $Q_{\mathrm{model}}$ and $P_{\mathrm{test}}$. Forward-pass computation and communication delays shift the timing of executed commands and allow tracking drift to accumulate. Action-chunking controllers are particularly vulnerable to this delay: the pause between finishing one inference pass and starting the next disrupts velocity and position continuity at chunk boundaries, producing jerky transitions that destabilise cloth contact. Whereas prior controllers smooth or condition chunks at run time~\cite{zhao2023aloha,black2025rtc,tang2025vlash}, \chiz introduces \emph{temporal chunk-wise smoothing} to maintain continuous actuation across chunk updates (Fig.~\ref{kai0:fig:consistency}, bottom left).
+During physical deployment, forward-pass and communication delays between $Q_{\mathrm{model}}$ and $P_{\mathrm{test}}$ create velocity and position jumps at action-chunk boundaries. Whereas prior controllers smooth or inpaint chunks at run time~\cite{zhao2023aloha,black2025rtc,tang2025vlash}, \chiz applies \emph{temporal chunk-wise smoothing} to maintain continuous actuation across chunk updates (Fig.~\ref{kai0:fig:consistency}, bottom left; Algorithm~\ref{kai0:alg:chunk_smoothing}). Given the unconsumed suffix $\mathbf{a}^{\mathrm{old}}$ of the previous action chunk starting at index $k$ (so $a^{\mathrm{old}}_j$ is the $j$-th remaining action in the buffer) and a new chunk $\mathbf{a}^{\mathrm{new}}$, we discard the stale prefix of length $d = \min(k, d_{\max})$ from $\mathbf{a}^{\mathrm{new}}$ (when the early-return branch $d \ge |\mathbf{a}^{\mathrm{new}}|$ fires, $k$ continues incrementing along the unconsumed buffer), pad $\mathbf{a}^{\mathrm{old}}$ to a minimum overlap $m_{\min}$, and linearly cross-fade the remaining suffix $\mathbf{a}^{\mathrm{new}}_{\mathrm{rem}}$ with $\mathbf{a}^{\mathrm{old}}$ over $L$ overlapping steps via decaying weights $w_i$. Unlike ACT temporal ensembling~\cite{zhao2023aloha} (which queries the model at every control step to average all historical chunks) or RTC~\cite{black2025rtc} (which inpaints chunks during sampling conditioned on committed actions), chunk-wise smoothing post-processes consecutive buffers without extra model evaluations and combines orthogonally with RTC (Section~\ref{kai0:sec:exp_tda}).
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.68\linewidth]{ch-kai0/images/consistency_v4.pdf}
-  \caption[Train--Deploy Alignment strategies and t-SNE visualisations]{\textbf{Train--Deploy Alignment mechanisms and qualitative t-SNE projections.} \textbf{Left}: the three alignment mechanisms bridging training and execution. \textbf{Right}: qualitative t-SNE projections illustrating how the trajectory distributions overlap more closely as each mechanism is added.}
+  \caption[Train--Deploy Alignment strategies and t-SNE visualisations]{\textbf{Train--Deploy Alignment mechanisms (\textbf{left}) and qualitative t-SNE trajectory projections (\textbf{right})} illustrating closer overlap among distributions as each mechanism is added.}
   \label{kai0:fig:consistency}
 \end{figure}
 
-\paragraph{Temporal chunk-wise smoothing.} Denote by $\mathbf{a}^{\mathrm{old}}$ the active execution buffer holding unexecuted actions from the preceding inference step, and by $\mathbf{a}^{\mathrm{new}}$ the action chunk just returned by the model. We track the number of steps already consumed from the active buffer via an index $k$, discard actions rendered obsolete during inference up to a ceiling $d_{\max}$, and enforce a minimum blending window $m_{\min}$. Algorithm~\ref{kai0:alg:chunk_smoothing} summarises the update rule. Once the stale prefix of length $d = \min(k, d_{\max})$ is removed from $\mathbf{a}^{\mathrm{new}}$, the remaining suffix $\mathbf{a}^{\mathrm{new}}_{\mathrm{rem}}$ is linearly cross-faded with $\mathbf{a}^{\mathrm{old}}$ over $L$ overlapping steps via decaying weights $w_i$, ensuring a smooth transition from the ongoing trajectory to the newly planned chunk.
-
 \begin{algorithm}[tb]
-  \caption{Temporal chunk-wise smoothing}\label{kai0:alg:chunk_smoothing}
-  \KwIn{current buffer $\mathbf{a}^{\mathrm{old}}$, consumption index $k$, new chunk $\mathbf{a}^{\mathrm{new}}$, drop threshold $d_{\max}$, minimum overlap $m_{\min}$}
-  \KwOut{updated buffer $\mathbf{a}^{\mathrm{buf}}$ and reset index $k \leftarrow 0$}
+  \caption{Temporal chunk-wise smoothing}\label{kai0:alg:chunk_smoothing}\label{kai0:alg:smoothing}
+  \KwIn{unconsumed suffix $\mathbf{a}^{\mathrm{old}}$ of previous action chunk starting at index $k$ ($a^{\mathrm{old}}_j$ is the $j$-th remaining action), consumption index $k$, new chunk $\mathbf{a}^{\mathrm{new}}$, drop threshold $d_{\max}$, minimum overlap $m_{\min}$}
+  \KwOut{updated buffer $\mathbf{a}^{\mathrm{buf}}$ and updated index $k$}
   $d \leftarrow \min(k, d_{\max})$\tcp*{stale prefix length}
   \If{$d \ge |\mathbf{a}^{\mathrm{new}}|$}{
-    \Return{$\mathbf{a}^{\mathrm{old}}, k$}\tcp*{skip outdated chunk}
+    \Return{$\mathbf{a}^{\mathrm{old}}, k$}\tcp*{skip outdated chunk; $k$ continues incrementing along $\mathbf{a}^{\mathrm{old}}$}
   }
   $\mathbf{a}^{\mathrm{new}}_{\mathrm{rem}} \leftarrow (a^{\mathrm{new}}_{d}, \dots)$\tcp*{unconsumed new actions}
   \If{$|\mathbf{a}^{\mathrm{old}}| < m_{\min}$}{
@@ -239,22 +202,13 @@ Even when a policy is well regularised over multi-step horizons, deploying it on
   \Return{$\mathbf{a}^{\mathrm{buf}}, k$}\;
 \end{algorithm}
 
-\paragraph{Relation to other execution methods.} Temporal chunk-wise smoothing performs a linear cross-fade between the unexecuted tail of the previous buffer and the incoming chunk. Unlike the temporal ensembling scheme of ACT~\cite{zhao2023aloha}, which runs a forward pass at every control tick and takes an exponentially weighted average over all historical predictions covering the current step, chunk-wise smoothing interpolates only two consecutive buffers without increasing query frequency. It also differs from RTC~\cite{black2025rtc}, which formulates chunk generation as an inpainting problem conditioned on the actions committed during model evaluation: chunk-wise smoothing leaves the network forward pass untouched, operates purely as a post-processing filter on joint commands, and accounts for latency by trimming the stale prefix. Because RTC acts during sampling and chunk-wise smoothing acts on the output buffer, the two techniques are orthogonal and can be used together (Section~\ref{kai0:sec:exp_tda}).
-
-\paragraph{Closing the loop from deployment to training.} Alongside run-time smoothing, we ask: \emph{how can failure states encountered in $P_{\mathrm{test}}$ be folded back into $P_{\mathrm{train}}$ with minimal collection overhead?} Because ordinary demonstrations rarely visit error states, policies trained solely on nominal trajectories are prone to compounding failures. \chiz closes the deployment-to-training loop through two data-side mechanisms:
-\begin{enumerate}
-  \item Standard on-policy DAgger~\cite{ross2011dagger,kelly2019hgdagger} pushes $P_{\mathrm{train}}$ into error-prone regions of the state space, yet waiting for rollouts to fail organically consumes substantial robot time. Under \emph{heuristic DAgger}, operators instead place the garment directly into handcrafted fault configurations (such as slipped grasps or half-dropped cloth) and record human recovery trajectories without running the learned policy (Fig.~\ref{kai0:fig:consistency}, top left). Fault exposure is thus concentrated at the start of collection. Because both approaches supply corrective trajectories in states where the controller struggles, the resulting improvements reflect targeted data expansion.
-  \item To broaden $P_{\mathrm{train}}$ without additional hardware rollouts, \chiz incorporates \emph{spatio-temporal augmentation}: images and actions are mirrored horizontally with left-right arm exchange~\cite{li2025gr}, while variable execution speeds are synthesised through selective frame subsampling (Fig.~\ref{kai0:fig:consistency}).
-\end{enumerate}
-Protocols for both standard and heuristic DAgger appear in Appendix~\ref{kai0:app:tda}.
+\paragraph{Closing the loop from deployment to training.} To fold error states from $P_{\mathrm{test}}$ back into $P_{\mathrm{train}}$ with minimal collection overhead, TDA uses two data-side mechanisms (Section~\ref{kai0:app:tda}): (1)~whereas interactive DAgger collects expert labels on states visited by the learned policy~\cite{ross2011dagger,kelly2019hgdagger}, \emph{heuristic DAgger} places the garment directly into hand-crafted fault states (such as slipped grasps or half-dropped cloth) and records human recovery trajectories without running the learned policy (Fig.~\ref{kai0:fig:consistency}, top left), concentrating targeted data expansion at failure states; and (2)~\emph{spatiotemporal augmentation} horizontally mirrors camera frames and joint actions with left-right arm swap~\cite{li2025gr} while subsampling frames to synthesise varied execution speeds.
 
 % =============================================================================
 \section{System and Data Setup}\label{kai0:sec:setup}
 
-Our empirical study focuses on multi-stage bimanual garment manipulation encompassing flattening from crumpled states, folding, handover, and rack hanging. Because cloth exhibits high-dimensional contact dynamics and frequent state degradation, these benchmarks expose the distributional mismatches analysed in Section~\ref{kai0:sec:inconsistencies}.
-
 \subsection{Robot Platform}\label{kai0:sec:platform}
-The dual-station bimanual setup is illustrated in Figure~\ref{kai0:fig:robot_setup}. Two dual-arm stations are used: one built with AgileX Piper manipulators and the other with ARX X5 manipulators. Every station features two 6-DoF arms fitted with 1-DoF parallel-jaw grippers alongside three Intel RealSense D435i RGB cameras (one overhead static camera plus two wrist-mounted cameras) streaming at $640 \times 480$ resolution. Policy inference executes on a local workstation equipped with an NVIDIA RTX 4090 GPU; hardware specifications and control loop parameters are documented in Appendix~\ref{kai0:app:hardware}.
+Our dual-station bimanual setup (Fig.~\ref{kai0:fig:robot_setup}; Section~\ref{kai0:app:hardware}) comprises one station with AgileX Piper arms and one with ARX X5 arms. Each station mounts two 6-DoF manipulators with 1-DoF parallel-jaw grippers and three $640 \times 480$ Intel RealSense D435i RGB cameras (one overhead static camera plus two wrist cameras), with policy inference running on a local NVIDIA RTX 4090 GPU workstation.
 
 \begin{figure}[t]
   \centering
@@ -264,17 +218,16 @@ The dual-station bimanual setup is illustrated in Figure~\ref{kai0:fig:robot_set
 \end{figure}
 
 \subsection{Evaluation Tasks}\label{kai0:sec:tasks}
-Three garment manipulation benchmarks ordered by difficulty are used to test \chiz, with key attributes listed in Table~\ref{kai0:tab:tasks}.
-
-\paragraph{Task A: T-shirt flattening and folding (easy).} Adapted as a streamlined version of the $\pi$-series laundry benchmark~\cite{black2024pi0,black2025pi05,amin2026pistar06}, this setting requires unfolding a crumpled T-shirt from an arbitrary starting pose and completing a full fold. Completion is credited when the folded garment rests near the workspace centre within a 180-second horizon.
-
-\paragraph{Task B: conditional retrieval and sorting (medium).} Building on the $\pi$-series benchmark~\cite{black2024pi0,black2025pi05,amin2026pistar06}, this task introduces category-dependent routing. Starting from arbitrary configurations, the robot fetches and flattens either a T-shirt or a collared shirt; T-shirts must then be folded and placed at the upper-left corner, whereas collared shirts must be passed to the right-hand workspace, both within a 180-second cutoff.
-
-\paragraph{Task C: garment hanging (hard).} Following the hanging benchmark in GR-3~\cite{cheang2025gr3}, the robot receives a flattened collared shirt from Task~B, fits it onto a hanger rack, and suspends it on the rail. Success requires the shirt to remain stably hung on the rod without slipping off; no fixed episode time cutoff is recorded in the evaluation summary logs (Table~\ref{kai0:tab:tasks}).
+We evaluate \chiz across three garment manipulation benchmarks ordered by difficulty (Table~\ref{kai0:tab:tasks}):
+\begin{itemize}
+  \item \textbf{Task A: T-shirt flattening and folding (easy).} Streamlined from the $\pi$-series laundry benchmark~\cite{black2024pi0,black2025pi05,amin2026pistar06}: unfold a crumpled T-shirt from an arbitrary initial pose and fold it near the workspace centre within a 180-second horizon.
+  \item \textbf{Task B: conditional retrieval and sorting (medium).} Extending~\cite{black2024pi0,black2025pi05,amin2026pistar06} with category-dependent routing: fetch and flatten an arbitrarily posed garment within a 180-second cutoff, folding and placing T-shirts at the upper-left corner while passing collared shirts to the right-hand workspace.
+  \item \textbf{Task C: garment hanging (hard).} Following GR-3~\cite{cheang2025gr3}: receive a flattened collared shirt from Task~B, dress it onto a hanger rack, and suspend it stably on the rail without slipping (no fixed episode time cutoff is recorded in the summary logs).
+\end{itemize}
 
 \begin{table}[tb]
   \centering
-  \caption[Summary of the three garment manipulation tasks]{Characteristics of the three cloth manipulation benchmarks. Semantic sub-goals ($S$) correspond to the stage definitions in Stage Advantage (Section~\ref{kai0:sec:sa}). Recorded episode counts and average durations cover both base demonstrations and shorter DAgger recovery clips; Task~C was logged without a fixed episode cutoff (Section~\ref{kai0:sec:tasks}).}
+  \caption[Summary of the three garment manipulation tasks]{Characteristics of the three cloth manipulation benchmarks. Semantic sub-goals ($S$) match Stage Advantage (Section~\ref{kai0:sec:sa}); episode counts and mean durations cover both base demonstrations and shorter DAgger recovery clips, with no fixed cutoff logged for Task~C.}
   \label{kai0:tab:tasks}
   \small
   \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}Xccc@{}}
@@ -291,82 +244,77 @@ Three garment manipulation benchmarks ordered by difficulty are used to test \ch
 \end{table}
 
 \subsection{Metrics}\label{kai0:sec:metrics}
-Every policy variant runs for 30 rollouts (10 rollouts across each of three test garments), and four summary quantities are averaged across those 30 rollouts (uncertainty handling is detailed in Section~\ref{kai0:sec:protocol}):
+Each policy configuration runs for 30 rollouts (10 rollouts across each of three test garments) and is scored on four summary metrics:
 \begin{itemize}
-  \item \textbf{Success rate (SR)}: fraction of rollouts that satisfy the full task completion criteria, expressed as a percentage (higher is better).
-  \item \textbf{Throughput (TP)}: projected number of successful task completions per hour of operation (higher is better).
-  \item \textbf{Retry cost}: mean count of corrective re-attempts per rollout during closed-loop execution (lower is better).
-  \item \textbf{Average score}: partial-credit score normalized to a 100-point scale under a rule-based rubric that awards credit as intermediate sub-goals are reached (higher is better); exact sub-goal weights appear in Table~\ref{kai0:tab:score} of Appendix~\ref{kai0:app:exp}.
+  \item \textbf{Success rate (SR, \% $\uparrow$)}: percentage of rollouts that satisfy the full task completion criteria.
+  \item \textbf{Throughput (TP $\uparrow$)}: projected count of completed tasks per hour of operation.
+  \item \textbf{Retry cost ($\downarrow$)}: mean number of corrective re-attempts per rollout during closed-loop execution.
+  \item \textbf{Average score ($\uparrow$)}: partial-credit score normalised to a 100-point scale under a milestone rubric (sub-goal weights in Table~\ref{kai0:tab:score}, Section~\ref{kai0:app:exp}).
 \end{itemize}
-In the Stage Advantage ablations, temporal regularity of the predicted advantage trace is tracked via the smooth frame ratio (SFR, higher is better) alongside the mean squared temporal difference (MSTD, lower is better). Both metrics capture trajectory smoothness across consecutive frames rather than semantic accuracy, since a trivial constant output achieves zero temporal variation.
+Stage Advantage ablations additionally report the smooth frame ratio (\textbf{SFR} $\uparrow$) and mean squared temporal difference (\textbf{MSTD} $\downarrow$), which quantify frame-to-frame trajectory smoothness rather than ground-truth progress accuracy (since a constant predictor has zero temporal variation).
 
 \subsection{Evaluation Protocol and Uncertainty}\label{kai0:sec:protocol}
+Closed-loop rollouts run on the two physical stations of Section~\ref{kai0:sec:platform} in the demonstration workspace with garments tossed into arbitrary starting poses under randomised lighting (Section~\ref{kai0:app:data}). Because archived logs store only aggregate rollout summaries rather than the per-episode initial-state matching, operator blinding, scheduling, and garment-overlap metadata recommended by Kress-Gazit~\etal~\cite{kressgazit2024robot}, our experiments measure closed-loop reliability within the training workspace rather than zero-shot transfer to unseen rooms, hardware, or garments.
 
-\paragraph{Protocol.} Closed-loop rollouts are conducted on the two physical stations described in Section~\ref{kai0:sec:platform} within the same workspace used for demonstration capture, allowing execution errors to accumulate over time. Every model setting is tested over 30 rollouts partitioned equally across three garment instances (10 trials each), graded against the completion criteria and time limits in Section~\ref{kai0:sec:tasks} and Table~\ref{kai0:tab:tasks}, and assigned partial credit via Table~\ref{kai0:tab:score}. Garments are tossed into arbitrary starting poses prior to each rollout, mirroring the randomized cloth states and lighting variations used during demonstration collection (Appendix~\ref{kai0:app:data}). Best-practice reporting checklists for physical robot benchmarks by Kress-Gazit~\etal~\cite{kressgazit2024robot} further recommend logging exact initial-state matching procedures across policies, operator blinding, interleaved versus blocked rollout scheduling, overlap between training and test garments, and exact formulas for throughput projection and retry counting. Because the archived evaluation logs record only aggregate rollout summaries rather than per-episode scheduling and blinding metadata, our experiments strictly measure closed-loop reliability within the training workspace rather than out-of-distribution transfer to unseen hardware, rooms, or cloth instances.
-
-\paragraph{Uncertainty.} Table~\ref{kai0:tab:taskA} and Figs.~\ref{kai0:fig:exp_triple}--\ref{kai0:fig:exp_aug_control} report metrics from the plotted evaluation summaries, accurate to roughly one axis unit, supplemented with 95\% Wilson score intervals for $n = 30$ trials. Although the plotted bars include whiskers labelled as an ``accumulative standard error'', that quantity is undocumented in the evaluation codebase and is sometimes smaller than binomial sampling variance permits: for instance, the +SA bar in Fig.~\ref{kai0:fig:exp_triple} sits near 47\% (14 successes out of 30 trials) with a whisker of roughly $\pm 1$ percentage point, whereas the standard error across the three 10-trial garment strata is at least about 3 points and the pooled binomial standard error is near 9 points. Consequently, whiskers in the plots are ignored when comparing models. Instead, integer success counts are reconstructed from the discrete 3.3-point steps of a 30-trial proportion (where 27\% corresponds to 8 successes out of 30), and two-sided Fisher exact $p$-values alongside 95\% Wilson intervals are derived directly from those counts. At $n = 30$ trials per setting, a 95\% Wilson interval around 50\% spans roughly 34 percentage points, meaning that gaps of four or fewer successes never clear sampling noise ($p > 0.1$ under Fisher's exact test). Because trial-level logs are unavailable for throughput, retry cost, and average score, those three metrics are listed as point means without confidence intervals. Moreover, because the multi-factor grids in Figs.~\ref{kai0:fig:exp_souping} and~\ref{kai0:fig:exp_aug_control} involve numerous pairwise contrasts, nominal 5\% differences should be interpreted cautiously against multiple-testing inflation.
+Table~\ref{kai0:tab:taskA} and Figs.~\ref{kai0:fig:exp_triple}--\ref{kai0:fig:exp_aug_control} report metrics read from the plotted evaluation summaries (accurate to $\approx$1 axis unit), paired with reconstructed integer success counts (in 3.3-point steps for $n = 30$, where 27\% is 8/30), two-sided Fisher exact $p$-values, and 95\% Wilson intervals. Plotted whiskers labelled ``accumulative standard error'' are omitted from comparisons because that quantity is undocumented and sometimes smaller than binomial variance permits (e.g., the +SA bar at 47\%, or 14/30, shows a $\pm 1$-point whisker whereas the standard error across the three 10-trial garment strata is at least $\approx$3 points and the pooled binomial standard error is near 9 points). At $n = 30$, a 95\% Wilson interval around 50\% spans $\approx$34 points, so differences of four or fewer successes never clear sampling noise ($p > 0.1$); nominal 5\% differences in multi-factor grids (Figs.~\ref{kai0:fig:exp_souping} and~\ref{kai0:fig:exp_aug_control}) also face multiple-testing inflation, and throughput, retries, and average score are point means.
 
 \subsection{Data Collection and Training}\label{kai0:sec:data}
-Roughly 20 hours of human teleoperated demonstrations are collected per benchmark across varied cloth colours, fabrics, starting configurations, and room illumination. Combining the episode totals and mean durations in Table~\ref{kai0:tab:tasks} yields approximately 22.5, 33.6, and 32.4 hours of total recorded trajectories for Tasks~A, B, and~C, respectively, encompassing both initial demonstrations and subsequent DAgger recovery clips. Full-parameter fine-tuning is performed on 8$\times$A100 GPUs under the flow-matching training objective~\cite{black2024pi0}. These compute and dataset totals reflect post-training of an already pre-trained $\pi_{0.5}$ backbone~\cite{black2025pi05} rather than end-to-end training from scratch, and they do not constitute a matched compute or operator-hour budget (Section~\ref{kai0:sec:limitations}). Training hyper-parameters (Table~\ref{kai0:tab:hyperparams}) and collection procedures appear in Appendix~\ref{kai0:app:exp}.
+Roughly 20 hours of human teleoperated demonstrations are collected per benchmark across varied garment colours, fabrics, poses, and lighting; combining the episode counts and mean durations in Table~\ref{kai0:tab:tasks} yields roughly 22.5, 33.6, and 32.4 hours of trajectories (base demonstrations plus DAgger recovery clips) for Tasks~A--C. We fine-tune all parameters of $\pi_{0.5}$~\cite{black2025pi05} on 8$\times$A100 GPUs under flow matching~\cite{black2024pi0} (Table~\ref{kai0:tab:hyperparams}, Section~\ref{kai0:app:exp}; resource caveats in Section~\ref{kai0:sec:limitations}).
 
 % =============================================================================
 \section{Experiments}\label{kai0:sec:exp}
 
-Physical rollouts on the dual-station platform of Section~\ref{kai0:sec:setup} are organised around four empirical questions:
+Physical rollouts on the dual-station platform of Section~\ref{kai0:sec:setup} address four questions:
 \begin{enumerate}
-  \item \textbf{System efficacy.} To what extent do the three modules reinforce one another when combined, and do any pairwise interactions degrade performance? We evaluate this full factorial breakdown on Task~A (Section~\ref{kai0:sec:exp_overall}).
-  \item \textbf{Model Arithmetic.} Does weight-space merging of subset-trained policies surpass both the strongest individual subset policy and joint training on the pooled dataset, and does out-of-distribution validation outperform in-domain validation when selecting merge coefficients? (Section~\ref{kai0:sec:exp_ma})
-  \item \textbf{Stage Advantage.} Compared with a value-differencing baseline patterned after RECAP in $\pi^{*}_{0.6}$~\cite{amin2026pistar06}, does direct stage-aware advantage estimation yield smoother supervision signals and stronger closed-loop task execution? (Section~\ref{kai0:sec:exp_sa})
-  \item \textbf{Train--Deploy Alignment.} Can heuristic DAgger expand $P_{\mathrm{train}}$ to match the success gains of on-policy DAgger with manageable retry overhead, and how do execution-smoothing controllers interact with spatio-temporal augmentation? (Section~\ref{kai0:sec:exp_tda})
+  \item \textbf{System efficacy}: how the three modules interact in the eight-way factorial evaluation on Task~A (Section~\ref{kai0:sec:exp_overall}).
+  \item \textbf{Model Arithmetic}: whether weight merging of subset checkpoints outperforms both the strongest subset checkpoint and pooled training, and whether OOD DAgger validation beats in-domain validation (Section~\ref{kai0:sec:exp_ma}).
+  \item \textbf{Stage Advantage}: whether direct stage-conditioned progress estimation yields smoother supervision traces and stronger rollouts than a $\pi^{*}_{0.6}$-style RECAP value-differencing baseline~\cite{amin2026pistar06} (Section~\ref{kai0:sec:exp_sa}).
+  \item \textbf{Train--Deploy Alignment}: how heuristic DAgger compares with standard on-policy DAgger, and how run-time chunk smoothing interacts with spatiotemporal augmentation (Section~\ref{kai0:sec:exp_tda}).
 \end{enumerate}
 
 \subsection{Baselines and Ablation Design}\label{kai0:sec:baselines}
 
-\paragraph{Base policy.} We adopt $\pi_{0.5}$ as our primary backbone and include $\pi_{0}$ in secondary comparisons, as only these two open-weight models attained non-trivial completion rates on our cloth benchmarks. Alternative architectures that we evaluated, including GO-1 from the AgiBot World suite~\cite{bu2025agibot_iros} (co-authored by the author), X-VLA~\cite{zheng2025xvla}, and DexVLA~\cite{wen2025dexvla}, failed to complete the manipulation sequences reliably even after fine-tuning on the full 20-hour demonstration corpus; preliminary tests with UniVLA and OpenVLA showed similar failures (Appendix~\ref{kai0:app:questions}, Q3), and quantitative scores for those unsuccessful models were not archived.
+\paragraph{Base policy.} We adopt $\pi_{0.5}$ as our primary backbone and $\pi_{0}$ in secondary comparisons, as only these two open-weight policies achieved non-trivial completion on our cloth tasks; GO-1 from AgiBot World~\cite{bu2025agibot_iros} (co-authored by the author), X-VLA~\cite{zheng2025xvla}, DexVLA~\cite{wen2025dexvla}, UniVLA~\cite{bu2025univla}, and OpenVLA~\cite{kim2024openvla} failed to complete the manipulation sequences reliably (Section~\ref{kai0:app:questions}).
 
-\paragraph{MA ablations.} Two unmerged reference points are evaluated: the \emph{single-best candidate} among policies trained on individual data partitions, and the \emph{full-data candidate} trained jointly on the union of all partitions. Against these references, we test the five coefficient-selection rules from Section~\ref{kai0:sec:ma} (uniform averaging, inverse-loss weighting, gradient descent, adaptive gradient descent, and greedy search), pairing the loss-driven schemes with either an in-domain validation set or an OOD DAgger validation set.
-
-\paragraph{SA ablations.} As a reference method, we implement a value-differencing baseline modelled after the RECAP advantage mechanism in $\pi^{*}_{0.6}$~\cite{amin2026pistar06}. Sharing the PaliGemma vision-language backbone of $\pi_{0.5}$~\cite{black2025pi05}, this baseline regresses scalar task progress from a single observation and computes the advantage as the predicted progress gain over a 50-step lookahead within the trajectory. Unlike full RECAP, which learns a distributional value head across demonstrations, on-policy rollouts, and human interventions (Section~\ref{sec:bg:manip}), our $\pi^{*}_{0.6}$-style baseline uses point regression on offline frames. We compare this $\pi^{*}_{0.6}$-style baseline against stage-agnostic direct regression (Direct, Eq.~\eqref{kai0:eq:adv_direct}) and stage-conditioned regression (Direct+Stage, Eq.~\eqref{kai0:eq:adv_stage}).
-
-\paragraph{TDA ablations.} At the control layer, temporal chunk-wise smoothing is benchmarked against synchronous and asynchronous chunk execution~\cite{tang2025vlash}, ACT-style temporal ensembling~\cite{zhao2023aloha}, and RTC~\cite{black2025rtc} across combinations of spatial mirroring and temporal frame skipping. At the data layer, we contrast standard on-policy DAgger~\cite{ross2011dagger} with heuristic DAgger on both $\pi_{0}$~\cite{black2024pi0} and $\pi_{0.5}$~\cite{black2025pi05} backbones.
+\paragraph{Module ablation baselines.} For \textbf{MA}, we benchmark the five coefficient-selection rules of Section~\ref{kai0:sec:ma} (with in-domain or OOD DAgger validation) against the \emph{single-best} subset policy and the pooled \emph{full-data} policy. For \textbf{SA}, we compare stage-agnostic direct regression (Direct, Eq.~\eqref{kai0:eq:adv_direct}) and stage-conditioned regression (Direct+Stage, Eq.~\eqref{kai0:eq:adv_stage}) against a $\pi^{*}_{0.6}$-style RECAP value-differencing baseline~\cite{amin2026pistar06} sharing the PaliGemma backbone of $\pi_{0.5}$~\cite{black2025pi05} that regresses point state values on offline frames over a 50-step lookahead (rather than full RECAP's distributional value head over demonstrations, on-policy rollouts, and human interventions; Section~\ref{sec:bg:manip}). For \textbf{TDA}, we compare temporal chunk-wise smoothing against synchronous and asynchronous chunk execution~\cite{tang2025vlash}, ACT-style temporal ensembling~\cite{zhao2023aloha}, and RTC~\cite{black2025rtc} across spatial mirroring and temporal frame skipping, and compare standard on-policy DAgger~\cite{ross2011dagger} with heuristic DAgger on $\pi_{0}$~\cite{black2024pi0} and $\pi_{0.5}$~\cite{black2025pi05}.
 
 \subsection{System Efficacy Breakdown}\label{kai0:sec:exp_overall}
-Component-wise ablation results on Task~A are plotted in Figure~\ref{kai0:fig:exp_triple} and tabulated in Table~\ref{kai0:tab:taskA}, where each enabled module uses its best setting from Section~\ref{kai0:sec:ablation}. Several interaction patterns emerge across the eight combinations:
+Figure~\ref{kai0:fig:exp_triple} and Table~\ref{kai0:tab:taskA} report the eight-way factorial ablation on Task~A using the best module settings from Section~\ref{kai0:sec:ablation}:
 \begin{itemize}
-  \item Incorporating TDA boosts the completion rate across every pairing by roughly 17 to 53 percentage points. Its influence on retry frequency varies with the partner module: retry counts climb when TDA is paired with +MA (from about 1.8 to 2.6) or +SA (from about 1.1 to 2.3), yet drop when TDA is added to the bare $\pi_{0.5}$ baseline or to +MA+SA. A plausible hypothesis, though not isolated experimentally, is that recovery demonstrations teach the policy to re-grasp after slips, trading extra corrective motions for higher eventual completion.
-  \item Enabling SA elevates both completion rate and hourly throughput in every pairing, and settings that include SA achieve the fastest task completion rates overall.
-  \item Applying MA in isolation leaves the completion rate nearly unchanged relative to $\pi_{0.5}$ (roughly 30\% versus 27\%, or 9 versus 8 successes out of 30 trials) while slightly depressing the partial-credit score (about 35 versus 41). When combined with either +TDA or +SA, however, MA adds roughly 30 percentage points in completion rate (rising from 16 to 25 and from 14 to 24 successes out of 30; uncorrected Fisher $p \approx 0.025$ and $0.015$).
-  \item Combining all three modules yields the top completion rate (about 97\%) and average score (about 97), while matching +SA+TDA in throughput (roughly 66 versus 68 completions per hour). At $n = 30$ trials, the full configuration's 29 successes cannot be statistically separated from the 24 to 26 successes of the two-module pairings (Fisher $p \ge 0.10$), nor does any single module alone clear the sampling threshold over bare $\pi_{0.5}$ (Fisher $p \ge 0.06$); statistically decisive gains require pairing at least two modules.
+  \item \textbf{TDA} boosts completion rate by roughly 17 to 53 percentage points across every pairing; its effect on retry count depends on the partner module, rising when paired with +MA (from $\approx$1.8 to 2.6) or +SA (from $\approx$1.1 to 2.3) yet dropping when added to bare $\pi_{0.5}$ (from $\approx$3.0 to 1.7) or +MA+SA, consistent with recovery data encouraging active re-grasping after slips.
+  \item \textbf{SA} raises both completion rate and hourly throughput across all pairings, with configurations containing SA achieving the fastest task completions overall.
+  \item \textbf{MA} in isolation leaves completion rate nearly unchanged relative to $\pi_{0.5}$ (roughly 30\% vs.\ 27\%, or 9 vs.\ 8 of 30 trials) and lowers the rubric score (35 vs.\ 41), but adds roughly 30 percentage points in completion rate when paired with +TDA (16 to 25 of 30; uncorrected Fisher $p \approx 0.025$) or +SA (14 to 24 of 30; $p \approx 0.015$).
+  \item \textbf{Full \chiz} achieves the highest completion rate (roughly 97\%, 29/30) and rubric score ($\approx$97) while matching +SA+TDA in throughput (66 vs.\ 68 completions/h). At $n = 30$ trials, 29/30 cannot be statistically separated from the 24 to 26 successes of two-module pairings (Fisher $p \ge 0.10$), nor does any single module clear the sampling threshold over bare $\pi_{0.5}$ ($p \ge 0.06$); statistically decisive gains require combining at least two modules.
 \end{itemize}
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-kai0/images/triple_compress.pdf}
-  \caption[System efficacy of \chiz on Task~A]{\textbf{Factorial module breakdown of \chiz on Task~A.} Bar heights show 30-trial means per configuration (Table~\ref{kai0:tab:taskA}). Both TDA and SA improve completion rates across all pairings; MA alone provides no standalone gain and lowers partial credit, yet adds substantial gains alongside TDA or SA. The integrated \chiz policy (Ours) attains the highest completion rate and partial-credit score while matching +SA+TDA in throughput. Whiskers reflect the plotted evaluation summaries (Section~\ref{kai0:sec:protocol}).}
+  \caption[System efficacy of \chiz on Task~A]{\textbf{Factorial module breakdown of \chiz on Task~A} (30-trial means per configuration; Table~\ref{kai0:tab:taskA}). Both TDA and SA boost completion rates across all pairings, whereas MA provides gains only when paired with TDA or SA. Whiskers reflect the plotted evaluation summaries (Section~\ref{kai0:sec:protocol}).}
   \label{kai0:fig:exp_triple}
 \end{figure}
 
 \subsection{Quantitative Summary}\label{kai0:sec:exp_quant}
-Table~\ref{kai0:tab:taskA} compiles the numerical results from the Task~A factorial study in Fig.~\ref{kai0:fig:exp_triple}, reporting the plotted evaluation summary means alongside implied integer success counts and 95\% Wilson confidence intervals for $n = 30$ trials (Section~\ref{kai0:sec:protocol}). Relative to the $\pi_{0.5}$ baseline on Task~A, the full \chiz pipeline lifts the completion rate from roughly 27\% to 97\% (a relative gain of about 250\%), scales hourly throughput roughly tenfold, and cuts retry frequency by nearly two thirds. Comparing the 8 successes of $\pi_{0.5}$ against the 29 successes of \chiz over 30 trials yields non-overlapping 95\% Wilson intervals (14--44\% versus 83--99\%) and a two-sided Fisher exact $p \approx 1.5 \times 10^{-8}$.
+Table~\ref{kai0:tab:taskA} compiles the Task~A factorial summary means from Fig.~\ref{kai0:fig:exp_triple} alongside reconstructed success counts and 95\% Wilson confidence intervals for $n = 30$ trials (Section~\ref{kai0:sec:protocol}). Relative to $\pi_{0.5}$, the full \chiz pipeline lifts completion from roughly 27\% (8/30; Wilson interval 14--44\%) to roughly 97\% (29/30; 83--99\%; two-sided Fisher exact $p \approx 1.5 \times 10^{-8}$, a relative gain of about 260\%, $+70$ percentage points), scales hourly throughput roughly elevenfold ($\approx 6$ to $\approx 66$ tasks/h), and cuts retry frequency by about 63\% ($\approx 3.0$ to $\approx 1.1$ retries). Across the multiple ablation comparisons in Section~\ref{kai0:sec:ablation}, $p$-values are reported unadjusted as exploratory diagnostics at $n=30$, whereas the primary system-level test on Task~A ($p \approx 1.5 \times 10^{-8}$) survives any multiplicity correction.
 
 \begin{table}[t]
   \centering
-  \caption[System-level results of \chiz on Task~A]{\textbf{Factorial component results on Task~A (T-shirt flattening and folding).} Values reflect 30-trial evaluation summaries per configuration (10 rollouts across each of three garments) taken from Fig.~\ref{kai0:fig:exp_triple}, accompanied by reconstructed success counts and 95\% Wilson intervals for $n = 30$ trials (Section~\ref{kai0:sec:protocol}). Throughput denotes projected completions per hour, retry cost denotes mean corrective retries per rollout, and average score denotes the 100-point milestone rubric score; these three quantities are reported as point means because per-trial records were not archived.}
+  \caption[System-level results of \chiz on Task~A]{\textbf{Factorial component results on Task~A (T-shirt flattening and folding).} Values report 30-trial evaluation summaries (10 rollouts per garment across three garments) from Fig.~\ref{kai0:fig:exp_triple}, paired with reconstructed success counts and 95\% Wilson intervals (Section~\ref{kai0:sec:protocol}); throughput, retry cost, and 100-point rubric score are point means.}
   \label{kai0:tab:taskA}
   \small
   \begin{adjustbox}{max width=\linewidth}
   \begin{tabular}{@{}lcccccc@{}}
     \toprule
-    Configuration & \makecell{Success\\rate (\%) $\uparrow$} & \makecell{Successes\\(of 30)} & \makecell{95\% Wilson\\interval (\%)} & \makecell{Through-\\put $\uparrow$} & \makecell{Retry\\cost $\downarrow$} & \makecell{Average\\score $\uparrow$} \\
+    Configuration & \makecell{Success\\rate (\%) $\uparrow$} & \makecell{Successes\\(of 30)} & \makecell{95\% Wilson\\interval (\%)} & \makecell{Through-\\put (tasks/h) $\uparrow$} & \makecell{Retry\\cost $\downarrow$} & \makecell{Average\\score $\uparrow$} \\
     \midrule
     $\pi_{0.5}$ & $\approx$27 & $\approx$8 & 14--44 & $\approx$6 & $\approx$3.0 & $\approx$41 \\
     +TDA & $\approx$53 & $\approx$16 & 36--70 & $\approx$14 & $\approx$1.7 & $\approx$56 \\
     +MA & $\approx$30 & $\approx$9 & 17--48 & $\approx$8 & $\approx$1.8 & $\approx$35 \\
-    +SA & $\approx$47 & $\approx$14 & 30--64 & $\approx$20 & $\approx$1.1 & $\approx$47 \\
+    +SA & $\approx$47 & $\approx$14 & 30--64 & $\approx$20 & \textbf{$\approx$1.1} & $\approx$47 \\
     +MA+TDA & $\approx$83 & $\approx$25 & 66--93 & $\approx$32 & $\approx$2.6 & $\approx$89 \\
-    +SA+TDA & $\approx$87 & $\approx$26 & 70--95 & $\approx$68 & $\approx$2.3 & $\approx$86 \\
+    +SA+TDA & $\approx$87 & $\approx$26 & 70--95 & \textbf{$\approx$68} & $\approx$2.3 & $\approx$86 \\
     +MA+SA & $\approx$80 & $\approx$24 & 63--90 & $\approx$54 & $\approx$1.5 & $\approx$84 \\
-    \chiz (full system) & $\approx$97 & $\approx$29 & 83--99 & $\approx$66 & $\approx$1.1 & $\approx$97 \\
+    \chiz (full system) & \textbf{$\approx$97} & \textbf{$\approx$29} & 83--99 & $\approx$66 & \textbf{$\approx$1.1} & \textbf{$\approx$97} \\
     \bottomrule
   \end{tabular}
   \end{adjustbox}
@@ -375,97 +323,276 @@ Table~\ref{kai0:tab:taskA} compiles the numerical results from the Task~A factor
 % =============================================================================
 \section{Ablation Studies}\label{kai0:sec:ablation}
 
-We next examine each of the three modules individually to address research questions 2 through 4 from Section~\ref{kai0:sec:exp}.
-
-\paragraph{Consistency across figures.} Because individual module ablations were conducted in separate evaluation sessions with different baseline checkpoints and dataset snapshots rather than relative to the single base configuration of Fig.~\ref{kai0:fig:exp_triple}, baseline numbers shift across plots:
-\begin{itemize}
-  \item On Task~A, the nominal $\pi_{0.5}$ reference attains roughly 27\% completion in Fig.~\ref{kai0:fig:exp_triple} versus 23\% in Fig.~\ref{kai0:fig:exp_dagger_a}, while the synchronous execution baseline in Fig.~\ref{kai0:fig:exp_aug_control} starts at about 37\%.
-  \item Adding heuristic DAgger alone brings $\pi_{0.5}$ to roughly 87\% completion in Fig.~\ref{kai0:fig:exp_dagger_a}, whereas the full +TDA module (which incorporates heuristic DAgger) reaches 53\% in Fig.~\ref{kai0:fig:exp_triple}. Similarly, heuristic DAgger elevates retry frequency from roughly 3.0 to 8.6 in Fig.~\ref{kai0:fig:exp_dagger_a}, whereas +TDA reduces retries from 3.0 to 1.7 in Fig.~\ref{kai0:fig:exp_triple}.
-  \item Temporal chunk-wise smoothing without augmentation incurs about 12 retries per episode in Fig.~\ref{kai0:fig:exp_aug_control}, compared with 1.1 for the integrated system. That same unaugmented smoothing controller appears in Fig.~\ref{kai0:fig:app_tda_a_abs} with matching throughput, retry cost, and rubric score, yet its plotted completion rate is roughly 70\% in Fig.~\ref{kai0:fig:app_tda_a_abs} versus 77\% in Fig.~\ref{kai0:fig:exp_aug_control}.
-  \item Within the Stage Advantage study on Task~A (Fig.~\ref{kai0:fig:exp_advantage}), the value-differencing baseline reaches about 67\% completion and Direct+Stage reaches 80\%, while the full-data baseline in the Model Arithmetic study reaches 83\% (Fig.~\ref{kai0:fig:app_soup_a}); by contrast, +SA and bare $\pi_{0.5}$ sit at 47\% and 27\% in Fig.~\ref{kai0:fig:exp_triple}.
-  \item On Task~C, unmerged reference policies achieve roughly 10\% completion in Figs.~\ref{kai0:fig:exp_dagger_c} and~\ref{kai0:fig:app_sa_c}, 20\% for the full-data baseline in Fig.~\ref{kai0:fig:exp_souping}, and 37\% for synchronous execution in Fig.~\ref{kai0:fig:app_tda_c_abs}.
-\end{itemize}
-These cross-figure offsets arise because the single-module ablation studies (Figs.~\ref{kai0:fig:exp_souping}--\ref{kai0:fig:exp_aug_control} and~\ref{kai0:fig:app_soup}--\ref{kai0:fig:app_tda_c}, including the in-chunk smoothing baselines in Figs.~\ref{kai0:fig:app_tda_a}--\ref{kai0:fig:app_tda_c}) reflect separate evaluation sessions and checkpoint stages rather than a single unified experiment run. Accordingly, all quantitative comparisons below are restricted to configurations evaluated within the same figure.
+\paragraph{Cross-figure consistency.} The module studies (Figs.~\ref{kai0:fig:exp_souping}--\ref{kai0:fig:exp_aug_control} and~\ref{kai0:fig:app_soup}--\ref{kai0:fig:app_tda_c}, including the in-chunk smoothing baselines in Figs.~\ref{kai0:fig:app_tda_a}--\ref{kai0:fig:app_tda_c}) were conducted in separate sessions with different checkpoints and dataset snapshots, so nominal baselines are not interchangeable across figures. On Task~A, for example, $\pi_{0.5}$ completion ranges from about 23\% (Fig.~\ref{kai0:fig:exp_dagger_a}) to 27\% (Fig.~\ref{kai0:fig:exp_triple}) and 37\% (synchronous in Fig.~\ref{kai0:fig:exp_aug_control}). Likewise, heuristic DAgger reaches 87\% completion with 8.6 retries in Fig.~\ref{kai0:fig:exp_dagger_a}, whereas the factorial `+TDA' condition reaches 53\% with 1.7 retries in Fig.~\ref{kai0:fig:exp_triple}; unaugmented chunk-wise smoothing incurs $\approx$12 retries and 77\% completion in Fig.~\ref{kai0:fig:exp_aug_control} (70\% in Fig.~\ref{kai0:fig:app_tda_a_abs}) versus 1.1 retries for the full system in Table~\ref{kai0:tab:taskA}; and the Stage Advantage (Fig.~\ref{kai0:fig:exp_advantage}) and Model Arithmetic (Fig.~\ref{kai0:fig:app_soup_a}) figures use still stronger references (67--83\%). Task~C baselines similarly range from about 10\% (Figs.~\ref{kai0:fig:exp_dagger_c} and~\ref{kai0:fig:app_sa_c}) to 20\% (Fig.~\ref{kai0:fig:exp_souping}) and 37\% (Fig.~\ref{kai0:fig:app_tda_c_abs}). These shifts preclude cross-figure effect estimates. All ablation claims below are therefore restricted to comparisons made within the same figure and evaluation session.
 
 \subsection{Model Arithmetic}\label{kai0:sec:exp_ma}
-Figure~\ref{kai0:fig:exp_souping} evaluates weight-space merging strategies against unmerged policies on Task~C across all four evaluation criteria.
+On Task~C (Fig.~\ref{kai0:fig:exp_souping}), every weight-merged policy exceeds both the single-best subset checkpoint ($\approx$7/30) and the full-data policy ($\approx$6/30, 20\%) in mean completion rate and throughput, though some merge rules raise retries and only OOD-validated greedy search ($\approx$15/30, 50\%) clears the nominal 5\% threshold over full-data (uncorrected Fisher $p \approx 0.03$; $p \approx 0.06$ vs.\ single-best). On the partial-credit rubric, only greedy search and OOD inverse-loss weighting beat the single-best candidate (score $\approx$70); why linear interpolation matches or beats pooled training remains an open question, potentially linked to VLA weight redundancy~\cite{yu2024language}.
 
-\paragraph{Merging.} Every weight-merged policy achieves a higher mean completion rate and hourly throughput than both the single-best subset policy and the jointly trained full-data policy, though certain weighting rules incur extra retries. At 30 rollouts per bar, however, most pairwise gaps lie inside binomial sampling variation. Only the top-performing merge rule, greedy search guided by OOD validation (roughly 15 successes out of 30), clears the nominal 5\% threshold relative to the full-data baseline (roughly 6 out of 30; uncorrected Fisher $p \approx 0.03$), and this gap narrows against the single-best subset policy (roughly 7 out of 30; Fisher $p \approx 0.06$). On the partial-credit rubric, the single-best candidate (score near 70) surpasses most merged models, with only greedy search and OOD inverse-loss weighting scoring higher. Why linear combinations of subset checkpoints match or exceed joint training on the pooled dataset remains an open empirical question; one untested possibility is over-parameterization in fine-tuned VLAs, analogous to weight-redundancy phenomena observed in language models~\cite{yu2024language}.
-
-\paragraph{Validation split.} Replacing in-domain validation loss with OOD DAgger validation loss lifts the completion rate for three of the four loss-guided merging rules (inverse-loss weighting rises from roughly 30\% to 47\%, gradient descent from 27\% to 33\%, and greedy search from 40\% to 50\%) while leaving adaptive gradient descent steady near 40\%. OOD validation also trims retry counts under three strategies, though throughput drops slightly under adaptive gradient descent and greedy search. Within each individual rule, the gap between in-domain and OOD validation remains inside sampling noise (for instance, 12 versus 15 successes out of 30 under greedy search, Fisher $p \approx 0.60$). While directionally compatible with the view that OOD DAgger trajectories capture deployment states better than static demonstrations when balancing $P_{\mathrm{train}}$ modes, these differences are too small at $n = 30$ to be conclusive on their own. Across both splits on Task~C, greedy search delivers the top (or tied-top) completion rate, highest rubric score, and lowest retry count, albeit not the peak throughput. Parallel ablations on Tasks~A and~B appear in Appendix~\ref{kai0:app:ablation_ma}, where merging generally outperforms unmerged baselines but the ranking of validation splits varies; Appendix~\ref{kai0:app:ma} specifies the exact merging rule deployed in Table~\ref{kai0:tab:taskA}.
+Replacing in-domain validation with OOD DAgger validation lifts completion for three of four loss-guided rules (inverse-loss from $\approx$30\% to 47\%, gradient descent from 27\% to 33\%, greedy search from 40\% to 50\%, or 12 vs.\ 15 of 30, Fisher $p \approx 0.60$, with adaptive gradient descent near 40\%) and reduces retries under three rules despite minor throughput dips under adaptive gradient descent and greedy search. Across both validation splits on Task~C, greedy search posts the highest (or tied-highest) completion rate, top score, and lowest retries. Parallel ablations on Tasks~A and~B appear in Section~\ref{kai0:app:ablation_ma}, and Section~\ref{kai0:app:ma} notes the in-domain inverse-loss rule used in Table~\ref{kai0:tab:taskA}.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-kai0/images/souping_compress.pdf}
-  \caption[Ablation of Model Arithmetic on Task~C]{\textbf{Model Arithmetic comparison on Task~C.} Each bar averages 30 rollouts. All weight-merged policies exceed both unmerged baselines in mean completion rate and throughput, though only greedy search with OOD validation clears nominal sampling noise against the full-data policy (Section~\ref{kai0:sec:exp_ma}), and several rules increase retries. Whiskers reflect the plotted evaluation summaries (Section~\ref{kai0:sec:protocol}).}
+  \caption[Ablation of Model Arithmetic on Task~C]{\textbf{Model Arithmetic comparison on Task~C} (30 rollouts per bar). All weight-merged policies exceed both unmerged baselines in mean completion rate and throughput, with OOD-validated greedy search achieving the highest completion rate (Section~\ref{kai0:sec:exp_ma}). Whiskers reflect the plotted evaluation summaries (Section~\ref{kai0:sec:protocol}).}
   \label{kai0:fig:exp_souping}
 \end{figure}
 
 \subsection{Stage Advantage}\label{kai0:sec:exp_sa}
-Figure~\ref{kai0:fig:exp_advantage} benchmarks Stage Advantage (Direct+Stage, contributed by a co-author) against the $\pi^{*}_{0.6}$-style value-differencing baseline and stage-agnostic direct regression (Direct) on Tasks~A and~B.
-
-\paragraph{Smoothness of the advantage signal.} Across both benchmarks, Direct+Stage produces less erratic advantage trajectories than value differencing: its SFR rises from roughly 46\% to 60\% on Task~A and from 52\% to 77\% on Task~B, while its MSTD drops from 0.82 to 0.58 on Task~B and stays comparable on Task~A (1.0 versus 1.06). Stage-agnostic Direct regression improves SFR relative to value differencing on Task~B but worsens MSTD, and it yields the lowest completion rate and highest retry count among the three methods on that task, supporting the inclusion of explicit stage conditioning. Even so, temporal smoothness measures signal regularity rather than accuracy, as a trivial constant estimator would score perfectly on both smoothness metrics, and no held-out ground-truth advantage labels were used for independent verification.
-
-\paragraph{Task performance.} Downstream policy gains depend on task structure. On Task~A, Direct+Stage outperforms the value-differencing baseline across all four rollout metrics, although the completion-rate increase from roughly 20 to 24 successes out of 30 remains within binomial variation (Fisher $p \approx 0.38$). On the multi-branch sorting benchmark (Task~B), Direct+Stage cuts retry frequency (from about 17 to 10) and lifts the partial-credit score (from about 37 to 48), consistent with suppressing hesitant idling and repeated failed grasps, yet its completion rate (roughly 17\% versus 23\%) and hourly throughput (roughly 4 versus 6) trail the baseline. On Task~C (Appendix~\ref{kai0:app:ablation_sa}), Direct+Stage similarly reduces retries while posting lower completion rate, throughput, and rubric score. Although Stage Advantage converges to a lower training objective value than value differencing (Appendix~\ref{kai0:app:loss}), lower training loss alone does not guarantee superior policy guidance.
+Figure~\ref{kai0:fig:exp_advantage} compares Stage Advantage (Direct+Stage, co-author module) against the $\pi^{*}_{0.6}$-style value-differencing baseline and stage-agnostic Direct regression on Tasks~A and~B. Direct+Stage yields smoother advantage traces than value differencing: SFR rises from $\approx$46\% to 60\% on Task~A and from 52\% to 77\% on Task~B, while MSTD drops from 0.82 to 0.58 on Task~B and stays comparable on Task~A (1.0 vs.\ 1.06). Stage-agnostic Direct regression raises SFR on Task~B but worsens MSTD and posts the lowest completion rate and highest retries, supporting stage conditioning. In closed-loop rollouts, Direct+Stage improves all four metrics on Task~A, though the completion gain from $\approx$20 to 24 of 30 (67\% to 80\%) lies within binomial noise (Fisher $p \approx 0.38$). On Task~B, Direct+Stage lowers retries ($\approx$17 to 10) and lifts the rubric score ($\approx$37 to 48) but trails in completion rate (17\% vs.\ 23\%) and throughput (4 vs.\ 6); on Task~C (Section~\ref{kai0:app:ablation_sa}), it similarly cuts retries while trailing in completion, throughput, and score, showing that lower training loss (Section~\ref{kai0:app:loss}) and temporal smoothness do not guarantee stronger closed-loop execution.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-kai0/images/advantageA_B_compress.pdf}
-  \caption[Ablation of Stage Advantage on Tasks~A and~B]{\textbf{Stage Advantage evaluation on Tasks~A and~B.} Stage Advantage was developed by a co-author (see statement of contribution). \textbf{Left}: temporal regularity of predicted advantages via smooth frame ratio (SFR) and mean squared temporal difference (MSTD); regularity does not establish ground-truth accuracy. \textbf{Right}: closed-loop rollout metrics over 30 trials per bar. Direct+Stage produces smoother traces than the $\pi^{*}_{0.6}$-style value-differencing baseline on both tasks, improves all rollout metrics on Task~A (within sampling variation for completion rate), and reduces retries and raises partial credit on Task~B while trailing in completion rate and throughput.}
+  \caption[Ablation of Stage Advantage on Tasks~A and~B]{\textbf{Stage Advantage evaluation on Tasks~A and~B} (developed by a co-author; 30 trials per bar). \textbf{Left}: temporal smoothness via SFR and MSTD. \textbf{Right}: closed-loop rollout metrics.}
   \label{kai0:fig:exp_advantage}
 \end{figure}
 
 \subsection{Train--Deploy Alignment}\label{kai0:sec:exp_tda}
 
-\paragraph{Heuristic DAgger.} Figures~\ref{kai0:fig:exp_dagger_a} and~\ref{kai0:fig:exp_dagger_c} compare heuristic DAgger against standard on-policy DAgger across two backbones ($\pi_{0.5}$ and $\pi_0$) and two benchmarks (Tasks~A and~C). Incorporating DAgger recovery demonstrations produces the largest single performance jump in this chapter. On Task~A, heuristic DAgger elevates $\pi_{0.5}$ completion from roughly 23\% to 87\% (7 versus 26 successes out of 30) and lifts $\pi_0$ from near zero to roughly 83\%; on Task~C, $\pi_{0.5}$ rises from about 10\% to 43\% (3 versus 13 out of 30). Because both collection protocols inject human recovery trajectories at failure-prone states, these improvements stem from targeted data addition rather than purely algorithmic alignment. Heuristic DAgger simultaneously increases retry frequency across all settings (for example, from roughly 3.0 to 8.6 retries for $\pi_{0.5}$ on Task~A), reflecting active re-grasping in contrast to the base policy's tendency to stall without retrying. Standard on-policy DAgger attains comparable completion rates (roughly 93\% on Task~A and 53\% on Task~C for $\pi_{0.5}$, corresponding to 28 versus 26 and 16 versus 13 successes out of 30, well within sampling noise), while keeping retry counts lower (roughly 3.4 versus 8.6 on Task~A, and 1.5 versus 2.4 on Task~C) and achieving a higher rubric score on Task~C (about 83 versus 62). On Task~A with $\pi_{0.5}$, standard DAgger also reaches higher hourly throughput (roughly 50 versus 36). While heuristic DAgger avoids policy execution during collection and should therefore reduce wall-clock collection time per episode, exact operator and robot collection hours were not logged for either protocol.
+\paragraph{Heuristic vs.\ standard DAgger.} Across $\pi_{0.5}$ and $\pi_0$ on Tasks~A and~C (Figs.~\ref{kai0:fig:exp_dagger_a} and~\ref{kai0:fig:exp_dagger_c}), DAgger recovery data yield the largest standalone gain in this chapter. Heuristic DAgger lifts $\pi_{0.5}$ completion from $\approx$23\% to 87\% (7 vs.\ 26 of 30) and $\pi_0$ from near zero to $\approx$83\% on Task~A, and raises $\pi_{0.5}$ from $\approx$10\% to 43\% (3 vs.\ 13 of 30) on Task~C, while increasing retries across all settings (e.g., $\approx$3.0 to 8.6 on Task~A for $\pi_{0.5}$) as the policy actively re-grasps after slips. Standard on-policy DAgger attains comparable $\pi_{0.5}$ completion (93\% or 28/30 on Task~A; 53\% or 16/30 on Task~C, within sampling noise) with fewer retries (3.4 vs.\ 8.6 on Task~A; 1.5 vs.\ 2.4 on Task~C), higher Task~C score (83 vs.\ 62), and higher Task~A throughput (50 vs.\ 36); exact operator and robot collection hours were not logged for either protocol.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.95\linewidth]{ch-kai0/images/dagger_ff_compress.pdf}
-  \caption[Ablation of heuristic and standard DAgger on Task~A]{\textbf{Comparison of heuristic and standard DAgger on Task~A.} 30 rollouts per bar. Both recovery-collection schemes substantially boost completion rate, throughput, and rubric score, with heuristic DAgger incurring more corrective retries and standard DAgger offering higher throughput and fewer retries on $\pi_{0.5}$. Whiskers reflect the plotted evaluation summaries (Section~\ref{kai0:sec:protocol}).}
+  \caption[Ablation of heuristic and standard DAgger on Task~A]{\textbf{Comparison of heuristic and standard DAgger on Task~A} (30 rollouts per bar). Both recovery-collection schemes boost completion, throughput, and rubric score, with heuristic DAgger incurring more retries and standard DAgger achieving higher throughput and fewer retries on $\pi_{0.5}$.}
   \label{kai0:fig:exp_dagger_a}
 \end{figure}
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-kai0/images/dagger_demoB_compress.pdf}
-  \caption[Ablation of heuristic and standard DAgger on Task~C]{\textbf{Comparison of heuristic and standard DAgger on Task~C.} 30 rollouts per bar. Consistent with Task~A (Fig.~\ref{kai0:fig:exp_dagger_a}), both recovery-data schemes raise completion rates while heuristic DAgger increases retry frequency. Whiskers reflect the plotted evaluation summaries (Section~\ref{kai0:sec:protocol}).}
+  \caption[Ablation of heuristic and standard DAgger on Task~C]{\textbf{Comparison of heuristic and standard DAgger on Task~C} (30 rollouts per bar). Both recovery schemes raise completion rates while heuristic DAgger increases retry frequency.}
   \label{kai0:fig:exp_dagger_c}
 \end{figure}
 
-\paragraph{Control strategies and augmentation.} Figure~\ref{kai0:fig:exp_aug_control} evaluates temporal chunk-wise smoothing alongside alternative execution controllers across four augmentation regimes on Task~A. In the unaugmented regime, chunk-wise smoothing attains a higher completion rate than temporal ensembling and RTC (roughly 77\% versus 53\% and 60\%, or 23 versus 16 and 18 successes out of 30; Fisher $p \approx 0.10$ and $0.27$), and pairing chunk-wise smoothing with RTC yields the strongest result in the grid (roughly 90\%, or 27 out of 30). Used alone without RTC, however, chunk-wise smoothing exhibits the highest retry count among single controllers in both the unaugmented and temporally scaled regimes (roughly 12 to 13 retries, compared with 2 to 6 for competing controllers), and under temporal scaling alone it falls behind RTC in both completion rate (about 50\% versus 73\%) and throughput before regaining its lead when spatial mirroring is added. Thus, execution smoothing translates $Q_{\mathrm{model}}$ predictions into reliable physical trajectories under specific augmentation pairings rather than universally. Spatio-temporal augmentation itself shows mixed, regime-dependent effects on Task~A. Extended controller and augmentation comparisons across Tasks~B and~C and across absolute versus delta joint parameterizations are provided in Appendix~\ref{kai0:app:ablation_tda}.
+\paragraph{Control strategies and augmentation.} Figure~\ref{kai0:fig:exp_aug_control} compares temporal chunk-wise smoothing against competing controllers across four augmentation regimes on Task~A. Without augmentation, chunk-wise smoothing beats temporal ensembling and RTC in mean completion rate (77\% vs.\ 53\% and 60\%, or 23 vs.\ 16 and 18 of 30; Fisher $p \approx 0.10$ and $0.27$), and combining chunk-wise smoothing with RTC achieves the top overall result (90\%, 27/30). Used without RTC, however, chunk-wise smoothing incurs the highest retries in the unaugmented and temporally scaled (T-scale) regimes (12--13 vs.\ 2--6) and trails RTC under T-scale alone (50\% vs.\ 73\%) before regaining its lead when spatial mirroring (S-mirror) is added (see Section~\ref{kai0:app:ablation_tda} for Tasks~B and~C and joint-space ablations).
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.95\linewidth]{ch-kai0/images/aug_control_compress.pdf}
-  \caption[Ablation of control strategies and augmentation on Task~A]{\textbf{Execution controllers and spatio-temporal augmentation on Task~A.} 30 rollouts per setting. Without augmentation, temporal chunk-wise smoothing outperforms temporal ensembling and RTC in mean completion rate, and combining chunk-wise smoothing with RTC achieves the top performance overall. Standalone chunk-wise smoothing incurs elevated retry counts without augmentation and under T-scale, where it trails RTC. Whiskers reflect the plotted evaluation summaries (Section~\ref{kai0:sec:protocol}). T-scale: frame-skipping speed augmentation; S-mirror: horizontal mirroring with arm swap.}
+  \caption[Ablation of control strategies and augmentation on Task~A]{\textbf{Execution controllers and spatiotemporal augmentation on Task~A} (30 rollouts per setting; T-scale: frame-skipping speed augmentation; S-mirror: horizontal mirroring with arm swap).}
   \label{kai0:fig:exp_aug_control}
 \end{figure}
 
 % =============================================================================
 \section{Discussion and Limitations}\label{kai0:sec:limitations}
 
-By pairing Model Arithmetic, Stage Advantage, and Train--Deploy Alignment against coverage gaps, temporal discontinuities, and compounding rollout errors, \chiz elevates the Task~A completion rate of $\pi_{0.5}$ from roughly 27\% to 97\%. Below we examine the methodological boundaries of our empirical evidence followed by open technical challenges.
-
-\paragraph{Evidence for the central hypothesis.} Framing distributional inconsistency rather than dataset size as the primary bottleneck is an interpretive hypothesis backed by a full-system factorial study on a single benchmark (Task~A) at 30 rollouts per cell. Because we did not run an iso-resource scaling control that fine-tunes $\pi_{0.5}$ on an equal total number of teleoperator and robot hours consisting purely of standard demonstrations, the experiment does not disentangle consistency interventions from targeted data volume. Indeed, the largest individual jump in completion rate comes from adding DAgger recovery trajectories (Section~\ref{kai0:sec:exp_tda}), which directly expands state coverage with corrective demonstrations. Moreover, individual module gains vary across benchmarks and pairings (Section~\ref{kai0:sec:ablation}), and only the easiest benchmark (Task~A) received the complete eight-way factorial evaluation, whereas Tasks~B and~C were studied through single-module ablations.
-
-\paragraph{Resource budget.} Describing our recipe as resource-aware reflects its reliance on roughly 20 hours of demonstrations per task and 8 A100 GPUs to post-train a pre-trained backbone. However, the archived logs record aggregate dataset durations (Table~\ref{kai0:tab:tasks}) and the 80{,}000-step schedule (Table~\ref{kai0:tab:hyperparams}) without itemising cumulative GPU hours across the four subset checkpoints in Model Arithmetic, the Stage Advantage estimator, and the final policy, or breaking down teleoperator and robot collection hours between base demonstrations and DAgger rollouts relative to the bare $\pi_{0.5}$ baseline. Consequently, direct cost-normalized comparisons against pure data scaling remain future work.
-
-\paragraph{What the evaluation tests.} Although closed-loop physical rollouts expose each policy to its own compounding control errors, all tests take place on the same two robot stations and workspace used during data capture, without separate tracking of unseen test garments (Section~\ref{kai0:sec:protocol}). Our results therefore demonstrate reliability under randomized starting poses and closed-loop perturbations within the training environment, rather than zero-shot transfer to new robot morphologies, rooms, or cloth categories.
-
-\paragraph{Statistics and consistency.} At $n = 30$ rollouts per configuration, differences of four or fewer successes fall inside binomial sampling variation, encompassing several single-module comparisons (Sections~\ref{kai0:sec:exp_overall} and~\ref{kai0:sec:ablation}). Because metrics are taken from the plotted evaluation summaries and individual ablations reflect separate evaluation sessions with differing baseline checkpoints (Section~\ref{kai0:sec:ablation}), only the larger directional effects can be resolved with confidence.
-
-\paragraph{Scalability.} While vision-language-action backbones are motivated by broad cross-task transfer, our experiments did not test whether fine-tuning preserves general pre-trained capabilities or transfers to rigid-body manipulation. Whether weight-space merging via Model Arithmetic can combine specialists trained on distinct manipulation skills, rather than subsets of a single garment benchmark, also remains an open question.
-
-\paragraph{Data valuation.} Informally, we noticed substantial sensitivity to demonstration curation during development: policies trained under identical settings on different data batches varied between roughly 20\% and 60\% in completion rate (Appendix~\ref{kai0:app:questions}). Because this observation was not part of a controlled study, assessing dataset utility still relies on expensive end-to-end training runs or non-parallelizable physical replay checks. Developing lightweight offline proxies that predict demonstration utility before training is a priority for future work.
-
-\paragraph{Advantage design and failure modes.} Stage Advantage derives supervision from normalized temporal progress within each stage, implicitly assuming monotonic advancement toward the sub-goal. Learning an unsupervised critic that separates productive manipulation actions from hesitation without assuming linear time progress would relax this assumption, and verifying advantage predictions against held-out human annotations or known failure segments remains necessary. Furthermore, our qualitative failure breakdown identifies imprecise spatial grasping and mid-episode stagnation as the two primary failure modes, reflecting limitations in fine-grained 3D localization and long-horizon reasoning within current pre-trained backbones. Model Arithmetic and Stage Advantage act as post-hoc regularizers that partially alleviate these weaknesses, though their individual reductions of specific failure modes were not separately quantified (Appendix~\ref{kai0:app:questions} and Appendix~\ref{kai0:app:failure}).
+By combining Model Arithmetic, Stage Advantage, and Train--Deploy Alignment, \chiz lifts Task~A completion of $\pi_{0.5}$ from roughly 27\% to 97\%, subject to three main caveats:
+\begin{itemize}
+  \item \textbf{Alignment vs.\ data volume and resource accounting.} Lacking an iso-budget scaling baseline trained on an equal number of operator and robot hours of standard demonstrations, the Task~A study does not separate distributional alignment from targeted data volume, especially since DAgger recovery clips drive the largest single gain (Section~\ref{kai0:sec:exp_tda}) and only Task~A received the full eight-way factorial evaluation. Moreover, while $\pi_{0.5}$ post-training uses roughly 20 demonstration hours per task and 8 A100 GPUs over 80{,}000 steps (Tables~\ref{kai0:tab:tasks} and~\ref{kai0:tab:hyperparams}), cumulative GPU, robot, and operator hours across the four MA checkpoints, the SA estimator, and DAgger rollouts were not itemised separately.
+  \item \textbf{Evaluation scope, statistics, and generalisation.} All 30-trial rollouts took place in the training workspace without logged blinding, scheduling, or unseen-garment splits (Section~\ref{kai0:sec:protocol}), measuring in-workspace closed-loop reliability rather than zero-shot transfer to unseen rooms, embodiments, or cloth categories; cross-session baseline shifts and 30-trial binomial variance (Section~\ref{kai0:sec:ablation}) further restrict statistical resolution to large effects, and retention of general pre-trained VLA skills, rigid-body transfer, and cross-task merging were not tested.
+  \item \textbf{Data valuation, advantage supervision, and failure modes.} Demonstration cleanliness informally shifted completion rates between roughly 20\% and 60\% under fixed training settings (Section~\ref{kai0:app:questions}), motivating offline data-utility proxies. Furthermore, Stage Advantage assumes monotonic timestamp progress without human advantage labels, and neither MA nor SA was separately benchmarked against the two main rollout failure modes of imprecise 3D grasping and mid-episode stagnation (Sections~\ref{kai0:app:questions} and~\ref{kai0:app:failure}).
+\end{itemize}
 
 % =============================================================================
+\section{Implementation Details and Supplementary Ablations}\label{app:kai0}\label{kai0:app:questions}\label{kai0:app:related}\label{kai0:app:method}\label{kai0:app:ma}\label{kai0:app:sa}\label{kai0:app:tda}\label{kai0:app:exp}\label{kai0:app:hyperparams}\label{kai0:app:loss_curve}\label{kai0:app:scoring}\label{kai0:app:ablation}\label{kai0:app:ablation_ma}\label{kai0:app:ablation_sa}\label{kai0:app:ablation_tda}\label{kai0:app:failure}
+
+\subsection{Module Implementation, Hardware, and Evaluation Rubric}\label{kai0:app:name}\label{kai0:app:related_rl}\label{kai0:app:related_control}\label{kai0:app:data}\label{kai0:app:hardware}\label{kai0:app:loss}
+
+\paragraph{Nomenclature, baseline screening, and data quality.}
+\textbf{K}inetics-\textbf{A}ligned-\textbf{I}ntelligence (KAI\textsubscript{0}, written \chiz after the Greek letter $\chi$ in parallel with the $\pi$ family) aligns demonstration collection ($P_{\mathrm{train}}$) and physical deployment ($P_{\mathrm{test}}$) with the policy-induced trajectory distribution ($Q_{\mathrm{model}}$). In pilot screening on our 20-hour corpus, X-VLA~\cite{zheng2025xvla}, DexVLA~\cite{wen2025dexvla}, OpenVLA~\cite{kim2024openvla}, UniVLA~\cite{bu2025univla}, and GO-1 (from AgiBot World~\cite{bu2025agibot_iros}, co-authored by the thesis author) all scored near zero over 30 rollouts despite matched camera views and converged losses, whereas $\pi_0$ and $\pi_{0.5}$ showed stronger post-training plasticity. Because demonstration quality shifted completion between 20\% and 60\% under identical settings, we use open-loop \emph{replay-ability} from a comparable initial state to screen corrupted logs and hardware drift between $P_{\mathrm{train}}$ and $P_{\mathrm{test}}$. At run time, whereas SmolVLA~\cite{shukor2025smolvla} switches directly between asynchronous chunks and A2C2~\cite{sendai2025leave} adds auxiliary heads, \chiz blends overlapping chunks linearly (Algorithm~\ref{kai0:alg:chunk_smoothing}) without architectural changes.
+
+\paragraph{Module specifications and DAgger protocol.}
+Model Arithmetic partitions demonstrations into four disjoint splits; Table~\ref{kai0:tab:taskA} uses in-domain inverse-loss weighting, whereas ablations compare all five rules against the lowest-validation-loss \emph{single-best} checkpoint and the pooled \emph{full-data} model. For Stage Advantage (by co-author Lirui Zhao; cf.\ VLA/robot RL post-training~\cite{chen2025tgrpo,li2025simplevla,lu2025vla,luo2024serl,xiao2025PLD,luo2025hilserl,lei2025rl,kumar2019reward,frans2025diffusion,ghasemipour2025self,zhai2025vlac,zhang2025rewind,ma2024gvl,sutton1998reinforcement,schulman2017PPO,wagenmaker2025dsrl} and benchmark suites used to evaluate long-horizon transfer~\cite{mees2022calvin,mu2025robotwin,liu2023libero}), given frame pairs $(s_t, s_{t+\Delta})$ from an episode of length $T_e$, stage-agnostic direct regression predicts the normalised step offset:
+\begin{equation}
+  \hat{A}_{\mathrm{direct}}(s_t, s_{t+\Delta}) = f_{\theta}(s_t, s_{t+\Delta}) \approx \frac{\Delta}{T_e},
+  \label{kai0:eq:app_direct_adv}
+\end{equation}
+stage-conditioned regression conditions on $g \in \{0, 1/S, \dots, (S-1)/S\}$ across $S \in \{2, 4, 3\}$ stages on Tasks~A--C:
+\begin{equation}
+  \hat{A}_{\mathrm{stage}}(s_t, s_{t+\Delta}, g) = f_{\theta}(s_t, s_{t+\Delta} \mid g),
+  \label{kai0:eq:app_stage_adv}
+\end{equation}
+and 70th-percentile thresholding $\epsilon_{1-q}$ ($q = 0.3$) yields the binary indicator:
+\begin{equation}
+  I_t = \mathbf{1}\big[\hat{A}_{\mathrm{stage}}(s_t, s_{t+\Delta}, g) > \epsilon_{1-q}\big].
+  \label{kai0:eq:app_indicator}
+\end{equation}
+Stage Advantage converges to a lower terminal loss than the $\pi^{*}_{0.6}$-style baseline (Fig.~\ref{kai0:fig:loss_curve_sa}). Standard DAgger (1)~launches an autonomous rollout, (2)~halts after $>10$ consecutive missed grasps or stagnant loop steps while freezing observations and holding joints for human takeover, and (3)~logs both segments; heuristic DAgger directly places the cloth and arms into typical halt states to record expert recoveries. On the dual-station rig (Fig.~\ref{kai0:fig:robot_setup}; AgileX Piper with pitch joint~5, ARX X5 with yaw joint~5), cameras stream at 30\,Hz under a standard operating protocol and joint controllers run at 100--200\,Hz on an Ubuntu 20.04 workstation. Tables~\ref{kai0:tab:hyperparams} and~\ref{kai0:tab:score} list the $\pi_{0.5}$ fine-tuning hyper-parameters and the 100-point milestone rubric.
+
+\begin{table}[tb]
+  \centering
+  \caption[Hyper-parameters for fine-tuning]{Fine-tuning configuration for $\pi_{0.5}$ post-training (not a controlled from-scratch budget; Section~\ref{kai0:sec:limitations}).}
+  \label{kai0:tab:hyperparams}
+  \begin{tabular}{lc}
+    \toprule
+    \textbf{Hyper-parameter} & \textbf{Value} \\
+    \midrule
+    \multicolumn{2}{l}{\textit{Data and input}} \\
+    Expert demonstration hours & $\sim$20\,h per task \\
+    Action chunk length $K$ & 50 \\
+    Execution frequency & 100\,Hz \\
+    \midrule
+    \multicolumn{2}{l}{\textit{Optimisation}} \\
+    Training steps & 80{,}000 \\
+    Batch size & 128 \\
+    Optimiser & AdamW \\
+    Learning rate & $2.5 \times 10^{-5}$ \\
+    Cosine decay steps & 10{,}000 \\
+    Conditioned noise level $\sigma$ & [0.001, 1.0] \\
+    Gradient clip & 1.0 \\
+    \midrule
+    \multicolumn{2}{l}{\textit{Module-specific}} \\
+    MA: number of checkpoints & 4 \\
+    SA: fraction of samples labelled positive $q$ & 0.3 \\
+    \midrule
+    \multicolumn{2}{l}{\textit{Infrastructure}} \\
+    Training GPUs & 8 $\times$ A100 \\
+    Inference GPUs & RTX 4090 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[tb]
+  \centering
+  \caption[Milestone scoring rubric for Tasks A, B, and C]{Milestone point allocation for the average score metric (normalised to 100).}
+  \label{kai0:tab:score}
+  \begin{tabular}{llc}
+    \toprule
+    \textbf{Task} & \textbf{Sub-goal} & \textbf{Score} \\
+    \midrule
+    \multirow{4}{*}{Task A (easy)}
+      & Flatten garment & +40 \\
+      & 1st fold & +20 \\
+      & 2nd fold & +20 \\
+      & 3rd fold & +20 \\
+    \midrule
+    \multirow{5}{*}{Task B, T-shirt (medium)}
+      & Retrieve \& flatten & +40 \\
+      & 1st fold & +15 \\
+      & 2nd fold & +15 \\
+      & 3rd fold & +15 \\
+      & Stack to top-left & +15 \\
+    \midrule
+    \multirow{3}{*}{Task B, shirt (medium)}
+      & Retrieve from basket & +30 \\
+      & Flatten & +50 \\
+      & Pull to right-side table & +20 \\
+    \midrule
+    \multirow{6}{*}{Task C (hard)}
+      & Pull garment rightward & +15 \\
+      & Grasp collar & +15 \\
+      & Grasp hanger & +15 \\
+      & Insert hanger into sleeve & +20 \\
+      & Hook left collar on hanger & +20 \\
+      & Hang on standing rack & +15 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[tb]
+  \centering
+  \includegraphics[width=0.65\linewidth]{ch-kai0/images/loss_curve_SA.jpeg}
+  \caption[Training loss curves of Stage Advantage and the $\pi^{*}_{0.6}$-style baseline]{\textbf{Loss comparison between SA (by co-author Lirui Zhao; Chapter~\ref{ch:kai0}) and the $\pi^{*}_{0.6}$-style baseline.} SA converges to a lower terminal loss.}
+  \label{kai0:fig:loss_curve_sa}
+\end{figure}
+
+\subsection{Extended Module Ablations and Failure Analysis}\label{kai0:app:license}
+
+\paragraph{Model Arithmetic on Tasks~A and~B, and Stage Advantage on Task~C.}
+Over 30 rollouts per variant on Tasks~A and~B (Fig.~\ref{kai0:fig:app_soup}), weight-merged policies surpass the full-data and single-best baselines on most metrics. On Task~A (Fig.~\ref{kai0:fig:app_soup_a}), uniform averaging trails slightly in completion rate (80\% \vs 83\%, within 3 of 30 rollouts) and several merges yield lower throughput; on Task~B (Fig.~\ref{kai0:fig:app_soup_b}), every merged policy improves completion (70\%--90\% \vs 47\% and 60\%), throughput, and retry count. Because two average-score bars in Fig.~\ref{kai0:fig:app_soup_b} (full-data at 16 and in-domain inverse-loss at 6) fall below their completion rates (47\% and 76\%) due to a plotting discrepancy (completed episodes must score 100 under Table~\ref{kai0:tab:score}), Task~B comparisons rely on completion, throughput, and retries. On Task~C (Fig.~\ref{kai0:fig:app_sa_c}, 30 rollouts), Stage Advantage improves smoothness over the value-difference baseline (MSTD 0.77 \vs 1.0; SFR 76\% \vs 73\%) and lowers retries, but completion (3\% \vs 10\%, 1 \vs 3 of 30 rollouts, within sampling noise), throughput, and score decline because $\pi_{0.5}$ lacks garment-hanging priors.
+
+\begin{figure}[tbp]
+  \centering
+  \begin{subfigure}[t]{0.8\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{ch-kai0/images/souping_ff_compress.pdf}
+    \caption[Task A results]{Task~A results}
+    \label{kai0:fig:app_soup_a}
+  \end{subfigure}
+
+  \medskip
+  \begin{subfigure}[t]{0.8\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{ch-kai0/images/souping_demoA_compress.pdf}
+    \caption[Task B results]{Task~B results}
+    \label{kai0:fig:app_soup_b}
+  \end{subfigure}
+  \caption[Ablation of Model Arithmetic on Tasks~A and~B]{\textbf{Model Arithmetic on Tasks~A and~B} (30 rollouts per bar; Section~\ref{kai0:sec:protocol}). Merged policies beat full-data and single-best baselines on most metrics and lower all Task~B retries (see Section~\ref{kai0:app:ablation_ma} on panel~b score bars).}
+  \label{kai0:fig:app_soup}
+\end{figure}
+
+\begin{figure}[tb]
+  \centering
+  \includegraphics[width=0.85\linewidth]{ch-kai0/images/advantage_demoB_compress.pdf}
+  \caption[Ablation of Stage Advantage on Task~C]{\textbf{Stage Advantage on Task~C} (co-author module, Chapter~\ref{ch:kai0}; 30 rollouts). SA improves MSTD, SFR, and retries (``Recover Cost''), whereas Direct+Stage trails in completion, throughput, and score.}
+  \label{kai0:fig:app_sa_c}
+\end{figure}
+
+\paragraph{Train--Deploy Alignment across tasks, action spaces, and failure modes.}
+Across 30 rollouts per bar in Figs.~\ref{kai0:fig:app_tda_a}, \ref{kai0:fig:app_tda_b}, and~\ref{kai0:fig:app_tda_c}, temporal chunk-wise smoothing outperforms synchronous and in-chunk baselines across nearly all Task~A settings for both absolute (Fig.~\ref{kai0:fig:app_tda_a_abs}) and delta (Fig.~\ref{kai0:fig:app_tda_a_delta}) joint targets, with RTC adding further gains in 3 of 4 absolute-joint regimes versus 1 delta-joint regime. On Tasks~B and~C (Figs.~\ref{kai0:fig:app_tda_b} and~\ref{kai0:fig:app_tda_c}), completion peaks near 30\% and 53\%, chunk-wise smoothing shows no consistent edge, and performance remains sensitive to absolute versus delta joint representations during tight Task~C sleeve insertion. Finally, physical rollouts fail primarily through spatial misalignment (missed cloth grasps) and policy stagnation (repetitive motion loops); pooling 1026 Task~A failure events across tested policies by task stage (Fig.~\ref{kai0:fig:failure_case}) shows that flattening errors dominate (1010 of 1026 instances), led by prolonged re-grasping (874) and redundant flattening (85), explaining why DAgger and heuristic DAgger interventions after missed grasps or stalled loops yield large gains on Task~A. Training scripts, datasets (CC BY-NC-SA 4.0), and fine-tuned \chiz weights and code (Apache-2.0) are released at \url{https://github.com/OpenDriveLab/KAI0}.
+
+\begin{figure}[tbp]
+  \centering
+  \begin{subfigure}[t]{0.8\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{ch-kai0/images/ff_abs_compress.pdf}
+    \caption[Absolute targets]{Absolute targets}
+    \label{kai0:fig:app_tda_a_abs}
+  \end{subfigure}
+
+  \medskip
+  \begin{subfigure}[t]{0.8\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{ch-kai0/images/ff_delta_compress.pdf}
+    \caption[Delta increments]{Delta increments}
+    \label{kai0:fig:app_tda_a_delta}
+  \end{subfigure}
+  \caption[Control strategies and augmentation on Task~A with two action representations]{\textbf{Task~A control and augmentation across joint spaces} (30 rollouts per bar). Chunk-wise smoothing leads in nearly all regimes for absolute (a) and delta (b) joints; RTC helps in 3 of 4 absolute regimes versus 1 delta regime.}
+  \label{kai0:fig:app_tda_a}
+\end{figure}
+
+\begin{figure}[tbp]
+  \centering
+  \begin{subfigure}[t]{0.8\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{ch-kai0/images/demoA_abs_compress.pdf}
+    \caption[Absolute targets]{Absolute targets}
+    \label{kai0:fig:app_tda_b_abs}
+  \end{subfigure}
+
+  \medskip
+  \begin{subfigure}[t]{0.8\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{ch-kai0/images/demoA_delta_compress.pdf}
+    \caption[Delta increments]{Delta increments}
+    \label{kai0:fig:app_tda_b_delta}
+  \end{subfigure}
+  \caption[Control strategies and augmentation on Task~B with two action representations]{\textbf{Task~B control and augmentation} (30 rollouts per bar). Delta joints trail absolute joints, completion stays near or below 30\%, and chunk-wise smoothing gives no consistent margin.}
+  \label{kai0:fig:app_tda_b}
+\end{figure}
+
+\begin{figure}[tbp]
+  \centering
+  \begin{subfigure}[t]{0.8\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{ch-kai0/images/demoB_abs_compress.pdf}
+    \caption[Absolute targets]{Absolute targets}
+    \label{kai0:fig:app_tda_c_abs}
+  \end{subfigure}
+
+  \medskip
+  \begin{subfigure}[t]{0.8\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{ch-kai0/images/demoB_delta_compress.pdf}
+    \caption[Delta increments]{Delta increments}
+    \label{kai0:fig:app_tda_c_delta}
+  \end{subfigure}
+  \caption[Control strategies and augmentation on Task~C with two action representations]{\textbf{Task~C control and augmentation} (30 rollouts per bar). Tight hanger-insertion tolerances keep completion modest and sensitive to joint parameterisation.}
+  \label{kai0:fig:app_tda_c}
+\end{figure}
+
+\begin{figure}[tb]
+  \centering
+  \includegraphics[width=\linewidth]{ch-kai0/images/failure_case_trim.pdf}
+  \caption[Failure cases on Task~A]{\textbf{Task~A failure breakdown.} Distribution of 1026 failure events pooled across tested policies; flattening errors dominate (1010 instances), led by prolonged re-grasping (874).}
+  \label{kai0:fig:failure_case}
+\end{figure}
+
+% =============================================================================
+\FloatBarrier
 \section{Chapter Summary}\label{kai0:sec:summary}
 
-This chapter investigated RQ3(b), asking how bimanual manipulation policies can maintain closed-loop reliability under practical data and compute limits when deployment conditions diverge from offline training. We organized our approach around three conceptual distributions: the demonstration corpus $P_{\mathrm{train}}$, the learned generative policy $Q_{\mathrm{model}}$, and the closed-loop rollout distribution $P_{\mathrm{test}}$, whose pairwise divergences appear as coverage gaps, temporal discontinuities, and compounding failure cascades. To counter each divergence, \chiz integrates three modules: Model Arithmetic blends subset-trained checkpoints using merge weights selected on out-of-distribution DAgger validation trajectories; Stage Advantage (contributed by a co-author) supplies stage-conditioned progress labels for advantage-weighted behaviour cloning; and Train--Deploy Alignment couples heuristic DAgger collection with spatio-temporal augmentation and temporal chunk-wise smoothing.
+Addressing RQ3(b), this chapter investigated how bimanual manipulation policies can maintain closed-loop reliability under practical data and compute limits when deployment conditions diverge from offline training. Organising the learning loop around the demonstration distribution $P_{\mathrm{train}}$, the policy-induced trajectory distribution $Q_{\mathrm{model}}$, and the physical rollout distribution $P_{\mathrm{test}}$, \chiz pairs each pairwise mismatch with a dedicated module: Model Arithmetic interpolates subset-trained checkpoints using merge weights tuned on OOD DAgger validation rollouts; Stage Advantage (contributed by a co-author) supplies stage-conditioned progress labels for advantage-weighted behaviour cloning; and Train--Deploy Alignment combines heuristic DAgger recovery collection, spatiotemporal augmentation, and run-time temporal chunk-wise smoothing.
 
-In the full factorial study on Task~A using the dual-station bimanual platform, \chiz lifted the 30-trial completion rate of $\pi_{0.5}$ from roughly 27\% to 97\% (8 versus 29 successes, well beyond binomial sampling noise), corresponding to a 250\% relative gain alongside a roughly tenfold rise in hourly throughput (Table~\ref{kai0:tab:taskA}). Each benchmark used roughly 20 hours of demonstrations post-trained on 8 A100 GPUs, though total cumulative GPU and operator hours across sub-models were not separately itemized. Single-module ablations across Tasks~A, B, and~C reveal complementary strengths and clear caveats. Targeted recovery trajectories from heuristic and standard DAgger delivered the largest standalone gains (raising Task~A completion from roughly 23\% to 87--93\%). Weight merging in Model Arithmetic surpassed both the best individual subset checkpoint and full-data joint training in most comparisons, yet provided no standalone gain on Task~A and cleared nominal sampling noise over full-data training on Task~C only for the top OOD-validated greedy merge. Stage Advantage produced smoother temporal signals than a $\pi^{*}_{0.6}$-style value-differencing baseline across all three tasks, though its downstream completion-rate improvement was confined to Task~A and remained within sampling error. At the execution layer, combining chunk-wise smoothing with RTC achieved the highest Task~A completion rate, even though standalone chunk-wise smoothing incurred elevated retry counts in two augmentation regimes. Methodologically, because dataset scale was not varied at a matched operator-hour budget, the consistency-versus-scale thesis remains a working hypothesis; evaluations were restricted to 30 rollouts per bar within the training workspace using plotted evaluation summaries across separate ablation sessions; and retention of pre-trained priors, transfer to rigid objects, cross-task model merging, and offline metrics for demonstration quality (which informally shifted completion rates between 20\% and 60\%) remain open directions.
-
-Taken together with the autonomous driving study in Chapter~\ref{ch:centaur}, these results point to a shared principle across the Act pillar: robust physical execution requires closing the feedback loop between deployment behaviour and policy learning. Whereas Centaur adapts online at test time via uncertainty-guided updates in non-reactive log replay, \chiz routes physical rollout experience back into the training and selection pipeline, using DAgger recoveries both as targeted training data and as the validation criterion for checkpoint merging while applying chunk-wise smoothing at execution time. Chapter~\ref{ch:discussion} consolidates these insights into broader design principles for self-correcting embodied systems.
+In the eight-way factorial study on Task~A using the dual-station bimanual platform, \chiz lifted the 30-trial completion rate of $\pi_{0.5}$ from roughly 27\% to 97\% (8 vs.\ 29 successes, an about 260\% relative gain and $+70$ percentage points alongside a roughly elevenfold increase in hourly throughput; Table~\ref{kai0:tab:taskA}), driven primarily by targeted DAgger recovery data together with complementary multi-module interactions across MA, SA, and run-time smoothing+RTC control. Taken together with the autonomous driving study in Chapter~\ref{ch:centaur}, where Centaur adapts online at test time via uncertainty-guided updates in non-reactive log replay, \chiz shows how routing physical rollout feedback back into data collection, checkpoint selection, and run-time control closes the loop between deployment behaviour and policy learning. Chapter~\ref{ch:discussion} synthesises these findings into broader design principles for self-correcting embodied systems.

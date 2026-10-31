@@ -1,12 +1,8 @@
-% HKU research-thesis presentation rules require at least 35 mm on both sides.
-% Specify both margins and a zero binding offset; do not inherit scale=0.75.
 \ifsetMargin
-    \geometry{reset,a4paper,left=35mm,right=35mm,top=35mm,bottom=30mm,bindingoffset=0mm}
 \else
-    \RequirePackage[a4paper,left=35mm,right=35mm,top=35mm,bottom=30mm,bindingoffset=0mm]{geometry}
+    \RequirePackage[left=37mm,right=30mm,top=35mm,bottom=30mm]{geometry}
+    \setFancyHdr %
 \fi
-\setFancyHdr
-\setMargintrue
 
 \ifsetFont
 \else
