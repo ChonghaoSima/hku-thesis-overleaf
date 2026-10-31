@@ -36,20 +36,15 @@
 \begin{document}
 \frontmatter
 
-% HKU requires the abstract to precede the title page in the bound thesis.
-\include{Abstract/abstract}
-
-% Keep front-matter Roman numbering continuous. The standard titlepage
-% environment resets the page counter, so use explicit page boundaries here.
-\cleardoublepage
-\thispagestyle{empty}
+\begin{titlepage}
 \maketitle
-\cleardoublepage
+\end{titlepage}
 
 \include{Dedication/dedication}
 \include{Declaration/declaration}
 \include{Declaration/genai_statement}
 \include{Acknowledgement/acknowledgement}
+\include{Abstract/abstract}
 \include{Publications/publications}
 
 \tableofcontents
