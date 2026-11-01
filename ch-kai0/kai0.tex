@@ -27,7 +27,7 @@ In physical rollouts, observed failures fall into three systematic mismatches ac
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-kai0/images/kai0_teaser_v5_4_compress.pdf}
-  \caption[System overview and distributional alignment in \chiz]{\textbf{Top: platform overview.} Two ALOHA-style bimanual stations collaborate on multi-stage garment flattening, folding, and rack hanging. \textbf{Bottom: distributional alignment and Task~A summary.} Across the learning loop ($P_{\mathrm{train}}$, $Q_{\mathrm{model}}$, $P_{\mathrm{test}}$), MA reconciles $Q_{\mathrm{model}}$ with $P_{\mathrm{train}}$, TDA bridges $P_{\mathrm{train}}$ and $P_{\mathrm{test}}$, and SA steers $Q_{\mathrm{model}}$ toward $P_{\mathrm{test}}$. On Task~A (Fig.~\ref{kai0:fig:exp_triple}), \chiz lifts $\pi_{0.5}$~\cite{black2025pi05} completion from roughly 27\% (8/30) to roughly 97\% (29/30) over 30 rollouts (Table~\ref{kai0:tab:taskA}).}
+  \caption{\textbf{Top: platform overview.} Two ALOHA-style bimanual stations collaborate on multi-stage garment flattening, folding, and rack hanging. \textbf{Bottom: distributional alignment and Task~A summary.} Across the learning loop ($P_{\mathrm{train}}$, $Q_{\mathrm{model}}$, $P_{\mathrm{test}}$), MA reconciles $Q_{\mathrm{model}}$ with $P_{\mathrm{train}}$, TDA bridges $P_{\mathrm{train}}$ and $P_{\mathrm{test}}$, and SA steers $Q_{\mathrm{model}}$ toward $P_{\mathrm{test}}$. On Task~A (Fig.~\ref{kai0:fig:exp_triple}), \chiz lifts $\pi_{0.5}$~\cite{black2025pi05} completion from roughly 27\% (8/30) to roughly 97\% (29/30) over 30 rollouts (Table~\ref{kai0:tab:taskA}).}
   \label{kai0:fig:teaser}
 \end{figure}
 
@@ -101,7 +101,7 @@ To counter the three mismatches of Section~\ref{kai0:sec:inconsistencies} within
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-kai0/images/pipeline_v6_compress.pdf}
-  \caption[Pipeline of \chiz]{\textbf{Architecture of \chiz.} \textbf{Left} ($P_{\mathrm{train}}$): heuristic DAgger recovery collection, spatiotemporal augmentation, and stage annotations. \textbf{Middle} ($Q_{\mathrm{model}}$): Model Arithmetic weight interpolation and Stage Advantage conditioning. \textbf{Right} ($P_{\mathrm{test}}$): temporal chunk-wise smoothing and on-policy DAgger feedback.}
+  \caption{\textbf{Architecture of \chiz.} \textbf{Left} ($P_{\mathrm{train}}$): heuristic DAgger recovery collection, spatiotemporal augmentation, and stage annotations. \textbf{Middle} ($Q_{\mathrm{model}}$): Model Arithmetic weight interpolation and Stage Advantage conditioning. \textbf{Right} ($P_{\mathrm{test}}$): temporal chunk-wise smoothing and on-policy DAgger feedback.}
   \label{kai0:fig:pipeline}
 \end{figure}
 
@@ -116,7 +116,7 @@ where the coefficients $\{\alpha_i\}$ are selected to reduce validation loss on 
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.75\linewidth]{ch-kai0/images/arithmetic_v4.pdf}
-  \caption[Souping strategies in Model Arithmetic]{\textbf{Weight-merging schemes in Model Arithmetic.} Checkpoints trained on disjoint subsets are merged via convex weight interpolation using inverse-loss weighting (\textbf{top}) or uniform averaging, gradient optimisation, and greedy selection (\textbf{bottom}).}
+  \caption{\textbf{Weight-merging schemes in Model Arithmetic.} Checkpoints trained on disjoint subsets are merged via convex weight interpolation using inverse-loss weighting (\textbf{top}) or uniform averaging, gradient optimisation, and greedy selection (\textbf{bottom}).}
   \label{kai0:fig:arithmetic}
 \end{figure}
 
@@ -166,7 +166,7 @@ where $\epsilon$ is set at the 70th percentile so the top fraction $q = 0.3$ of 
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.58\linewidth]{ch-kai0/images/advantage_v4_1_compress.pdf}
-  \caption[Cumulative value based on Stage Advantage]{\textbf{Cumulative progress curves from Stage Advantage.} Green and red shading indicate positive and negative predicted advantage on Task~A (cloth slip and recovery, \textbf{top}), Task~B (retrieval and placement adjustment, \textbf{middle}), and Task~C (rack pull-over under occlusion, \textbf{bottom}).}
+  \caption{\textbf{Cumulative progress curves from Stage Advantage.} Green and red shading indicate positive and negative predicted advantage on Task~A (cloth slip and recovery, \textbf{top}), Task~B (retrieval and placement adjustment, \textbf{middle}), and Task~C (rack pull-over under occlusion, \textbf{bottom}).}
   \label{kai0:fig:advantage}
 \end{figure}
 
@@ -176,7 +176,7 @@ During physical deployment, forward-pass and communication delays between $Q_{\m
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.68\linewidth]{ch-kai0/images/consistency_v4.pdf}
-  \caption[Train--Deploy Alignment strategies and t-SNE visualisations]{\textbf{Train--Deploy Alignment mechanisms (\textbf{left}) and qualitative t-SNE trajectory projections (\textbf{right})} illustrating closer overlap among distributions as each mechanism is added.}
+  \caption{\textbf{Train--Deploy Alignment mechanisms (\textbf{left}) and qualitative t-SNE trajectory projections (\textbf{right})} illustrating closer overlap among distributions as each mechanism is added.}
   \label{kai0:fig:consistency}
 \end{figure}
 
@@ -213,7 +213,7 @@ Our dual-station bimanual setup (Fig.~\ref{kai0:fig:robot_setup}; Section~\ref{k
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.9\linewidth]{ch-kai0/images/setup_v3_compress.pdf}
-  \caption[Robot setup of the collaborative dual-arm system]{\textbf{Physical layout} of the dual-station bimanual manipulation platform.}
+  \caption{\textbf{Physical layout} of the dual-station bimanual manipulation platform.}
   \label{kai0:fig:robot_setup}
 \end{figure}
 
@@ -227,7 +227,7 @@ We evaluate \chiz across three garment manipulation benchmarks ordered by diffic
 
 \begin{table}[tb]
   \centering
-  \caption[Summary of the three garment manipulation tasks]{Characteristics of the three cloth manipulation benchmarks. Semantic sub-goals ($S$) match Stage Advantage (Section~\ref{kai0:sec:sa}); episode counts and mean durations cover both base demonstrations and shorter DAgger recovery clips, with no fixed cutoff logged for Task~C.}
+  \caption{\textbf{Characteristics of the three cloth manipulation benchmarks.} Semantic sub-goals ($S$) match Stage Advantage (Section~\ref{kai0:sec:sa}); episode counts and mean durations cover both base demonstrations and shorter DAgger recovery clips, with no fixed cutoff logged for Task~C.}
   \label{kai0:tab:tasks}
   \small
   \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}Xccc@{}}
@@ -290,7 +290,7 @@ Figure~\ref{kai0:fig:exp_triple} and Table~\ref{kai0:tab:taskA} report the eight
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-kai0/images/triple_compress.pdf}
-  \caption[System efficacy of \chiz on Task~A]{\textbf{Factorial module breakdown of \chiz on Task~A} (30-trial means per configuration; Table~\ref{kai0:tab:taskA}). Both TDA and SA boost completion rates across all pairings, whereas MA provides gains only when paired with TDA or SA. Whiskers reflect the plotted evaluation summaries (Section~\ref{kai0:sec:protocol}).}
+  \caption{\textbf{Factorial module breakdown of \chiz on Task~A} (30-trial means per configuration; Table~\ref{kai0:tab:taskA}). Both TDA and SA boost completion rates across all pairings, whereas MA provides gains only when paired with TDA or SA. Whiskers reflect the plotted evaluation summaries (Section~\ref{kai0:sec:protocol}).}
   \label{kai0:fig:exp_triple}
 \end{figure}
 
@@ -299,7 +299,7 @@ Table~\ref{kai0:tab:taskA} compiles the Task~A factorial summary means from Fig.
 
 \begin{table}[t]
   \centering
-  \caption[System-level results of \chiz on Task~A]{\textbf{Factorial component results on Task~A (T-shirt flattening and folding).} Values report 30-trial evaluation summaries (10 rollouts per garment across three garments) from Fig.~\ref{kai0:fig:exp_triple}, paired with reconstructed success counts and 95\% Wilson intervals (Section~\ref{kai0:sec:protocol}); throughput, retry cost, and 100-point rubric score are point means.}
+  \caption{\textbf{Factorial component results on Task~A (T-shirt flattening and folding).} Values report 30-trial evaluation summaries (10 rollouts per garment across three garments) from Fig.~\ref{kai0:fig:exp_triple}, paired with reconstructed success counts and 95\% Wilson intervals (Section~\ref{kai0:sec:protocol}); throughput, retry cost, and 100-point rubric score are point means.}
   \label{kai0:tab:taskA}
   \small
   \begin{adjustbox}{max width=\linewidth}
@@ -333,7 +333,7 @@ Replacing in-domain validation with OOD DAgger validation lifts completion for t
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-kai0/images/souping_compress.pdf}
-  \caption[Ablation of Model Arithmetic on Task~C]{\textbf{Model Arithmetic comparison on Task~C} (30 rollouts per bar). All weight-merged policies exceed both unmerged baselines in mean completion rate and throughput, with OOD-validated greedy search achieving the highest completion rate (Section~\ref{kai0:sec:exp_ma}). Whiskers reflect the plotted evaluation summaries (Section~\ref{kai0:sec:protocol}).}
+  \caption{\textbf{Model Arithmetic comparison on Task~C} (30 rollouts per bar). All weight-merged policies exceed both unmerged baselines in mean completion rate and throughput, with OOD-validated greedy search achieving the highest completion rate (Section~\ref{kai0:sec:exp_ma}). Whiskers reflect the plotted evaluation summaries (Section~\ref{kai0:sec:protocol}).}
   \label{kai0:fig:exp_souping}
 \end{figure}
 
@@ -343,7 +343,7 @@ Figure~\ref{kai0:fig:exp_advantage} compares Stage Advantage (Direct+Stage, co-a
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-kai0/images/advantageA_B_compress.pdf}
-  \caption[Ablation of Stage Advantage on Tasks~A and~B]{\textbf{Stage Advantage evaluation on Tasks~A and~B} (developed by a co-author; 30 trials per bar). \textbf{Left}: temporal smoothness via SFR and MSTD. \textbf{Right}: closed-loop rollout metrics.}
+  \caption{\textbf{Stage Advantage evaluation on Tasks~A and~B} (developed by a co-author; 30 trials per bar). \textbf{Left}: temporal smoothness via SFR and MSTD. \textbf{Right}: closed-loop rollout metrics.}
   \label{kai0:fig:exp_advantage}
 \end{figure}
 
@@ -354,14 +354,14 @@ Figure~\ref{kai0:fig:exp_advantage} compares Stage Advantage (Direct+Stage, co-a
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.95\linewidth]{ch-kai0/images/dagger_ff_compress.pdf}
-  \caption[Ablation of heuristic and standard DAgger on Task~A]{\textbf{Comparison of heuristic and standard DAgger on Task~A} (30 rollouts per bar). Both recovery-collection schemes boost completion, throughput, and rubric score, with heuristic DAgger incurring more retries and standard DAgger achieving higher throughput and fewer retries on $\pi_{0.5}$.}
+  \caption{\textbf{Comparison of heuristic and standard DAgger on Task~A} (30 rollouts per bar). Both recovery-collection schemes boost completion, throughput, and rubric score, with heuristic DAgger incurring more retries and standard DAgger achieving higher throughput and fewer retries on $\pi_{0.5}$.}
   \label{kai0:fig:exp_dagger_a}
 \end{figure}
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-kai0/images/dagger_demoB_compress.pdf}
-  \caption[Ablation of heuristic and standard DAgger on Task~C]{\textbf{Comparison of heuristic and standard DAgger on Task~C} (30 rollouts per bar). Both recovery schemes raise completion rates while heuristic DAgger increases retry frequency.}
+  \caption{\textbf{Comparison of heuristic and standard DAgger on Task~C} (30 rollouts per bar). Both recovery schemes raise completion rates while heuristic DAgger increases retry frequency.}
   \label{kai0:fig:exp_dagger_c}
 \end{figure}
 
@@ -370,7 +370,7 @@ Figure~\ref{kai0:fig:exp_advantage} compares Stage Advantage (Direct+Stage, co-a
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.95\linewidth]{ch-kai0/images/aug_control_compress.pdf}
-  \caption[Ablation of control strategies and augmentation on Task~A]{\textbf{Execution controllers and spatiotemporal augmentation on Task~A} (30 rollouts per setting; T-scale: frame-skipping speed augmentation; S-mirror: horizontal mirroring with arm swap).}
+  \caption{\textbf{Execution controllers and spatiotemporal augmentation on Task~A} (30 rollouts per setting; T-scale: frame-skipping speed augmentation; S-mirror: horizontal mirroring with arm swap).}
   \label{kai0:fig:exp_aug_control}
 \end{figure}
 
@@ -412,7 +412,7 @@ Stage Advantage converges to a lower terminal loss than the $\pi^{*}_{0.6}$-styl
 
 \begin{table}[tb]
   \centering
-  \caption[Hyper-parameters for fine-tuning]{Fine-tuning configuration for $\pi_{0.5}$ post-training (not a controlled from-scratch budget; Section~\ref{kai0:sec:limitations}).}
+  \caption{Fine-tuning configuration for $\pi_{0.5}$ post-training (not a controlled from-scratch budget; Section~\ref{kai0:sec:limitations}).}
   \label{kai0:tab:hyperparams}
   \begin{tabular}{lc}
     \toprule
@@ -445,7 +445,7 @@ Stage Advantage converges to a lower terminal loss than the $\pi^{*}_{0.6}$-styl
 
 \begin{table}[tb]
   \centering
-  \caption[Milestone scoring rubric for Tasks A, B, and C]{Milestone point allocation for the average score metric (normalised to 100).}
+  \caption{\textbf{Milestone point allocation for the average score metric (normalised to 100).}}
   \label{kai0:tab:score}
   \begin{tabular}{llc}
     \toprule
@@ -483,7 +483,7 @@ Stage Advantage converges to a lower terminal loss than the $\pi^{*}_{0.6}$-styl
 \begin{figure}[tb]
   \centering
   \includegraphics[width=0.65\linewidth]{ch-kai0/images/loss_curve_SA.jpeg}
-  \caption[Training loss curves of Stage Advantage and the $\pi^{*}_{0.6}$-style baseline]{\textbf{Loss comparison between SA (by co-author Lirui Zhao; Chapter~\ref{ch:kai0}) and the $\pi^{*}_{0.6}$-style baseline.} SA converges to a lower terminal loss.}
+  \caption{\textbf{Loss comparison between SA (by co-author Lirui Zhao; Chapter~\ref{ch:kai0}) and the $\pi^{*}_{0.6}$-style baseline.} SA converges to a lower terminal loss.}
   \label{kai0:fig:loss_curve_sa}
 \end{figure}
 
@@ -497,7 +497,7 @@ Over 30 rollouts per variant on Tasks~A and~B (Fig.~\ref{kai0:fig:app_soup}), we
   \begin{subfigure}[t]{0.8\linewidth}
     \centering
     \includegraphics[width=\linewidth]{ch-kai0/images/souping_ff_compress.pdf}
-    \caption[Task A results]{Task~A results}
+    \caption{Task~A results}
     \label{kai0:fig:app_soup_a}
   \end{subfigure}
 
@@ -505,17 +505,17 @@ Over 30 rollouts per variant on Tasks~A and~B (Fig.~\ref{kai0:fig:app_soup}), we
   \begin{subfigure}[t]{0.8\linewidth}
     \centering
     \includegraphics[width=\linewidth]{ch-kai0/images/souping_demoA_compress.pdf}
-    \caption[Task B results]{Task~B results}
+    \caption{Task~B results}
     \label{kai0:fig:app_soup_b}
   \end{subfigure}
-  \caption[Ablation of Model Arithmetic on Tasks~A and~B]{\textbf{Model Arithmetic on Tasks~A and~B} (30 rollouts per bar; Section~\ref{kai0:sec:protocol}). Merged policies beat full-data and single-best baselines on most metrics and lower all Task~B retries (see Section~\ref{kai0:app:ablation_ma} on panel~b score bars).}
+  \caption{\textbf{Model Arithmetic on Tasks~A and~B} (30 rollouts per bar; Section~\ref{kai0:sec:protocol}). Merged policies beat full-data and single-best baselines on most metrics and lower all Task~B retries (see Section~\ref{kai0:app:ablation_ma} on panel~b score bars).}
   \label{kai0:fig:app_soup}
 \end{figure}
 
 \begin{figure}[tb]
   \centering
   \includegraphics[width=0.85\linewidth]{ch-kai0/images/advantage_demoB_compress.pdf}
-  \caption[Ablation of Stage Advantage on Task~C]{\textbf{Stage Advantage on Task~C} (co-author module, Chapter~\ref{ch:kai0}; 30 rollouts). SA improves MSTD, SFR, and retries (``Recover Cost''), whereas Direct+Stage trails in completion, throughput, and score.}
+  \caption{\textbf{Stage Advantage on Task~C} (co-author module, Chapter~\ref{ch:kai0}; 30 rollouts). SA improves MSTD, SFR, and retries (``Recover Cost''), whereas Direct+Stage trails in completion, throughput, and score.}
   \label{kai0:fig:app_sa_c}
 \end{figure}
 
@@ -527,7 +527,7 @@ Across 30 rollouts per bar in Figs.~\ref{kai0:fig:app_tda_a}, \ref{kai0:fig:app_
   \begin{subfigure}[t]{0.8\linewidth}
     \centering
     \includegraphics[width=\linewidth]{ch-kai0/images/ff_abs_compress.pdf}
-    \caption[Absolute targets]{Absolute targets}
+    \caption{Absolute targets}
     \label{kai0:fig:app_tda_a_abs}
   \end{subfigure}
 
@@ -535,10 +535,10 @@ Across 30 rollouts per bar in Figs.~\ref{kai0:fig:app_tda_a}, \ref{kai0:fig:app_
   \begin{subfigure}[t]{0.8\linewidth}
     \centering
     \includegraphics[width=\linewidth]{ch-kai0/images/ff_delta_compress.pdf}
-    \caption[Delta increments]{Delta increments}
+    \caption{Delta increments}
     \label{kai0:fig:app_tda_a_delta}
   \end{subfigure}
-  \caption[Control strategies and augmentation on Task~A with two action representations]{\textbf{Task~A control and augmentation across joint spaces} (30 rollouts per bar). Chunk-wise smoothing leads in nearly all regimes for absolute (a) and delta (b) joints; RTC helps in 3 of 4 absolute regimes versus 1 delta regime.}
+  \caption{\textbf{Task~A control and augmentation across joint spaces} (30 rollouts per bar). Chunk-wise smoothing leads in nearly all regimes for absolute (a) and delta (b) joints; RTC helps in 3 of 4 absolute regimes versus 1 delta regime.}
   \label{kai0:fig:app_tda_a}
 \end{figure}
 
@@ -547,7 +547,7 @@ Across 30 rollouts per bar in Figs.~\ref{kai0:fig:app_tda_a}, \ref{kai0:fig:app_
   \begin{subfigure}[t]{0.8\linewidth}
     \centering
     \includegraphics[width=\linewidth]{ch-kai0/images/demoA_abs_compress.pdf}
-    \caption[Absolute targets]{Absolute targets}
+    \caption{Absolute targets}
     \label{kai0:fig:app_tda_b_abs}
   \end{subfigure}
 
@@ -555,10 +555,10 @@ Across 30 rollouts per bar in Figs.~\ref{kai0:fig:app_tda_a}, \ref{kai0:fig:app_
   \begin{subfigure}[t]{0.8\linewidth}
     \centering
     \includegraphics[width=\linewidth]{ch-kai0/images/demoA_delta_compress.pdf}
-    \caption[Delta increments]{Delta increments}
+    \caption{Delta increments}
     \label{kai0:fig:app_tda_b_delta}
   \end{subfigure}
-  \caption[Control strategies and augmentation on Task~B with two action representations]{\textbf{Task~B control and augmentation} (30 rollouts per bar). Delta joints trail absolute joints, completion stays near or below 30\%, and chunk-wise smoothing gives no consistent margin.}
+  \caption{\textbf{Task~B control and augmentation} (30 rollouts per bar). Delta joints trail absolute joints, completion stays near or below 30\%, and chunk-wise smoothing gives no consistent margin.}
   \label{kai0:fig:app_tda_b}
 \end{figure}
 
@@ -567,7 +567,7 @@ Across 30 rollouts per bar in Figs.~\ref{kai0:fig:app_tda_a}, \ref{kai0:fig:app_
   \begin{subfigure}[t]{0.8\linewidth}
     \centering
     \includegraphics[width=\linewidth]{ch-kai0/images/demoB_abs_compress.pdf}
-    \caption[Absolute targets]{Absolute targets}
+    \caption{Absolute targets}
     \label{kai0:fig:app_tda_c_abs}
   \end{subfigure}
 
@@ -575,17 +575,17 @@ Across 30 rollouts per bar in Figs.~\ref{kai0:fig:app_tda_a}, \ref{kai0:fig:app_
   \begin{subfigure}[t]{0.8\linewidth}
     \centering
     \includegraphics[width=\linewidth]{ch-kai0/images/demoB_delta_compress.pdf}
-    \caption[Delta increments]{Delta increments}
+    \caption{Delta increments}
     \label{kai0:fig:app_tda_c_delta}
   \end{subfigure}
-  \caption[Control strategies and augmentation on Task~C with two action representations]{\textbf{Task~C control and augmentation} (30 rollouts per bar). Tight hanger-insertion tolerances keep completion modest and sensitive to joint parameterisation.}
+  \caption{\textbf{Task~C control and augmentation} (30 rollouts per bar). Tight hanger-insertion tolerances keep completion modest and sensitive to joint parameterisation.}
   \label{kai0:fig:app_tda_c}
 \end{figure}
 
 \begin{figure}[tb]
   \centering
   \includegraphics[width=\linewidth]{ch-kai0/images/failure_case_trim.pdf}
-  \caption[Failure cases on Task~A]{\textbf{Task~A failure breakdown.} Distribution of 1026 failure events pooled across tested policies; flattening errors dominate (1010 instances), led by prolonged re-grasping (874).}
+  \caption{\textbf{Task~A failure breakdown.} Distribution of 1026 failure events pooled across tested policies; flattening errors dominate (1010 instances), led by prolonged re-grasping (874).}
   \label{kai0:fig:failure_case}
 \end{figure}
 

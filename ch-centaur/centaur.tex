@@ -17,7 +17,7 @@ In NAVSIM v1.0 non-reactive 4-second replay~\cite{dauner2024navsim} (where each 
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.55\textwidth]{ch-centaur/images/main_fig_v15.pdf}
-  \caption[Reducing entropy when uncertain with test-time training]{\textbf{Minimising directional score entropy via test-time training (TTT).} The trajectory-scoring planner Hydra-MDP~\cite{li2024hydramdp} scores candidate trajectories on \texttt{navtest}~\cite{dauner2024navsim} across five directional clusters ($\bigstar$: top-scoring plan). \textbf{Left:} Entering a roundabout, the unadapted model picks an isolated `slight left' outlier despite low cluster support. \textbf{Right:} Minimising Cluster Entropy via TTT sharpens the score distribution toward `slight right', avoiding oncoming traffic.}
+  \caption{\textbf{Minimising directional score entropy via test-time training (TTT).} The trajectory-scoring planner Hydra-MDP~\cite{li2024hydramdp} scores candidate trajectories on \texttt{navtest}~\cite{dauner2024navsim} across five directional clusters ($\bigstar$: top-scoring plan). \textbf{Left:} Entering a roundabout, the unadapted model picks an isolated `slight left' outlier despite low cluster support. \textbf{Right:} Minimising Cluster Entropy via TTT sharpens the score distribution toward `slight right', avoiding oncoming traffic.}
   \label{centaur:fig:teaser}
 \end{figure}
 
@@ -44,7 +44,7 @@ Fig.~\ref{centaur:fig:pipeline} summarises the Centaur pipeline: trajectory scor
 \begin{figure}[t]
   \centering
   \includegraphics[width=\textwidth]{ch-centaur/images/pipeline_v11.pdf}
-  \caption[Test-time training in Centaur]{\textbf{Overview of test-time training (TTT) in Centaur.} \textbf{Top:} At each deployment frame, a fixed subset of $M$ candidate trajectories is grouped into five directional clusters to compute Cluster Entropy and its gradient via backpropagation. \textbf{Bottom:} Gradients from the $F$ preceding evaluation steps are buffered and averaged for a single gradient step from base decoder weights $\theta$ (Algorithm~\ref{centaur:alg:ttt}).}
+  \caption{\textbf{Overview of test-time training (TTT) in Centaur.} \textbf{Top:} At each deployment frame, a fixed subset of $M$ candidate trajectories is grouped into five directional clusters to compute Cluster Entropy and its gradient via backpropagation. \textbf{Bottom:} Gradients from the $F$ preceding evaluation steps are buffered and averaged for a single gradient step from base decoder weights $\theta$ (Algorithm~\ref{centaur:alg:ttt}).}
   \label{centaur:fig:pipeline}
 \end{figure}
 
@@ -120,7 +120,7 @@ dampening isolated high-scoring outliers in weakly supported directions (Fig.~\r
 \begin{figure}[tbp]
   \centering
   \includegraphics[width=\textwidth]{ch-centaur/images/navsafe_v12.pdf}
-  \caption[The \texttt{navsafe} benchmark]{\textbf{Curation workflow of \texttt{navsafe}.} \texttt{navtest} clips are ranked by Hydra-MDP PDMS (Step~0), inspected by human annotators (Step~1), and grouped into ten scenario classes (Steps~2--4) guided by the NHTSA pre-crash typology~\cite{najm2007pre} (top-left inset), with a qualitative 2D OpenCLIP~\cite{ilharco2021openclip} projection of \texttt{navtest} (blue) and \texttt{navsafe} (red) frames at top right.}
+  \caption{\textbf{Curation workflow of \texttt{navsafe}.} \texttt{navtest} clips are ranked by Hydra-MDP PDMS (Step~0), inspected by human annotators (Step~1), and grouped into ten scenario classes (Steps~2--4) guided by the NHTSA pre-crash typology~\cite{najm2007pre} (top-left inset), with a qualitative 2D OpenCLIP~\cite{ilharco2021openclip} projection of \texttt{navtest} (blue) and \texttt{navsafe} (red) frames at top right.}
   \label{centaur:fig:navsafe}
 \end{figure}
 
@@ -159,7 +159,7 @@ combining No at-fault Collision (NC), Drivable Area Compliance (DAC), 1-second T
 
 \begin{table}[t]
   \centering
-  \caption[Impact of test-time training on \texttt{navtest}]{\textbf{Impact of TTT on \texttt{navtest} (NAVSIM v1.0, single seed).} TTT lifts PDMS under all uncertainty measures, led by Cluster Entropy. Prior fallback rows are audited against Table~\ref{centaur:tab:fail_class} in Section~\ref{centaur:sec:results}; three-seed v1.1 results appear in Table~\ref{centaur:tab:navtest_all}.}
+  \caption{\textbf{Impact of TTT on \texttt{navtest} (NAVSIM v1.0, single seed).} TTT lifts PDMS under all uncertainty measures, led by Cluster Entropy. Prior fallback rows are audited against Table~\ref{centaur:tab:fail_class} in Section~\ref{centaur:sec:results}; three-seed v1.1 results appear in Table~\ref{centaur:tab:navtest_all}.}
   \label{centaur:tab:navtest_ablation}
   \begin{adjustbox}{max width=\textwidth}
   \begin{tabular}{l|ll|rrrr|rr}
@@ -191,7 +191,7 @@ combining No at-fault Collision (NC), Drivable Area Compliance (DAC), 1-second T
 
 \begin{table}[t]
   \centering
-  \caption[Failure identification on \texttt{navtest}]{\textbf{Failure identification on \texttt{navtest}} (audited in Section~\ref{centaur:sec:failure}).}
+  \caption{\textbf{Failure identification on \texttt{navtest}} (audited in Section~\ref{centaur:sec:failure}).}
   \label{centaur:tab:fail_class}
   \begin{tabular}{l|c|rr}
     \toprule
@@ -214,7 +214,7 @@ Table~\ref{centaur:tab:fail_class} tests binary failure detection at fixed cutof
 
 \begin{table}[t]
   \centering
-  \caption[The \texttt{navtest} leaderboard]{\textbf{\texttt{navtest} leaderboard} (NAVSIM v1.1, March 2025, 3 seeds). *Hydra-MDP is a single run of the 2024 3-model ensemble.}
+  \caption{\textbf{\texttt{navtest} leaderboard} (NAVSIM v1.1, March 2025, 3 seeds). *Hydra-MDP is a single run of the 2024 3-model ensemble.}
   \label{centaur:tab:navtest_all}
   \begin{adjustbox}{max width=\textwidth}
   \begin{tabular}{l|llll|ll}
@@ -239,7 +239,7 @@ Across 3 seeds on the official NAVSIM v1.1 leaderboard~\cite{dauner2024navsim} (
 
 \begin{table}[t]
   \centering
-  \caption[PDM scores on \texttt{navsafe}]{\textbf{\texttt{navsafe} PDM scores} across \textbf{RDBT} (Roundabout), \textbf{YLLT} (Yellow light), \textbf{EXR} (Exit ramp), \textbf{UNPL} (Unprotected left), \textbf{ENR} (Enter ramp), \textbf{UNTS} (Uncommon traffic sign), \textbf{OTLC} (Overtaking with lane change), \textbf{NLA} (No lane area), \textbf{BWTH} (Bad weather), and \textbf{YLD} (Yielding). Preprint Overall~\cite{sima2024centaur} (74.14 vs.\ 56.47, 17.67 gap) differs from the frame-weighted (49.36 vs.\ 68.86, or 49.4 vs.\ 68.9) and simple (48.33 vs.\ 71.96, or 48.3 vs.\ 72.0) means in Table~\ref{centaur:tab:navsafe_overall} (Section~\ref{centaur:sec:navsafe}).}
+  \caption{\textbf{\texttt{navsafe} PDM scores} across \textbf{RDBT} (Roundabout), \textbf{YLLT} (Yellow light), \textbf{EXR} (Exit ramp), \textbf{UNPL} (Unprotected left), \textbf{ENR} (Enter ramp), \textbf{UNTS} (Uncommon traffic sign), \textbf{OTLC} (Overtaking with lane change), \textbf{NLA} (No lane area), \textbf{BWTH} (Bad weather), and \textbf{YLD} (Yielding). Preprint Overall~\cite{sima2024centaur} (74.14 vs.\ 56.47, 17.67 gap) differs from the frame-weighted (49.36 vs.\ 68.86, or 49.4 vs.\ 68.9) and simple (48.33 vs.\ 71.96, or 48.3 vs.\ 72.0) means in Table~\ref{centaur:tab:navsafe_overall} (Section~\ref{centaur:sec:navsafe}).}
   \label{centaur:tab:navsafe}
   \begin{adjustbox}{max width=\textwidth}
   \begin{tabular}{l|rrrrrrrrrr|r}
@@ -275,7 +275,7 @@ We examine trajectory shifts, regression transfer, hyper-parameters, and runtime
 \begin{figure}[t]
   \centering
   \includegraphics[width=\textwidth]{ch-centaur/images/vis_v7.pdf}
-  \caption[Qualitative results of test-time training]{\textbf{Qualitative results} ($\bigstar$: top-scoring plan ordered by lateral endpoint). \textbf{Top:} TTT shifts selection from `Slight Left' to `Forward', improving TTC. \textbf{Bottom:} TTT fails to overturn an overconfident choice.}
+  \caption{\textbf{Qualitative results} ($\bigstar$: top-scoring plan ordered by lateral endpoint). \textbf{Top:} TTT shifts selection from `Slight Left' to `Forward', improving TTC. \textbf{Bottom:} TTT fails to overturn an overconfident choice.}
   \label{centaur:fig:vis}
 \end{figure}
 
@@ -319,7 +319,7 @@ This section provides supplementary context on related literature, mathematical 
 
 \begin{table}[t]
   \centering
-  \caption[Mathematical symbols for Chapter~\ref{ch:centaur}]{Summary of mathematical symbols and definitions in Chapter~\ref{ch:centaur}.}
+  \caption{\textbf{Summary of mathematical symbols and definitions in Chapter~\ref{ch:centaur}.}}
   \label{centaur:tab:notation}
   \begin{tabular}{cl}
     \toprule
@@ -382,13 +382,13 @@ where $\mathcal{L}_{im}$ is the vocabulary-level cross-entropy~\cite{li2024hydra
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.55\textwidth]{ch-centaur/images/group12.pdf}
-  \caption[Sub-score dispersion on succeeded versus failed frames]{\textbf{Score distributions on failed (top) vs.\ successful (bottom) pairs.}}
+  \caption{\textbf{Score distributions on failed (top) vs.\ successful (bottom) pairs.}}
   \label{centaur:fig:vis_group}
 \end{figure}
 
 \begin{table}[t]
   \centering
-  \caption[Single-seed NAVSIM v1.0 benchmark results]{\textbf{Single-seed NAVSIM v1.0 results} (2024 Challenge protocol; cf.\ Table~\ref{centaur:tab:navtest_all}).}
+  \caption{\textbf{Single-seed NAVSIM v1.0 results} (2024 Challenge protocol; cf.\ Table~\ref{centaur:tab:navtest_all}).}
   \label{centaur:tab:navtest_all_supp}
   \begin{adjustbox}{max width=\textwidth}
   \begin{tabular}{ll|cccc|cc}
@@ -416,7 +416,7 @@ where $\mathcal{L}_{im}$ is the vocabulary-level cross-entropy~\cite{li2024hydra
 
 \begin{table}[tbp]
   \centering
-  \caption[Extended \texttt{navtest} ablations and runtime]{\textbf{NAVSIM v1.0 ablations and runtime.} Fallback is audited in Section~\ref{centaur:app:consistency}; TTT$^{*}$ uses SVD; Hydra-SE$^{\mathbf{f}}$ buffers $f$ steps; \colorbox{gray!50}{Hydra-SE$^{\mathbf{4}}$} gates TTT by uncertainty.}
+  \caption{\textbf{NAVSIM v1.0 ablations and runtime.} Fallback is audited in Section~\ref{centaur:app:consistency}; TTT$^{*}$ uses SVD; Hydra-SE$^{\mathbf{f}}$ buffers $f$ steps; \colorbox{gray!50}{Hydra-SE$^{\mathbf{4}}$} gates TTT by uncertainty.}
   \label{centaur:tab:navtest_ablation_supp}
   \footnotesize\begin{adjustbox}{max width=\textwidth}
   \begin{tabular}{l|ll|rrrr|rr|c}
@@ -454,7 +454,7 @@ where $\mathcal{L}_{im}$ is the vocabulary-level cross-entropy~\cite{li2024hydra
 
 \begin{table}[t]
   \centering
-  \caption[Threshold sweep for failure classification]{\textbf{Failure classification across models and cut-offs} (cf.\ Table~\ref{centaur:tab:fail_class}; audited in Section~\ref{centaur:app:consistency}).}
+  \caption{\textbf{Failure classification across models and cut-offs} (cf.\ Table~\ref{centaur:tab:fail_class}; audited in Section~\ref{centaur:app:consistency}).}
   \label{centaur:tab:fail_class_supp}
   \begin{tabular}{l|l|c|rr}
     \toprule
@@ -495,7 +495,7 @@ We audit internal arithmetic across Tables~\ref{centaur:tab:navtest_ablation}, \
 
 \begin{table}[t]
   \centering
-  \caption[Implied fallback trigger proportions]{\textbf{Implied fallback trigger proportions at the cut-offs of Table~\ref{centaur:tab:fail_class}}, derived from Tables~\ref{centaur:tab:navtest_ablation} and~\ref{centaur:tab:fail_class} at $p=15.6$\% (in \%).}
+  \caption{\textbf{Implied fallback trigger proportions at the cut-offs of Table~\ref{centaur:tab:fail_class}}, derived from Tables~\ref{centaur:tab:navtest_ablation} and~\ref{centaur:tab:fail_class} at $p=15.6$\% (in \%).}
   \label{centaur:tab:implied_rates}
   \small
   \setlength{\tabcolsep}{4pt}
@@ -515,7 +515,7 @@ We audit internal arithmetic across Tables~\ref{centaur:tab:navtest_ablation}, \
 
 \begin{table}[htb]
   \centering
-  \caption[\texttt{navsafe} Overall under two aggregations]{\textbf{Comparison of \texttt{navsafe} summary aggregations} from Table~\ref{centaur:tab:navsafe} (frame-weighted accurate to $\pm 0.05$).}
+  \caption{\textbf{Comparison of \texttt{navsafe} summary aggregations} from Table~\ref{centaur:tab:navsafe} (frame-weighted accurate to $\pm 0.05$).}
   \label{centaur:tab:navsafe_overall}
   \begin{tabular}{l|r|rr}
     \toprule

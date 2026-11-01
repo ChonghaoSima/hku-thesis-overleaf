@@ -36,13 +36,13 @@ Looking across the perceive--reason--act loop, the individual chapters point tow
 \begin{figure}[t]
   \centering
   \includegraphics[width=\textwidth]{ch-discussion/figures/self_correcting.pdf}
-  \caption[Anatomy of a self-correcting physical agent]{Proposed anatomy of a self-correcting physical agent synthesising the perceive--reason--act contributions of this dissertation ($^{*}$ denotes co-authored works; BEV refers to BEVFormer~\cite{li2022bevformer}). Evidence for each architectural element comes from L0/L1 driving evaluations or offline-aligned L3 robot trials and is graded in Table~\ref{tab:disc:evidence}.}
+  \caption{Proposed anatomy of a self-correcting physical agent synthesising the perceive--reason--act contributions of this dissertation ($^{*}$ denotes co-authored works; BEV refers to BEVFormer~\cite{li2022bevformer}). Evidence for each architectural element comes from L0/L1 driving evaluations or offline-aligned L3 robot trials and is graded in Table~\ref{tab:disc:evidence}.}
   \label{fig:disc:anatomy}
 \end{figure}
 
 \begin{table}[tbp]
   \centering
-  \caption[Evidence for the elements of the proposed self-correcting agent]{Evidence grading for the five elements of a self-correcting physical agent (Fig.~\ref{fig:disc:anatomy}), distinguishing author-led chapter contributions from co-authored works.}
+  \caption{\textbf{Evidence grading for the five elements of a self-correcting physical agent (Fig.~\ref{fig:disc:anatomy}),} distinguishing author-led chapter contributions from co-authored works.}
   \label{tab:disc:evidence}
   \footnotesize\linespread{1.05}\selectfont
   \setlength{\tabcolsep}{3pt}
@@ -100,7 +100,5 @@ Test-time planner training (Chapter~\ref{ch:centaur}) should be extended from ep
 \paragraph{Self-directed robot learning and matched-budget scaling laws.}
 In embodied manipulation, future work should systematically compare distributional alignment (\chiz) against raw demonstration scaling~\cite{bu2025agibot_iros} at equal total robot, operator, and compute budgets. More fundamentally, moving beyond human teleoperation and human-triggered DAgger interventions requires robots that autonomously detect execution failures, propose sub-goals, practice recovery skills in the physical world, and evaluate their own progress via learned value functions~\cite{chen2025robot}.
 
-% ==============================================================================
-\section{Closing Remarks}\label{sec:concl:closing}
-
-No finite training dataset will ever record every obstacle geometry, traffic interaction, sensor configuration, or deformable object state that the physical world presents. Rather than treating out-of-distribution failures as edge cases to be solved by offline dataset scale alone, this dissertation has argued for designing and evaluating physical agents around the inevitability of deployment shift: representing 3D geometry without rigid cuboids, structuring multimodal reasoning so intermediate steps can be inspected and grounded, adapting planner predictions to test-time uncertainty, and aligning demonstration data, policy weights, and hardware execution across the training--deployment loop. Having taken concrete steps across open-loop logs, non-reactive rollouts, and physical robots, closing the full perceive--reason--act self-correction loop in lifelong real-world deployment remains the central frontier ahead.
+\medskip\label{sec:concl:closing}
+\noindent No finite training dataset will ever record every obstacle geometry, traffic interaction, sensor configuration, or deformable object state that the physical world presents. Rather than treating out-of-distribution failures as edge cases to be solved by offline dataset scale alone, this dissertation has argued for designing and evaluating physical agents around the inevitability of deployment shift: representing 3D geometry without rigid cuboids, structuring multimodal reasoning so intermediate steps can be inspected and grounded, adapting planner predictions to test-time uncertainty, and aligning demonstration data, policy weights, and hardware execution across the training--deployment loop. Having taken concrete steps across open-loop logs, non-reactive rollouts, and physical robots, closing the full perceive--reason--act self-correction loop in lifelong real-world deployment remains the central frontier ahead.

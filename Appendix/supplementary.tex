@@ -1,0 +1,155 @@
+\chapter{Supplementary Material}\label{app:supp}
+
+\section{LLM Prompts and Question Templates for DriveLM}\label{app:supp:prompts}
+
+We present the structured prompting templates, coordinate tokenisation rules, and evaluation prompts used in Chapter~\ref{ch:drivelm} for Graph Visual Question Answering (GVQA) across DriveLM-nuScenes, DriveLM-CARLA, and DriveLM-Agent. Each frame graph $G=(V,E)$ organises question--answer pairs across five sequential reasoning stages: perception ($P_1$), prediction ($P_2$), planning ($P_3$), behaviour ($B$), and motion ($M$).
+
+\subsection{Graph VQA Question Templates Across Reasoning Stages}\label{app:supp:templates}
+
+In DriveLM-nuScenes and DriveLM-CARLA, every object-centric node $v \in V$ references a key object via a grounded identifier tag $\langle c,\, cam,\, x,\, y\rangle$, where $c \in \{\texttt{c1},\dots,\texttt{c6}\}$ indexes the key objects in the frame, $cam$ specifies one of the six surround-view cameras (\texttt{CAM\_FRONT}, \texttt{CAM\_FRONT\_LEFT}, \texttt{CAM\_FRONT\_RIGHT}, \texttt{CAM\_BACK}, \texttt{CAM\_BACK\_LEFT}, or \texttt{CAM\_BACK\_RIGHT}) in which the object's 2D bounding-box centre appears, and $(x,y)$ denotes the pixel coordinates of the 2D box centre scaled to a $1600 \times 900$ image plane. Below we list the canonical question templates and answer formats for each stage of the reasoning graph:
+
+\begin{footnotesize}
+\begin{verbatim}
+==============================================================================
+Stage P1: Perception (Object Identification, Status, and Scene Attributes)
+==============================================================================
+Q1 (Key-object identification):
+  "What are the important objects in the current scene? Those objects will be
+   considered for the future reasoning and driving decision."
+A1 (Grounded object list):
+  "There is a <category> <c_i, CAM_VIEW, x_i, y_i> [and a <category>
+   <c_j, CAM_VIEW, x_j, y_j> ...]."
+
+Q2 (Object visual description and motion state):
+  "What is the moving status of object <c_i, CAM_VIEW, x_i, y_i>? Please select
+   from [stopped, moving, parked,jaywalking, signalling, ...]."
+A2 (Visual and kinematic state):
+  "<c_i, CAM_VIEW, x_i, y_i> is a <colour/type> <category> that is <status>
+   [in the <lane_position> / ahead of the ego vehicle]."
+
+Q3 (Traffic signal and road-rule perception):
+  "What is the status of the traffic light <c_k, CAM_FRONT, x_k, y_k> controlling
+   the ego vehicle's lane?"
+A3 (Signal phase):
+  "The traffic light <c_k, CAM_FRONT, x_k, y_k> is <red / green / yellow>."
+
+==============================================================================
+Stage P2: Prediction (Future Motion and Multi-Object Interaction)
+==============================================================================
+Q4 (Object future trajectory and intention):
+  "Where might object <c_i, CAM_VIEW, x_i, y_i> move in the next few seconds,
+   and what is its likely intention?"
+A4 (Predicted motion):
+  "<c_i, CAM_VIEW, x_i, y_i> will <continue straight / turn left / turn right /
+   remain stationary / cross the crosswalk> in the <lane_region>."
+
+Q5 (Pairwise object--ego or object--object interaction):
+  "Would object <c_i, CAM_VIEW, x_i, y_i> affect the trajectory of object
+   <c_j, CAM_VIEW, x_j, y_j> or the ego vehicle?"
+A5 (Interaction rationale):
+  "Yes, because <c_i, CAM_VIEW, x_i, y_i> is <merging into the ego lane /
+   crossing ahead of the ego vehicle / stopped in the path of c_j>."
+
+==============================================================================
+Stage P3: Planning (Action Selection, Object Prioritisation, and Risk Check)
+==============================================================================
+Q6 (High-level driving action rationale):
+  "What is the next driving action of the ego vehicle given the surrounding
+   traffic, and why?"
+A6 (Goal-conditioned planning decision):
+  "The ego vehicle should <keep going at the same speed / decelerate slowly /
+   brake to a stop / steer slightly left to yield to c_i>."
+
+Q7 (Action-conditioned collision risk verification):
+  "If the ego vehicle executes [<candidate_action>], would it risk colliding
+   with object <c_i, CAM_VIEW, x_i, y_i>?"
+A7 (Counterfactual safety assessment):
+  "<Yes / No>, if the ego vehicle [<candidate_action>], it <would / would not>
+   collide with <c_i, CAM_VIEW, x_i, y_i> because <spatial_reason>."
+
+==============================================================================
+Stage B: Behaviour Classification (Discretised Speed and Steering Bins)
+==============================================================================
+Q8 (Discretised speed-and-steering decision):
+  "Predict the behaviour of the ego vehicle. The speed options are:
+   [stopping, decelerating to stop, decelerating Slowly, decelerating fast,
+    keeping speed, accelerating slowly, accelerating fast].
+   The steering options are:
+   [going straight, turning slightly left, turning left, turning slightly right,
+    turning right, changing to the left lane, changing to the right lane]."
+A8 (Joint behaviour tuple):
+  "The ego vehicle is <B_sp> and <B_st>."
+
+==============================================================================
+Stage M: Motion Planning (Tokenised 3-Second Ego Waypoint Sequence)
+==============================================================================
+Q9 (Conditioned trajectory rollout):
+  "Given the behaviour [<B_sp>, <B_st>], predict the future 3-second waypoints
+   of the ego vehicle at 0.5-second intervals."
+A9 (Quantised 256-bin coordinate tokens between <SOT> and <EOT>):
+  "<SOT> <x_1> <y_1> <x_2> <y_2> <x_3> <y_3>
+         <x_4> <y_4> <x_5> <y_5> <x_6> <y_6> <EOT>"
+\end{verbatim}
+\end{footnotesize}
+
+\subsection{GPT Score Evaluation Prompt and Autoregressive Context Formatting}\label{app:supp:gpt_prompt}
+
+Below we record (i) the autoregressive graph-context prompt constructed by DriveLM-Agent when querying child nodes along directed edges $e=(u,v)\in E$, (ii) the rule-based cascade prompts used for zero-shot transfer to Waymo Open Dataset and unseen pedestrian categories in DriveLM-CARLA, and (iii) the exact evaluation prompt sent to \texttt{gpt-3.5-turbo} when computing the GPT Score metric in Table~\ref{drivelm:tab:vqa_more_metrics}.
+
+\begin{footnotesize}
+\begin{verbatim}
+==============================================================================
+1. Autoregressive Graph-Context Formatting in DriveLM-Agent
+==============================================================================
+Input prompt to BLIP-2 / Flanagan-T5-XL or LLaMA-Adapter V2 for node v:
+  "Context:
+   Q: <Question(u_1)> A: <Predicted_or_GT_Answer(u_1)>
+   ...
+   Q: <Question(u_k)> A: <Predicted_or_GT_Answer(u_k)>
+   Question: <Question(v)>
+   Answer:"
+(During training, teacher forcing supplies ground-truth parent answers A(u_i);
+ during inference, predicted parent answers are substituted along edges in E.)
+
+==============================================================================
+2. Zero-Shot Cross-Domain and Unseen-Object Cascade Prompts
+==============================================================================
+Waymo Open Dataset zero-shot cascade (Section 3.6.3):
+  Step 1 (P1): "What are the objects in the front view?"
+  Step 2 (P2, triggered if Step 1 detects 'car', 'truck', or 'pedestrian'):
+    "What is the moving status of the <detected_class> in the front view?"
+  Step 3 (P3):
+    "What should the ego vehicle do given the <detected_class> in the front view?"
+  Step 4 (B):
+    Append (Step 1, Step 2, Step 3) QAs as context to the Stage B query.
+
+DriveLM-CARLA unseen-pedestrian cascade (Section 3.6.4):
+  Step 1 (Presence check):
+    "Is there a person in the scene?"
+  Step 2a (If Step 1 answer is 'Yes'):
+    "What should the vehicle do based on the pedestrian that is crossing the road?"
+  Step 2b (If Step 1 answer is 'No'):
+    "What should the ego vehicle do?"
+  Step 3 (B):
+    Append the resulting QA pair to the behaviour classification context.
+
+==============================================================================
+3. GPT Score Evaluation Prompt (gpt-3.5-turbo)
+==============================================================================
+messages = [
+    {
+        "role": "system",
+        "content": "An evaluator who rates my answer based on the correct answer."
+    },
+    {
+        "role": "user",
+        "content": (
+            "Rate my answer based on the correct answer out of 100, with higher "
+            "scores indicating that the answer is closer to the correct answer, "
+            "and you should be accurate to single digits like 62, 78, 41, etc. "
+            f"This is the correct answer: {GT}. This is my answer: {Pred}."
+        )
+    }
+]
+\end{verbatim}
+\end{footnotesize}

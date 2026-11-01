@@ -29,7 +29,7 @@ The curse of reality is especially acute for physical agents for four reasons: c
 \begin{figure}[t]
   \centering
   \includegraphics[width=\textwidth]{ch-introduction/figures/thesis_overview.pdf}
-  \caption[Overview of the thesis]{Overview of the dissertation. The core chapters follow the perceive--reason--act loop of a physical agent confronting the curse of reality: Chapter~\ref{ch:occnet} addresses 3D occupancy perception (Stage~1, RQ1), Chapter~\ref{ch:drivelm} addresses graph-structured vision-language reasoning (Stage~2, RQ2), and Chapters~\ref{ch:centaur} and~\ref{ch:kai0} address reliable action via test-time planner adaptation and resource-aware manipulation alignment (Stage~3, RQ3). Chapter~\ref{ch:conclusion} synthesises these findings into an evidence-graded architecture for self-correcting physical agents (RQ4). Works marked $^{*}$ are co-authored rather than led by the author; $\blacklozenge$ denotes a method and $\blacksquare$ denotes a dataset or benchmark.}
+  \caption{\textbf{Overview of the dissertation.} The core chapters follow the perceive--reason--act loop of a physical agent confronting the curse of reality: Chapter~\ref{ch:occnet} addresses 3D occupancy perception (Stage~1, RQ1), Chapter~\ref{ch:drivelm} addresses graph-structured vision-language reasoning (Stage~2, RQ2), and Chapters~\ref{ch:centaur} and~\ref{ch:kai0} address reliable action via test-time planner adaptation and resource-aware manipulation alignment (Stage~3, RQ3). Chapter~\ref{ch:conclusion} synthesises these findings into an evidence-graded architecture for self-correcting physical agents (RQ4). Works marked $^{*}$ are co-authored rather than led by the author; $\blacklozenge$ denotes a method and $\blacksquare$ denotes a dataset or benchmark.}
   \label{fig:intro:overview}
 \end{figure}
 
@@ -46,7 +46,7 @@ Methodologically, the works in this dissertation follow a design-science paradig
 \begin{figure}[t]
   \centering
   \includegraphics[width=\textwidth]{ch-methodology/figures/lineage.pdf}
-  \caption[Research lineage of the author's publications]{Research lineage of the publications to which the author contributed, organised by year and perceive--reason--act pillar. Solid arrows denote direct technical or data inheritance; dashed arrows denote motivation or contrast; dark bold outlines mark the five author-led core-chapter works; squares mark dataset and benchmark releases. Two capsules (\textsf{PersFormer + OpenLane} and \textsf{OccNet + OpenOcc}) pair a method and benchmark from the same paper, so the 18 capsules represent the 20 outputs in Section~\ref{sec:intro:publications}.}
+  \caption{\textbf{Research lineage of the publications to which the author contributed, organised by year and perceive--reason--act pillar.} Solid arrows denote direct technical or data inheritance; dashed arrows denote motivation or contrast; dark bold outlines mark the five author-led core-chapter works; squares mark dataset and benchmark releases. Two capsules (\textsf{PersFormer + OpenLane} and \textsf{OccNet + OpenOcc}) pair a method and benchmark from the same paper, so the 18 capsules represent the 20 outputs in Section~\ref{sec:intro:publications}.}
   \label{fig:method:lineage}
 \end{figure}
 
@@ -83,9 +83,9 @@ Extending reliable action to closed-loop physical robot manipulation (L3 fidelit
 Beyond the four core chapters, fifteen additional publications (including first-authored and co-first-authored works) and three US patents trace the broader perceive--reason--act programme (Fig.~\ref{fig:method:lineage}). In 3D perception and architecture, PersFormer and the OpenLane benchmark~\cite{chen2022persformer} (co-first author) established single-camera 3D lane detection; BEVFormer~\cite{li2022bevformer} and our T-PAMI BEV survey~\cite{li2023bevdevils} (co-first author, winning 1st place in the 2022 Waymo 3D Camera-Only Detection Challenge) established multi-camera BEV perception recipes; SDF~\cite{gao2023sdf} and VCD~\cite{huang2023vcd} addressed camera--LiDAR feature fusion and LiDAR-guided distillation, respectively; OpenLane-V2~\cite{wang2023openlanev2} introduced road-topology reasoning; and UniAD~\cite{hu2023uniad} (CVPR 2023 Best Paper Award) unified perception, prediction, and planning in a single end-to-end network. In language-grounded reasoning, Hint-AD~\cite{ding2024hint} aligned natural-language explanations with end-to-end driving features; DriveBench~\cite{xie2025vlms} audited VLM driving reliability, exposing visual-grounding shortcuts and dataset answer skew in DriveLM-Data; ETA~\cite{hamdan2025eta} mitigated VLM inference latency via an asynchronous dual-speed fast--slow architecture; and FLARE~\cite{xie2026flare} distilled future-aware VLM latent priors without test-time text generation. In embodied manipulation and simulation, LSH-SMILE~\cite{sima2021lshsmile} (first author) accelerated physics simulation and learning via locality-sensitive hashing; AgiBot World Colosseo~\cite{bu2025agibot_iros} (IROS 2025 Best Paper Finalist) established a 1-million-trajectory, 100-robot manipulation platform and the GO-1 policy; PerturBot~\cite{liu2026perturbot} diagnosed and mitigated visual-language-motor shortcuts in VLA policies; and our CVPRW 2026 perspective paper~\cite{chen2025robot} formulated self-directed robot learning beyond human imitation.
 
 % ==============================================================================
-\section{Thesis Outline}\label{sec:intro:outline}
+\section{Thesis Outline}\label{sec:intro:outline}\label{tab:intro:abbrev}
 
-The remainder of this dissertation is organised into five chapters following the perceive--reason--act loop, with recurring abbreviations listed in Table~\ref{tab:intro:abbrev}.
+The remainder of this dissertation is organised into five chapters following the perceive--reason--act loop, supplemented by Appendix~\ref{app:supp}.
 
 \textbf{Chapter~\ref{ch:occnet}} (\emph{Perceive: Scene as Occupancy}) introduces 3D semantic occupancy prediction, the OccNet cascade voxel-decoder architecture, the OpenOcc benchmark on nuScenes, and the large-scale OpenScene dataset on nuPlan, evaluating multi-task 3D perception and open-loop motion planning at L0 fidelity.
 
@@ -96,29 +96,6 @@ The remainder of this dissertation is organised into five chapters following the
 \textbf{Chapter~\ref{ch:kai0}} (\emph{Act II: Resource-Aware Robust Manipulation}) analyses distributional inconsistencies across demonstration collection, policy training, and hardware execution in real-world robot manipulation, and evaluates \chiz (Model Arithmetic, Stage Advantage, and Train--Deploy Alignment) on physical dual-arm garment manipulation tasks at L3 fidelity.
 
 \textbf{Chapter~\ref{ch:conclusion}} (\emph{Conclusion}) summarises the stage-by-stage contributions, synthesises a unified perspective and evidence-graded architecture for self-correcting physical agents, and discusses thesis-wide limitations and future research directions.
-
-\begin{table}[t]
-  \centering
-  \caption[Abbreviations]{Recurring abbreviations used across chapters (\texttt{navsafe} scenario codes are defined in Table~\ref{centaur:tab:navsafe}). Mathematical symbols are defined locally within each chapter.}
-  \label{tab:intro:abbrev}
-  \footnotesize
-  \renewcommand{\arraystretch}{1.1}
-  \begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}X l>{\raggedright\arraybackslash}X@{}}
-    \toprule
-    Abbreviation & Meaning & Abbreviation & Meaning \\
-    \midrule
-    3D-DA & 3D deformable attention & NC, DAC & no at-fault collision, drivable area compliance (NAVSIM) \\
-    ADE, FDE & average and final displacement error & PDMS & predictive driver model score (NAVSIM) \\
-    BEV & bird's-eye view & RQ & research question \\
-    DAgger & dataset aggregation (targeted recovery data) & SA & Stage Advantage (Chapter~\ref{ch:kai0}) \\
-    EP, C, TTC & ego progress, comfort, time to collision (NAVSIM) & SSC & semantic scene completion \\
-    GVQA & graph visual question answering & TDA & Train--Deploy Alignment (Chapter~\ref{ch:kai0}) \\
-    L0--L3 & levels of evaluation fidelity & TTT & test-time training \\
-    MA & Model Arithmetic (Chapter~\ref{ch:kai0}) & VLA & vision-language-action model \\
-    mIoU & mean intersection over union & VLM, VQA & vision-language model, visual question answering \\
-    \bottomrule
-  \end{tabularx}
-\end{table}
 
 % ==============================================================================
 \section{Related Publications}\label{sec:intro:publications}

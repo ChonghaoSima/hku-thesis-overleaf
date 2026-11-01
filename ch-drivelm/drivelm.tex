@@ -25,7 +25,7 @@ Earlier driving VQA benchmarks used either scene-level rationales, \eg, ``The ca
 \begin{figure}[t]
   \centering
   \includegraphics[width=\textwidth]{ch-drivelm/images/teaser_smch_v10.pdf}
-  \caption[Overview of DriveLM: task, data, metrics and baseline]{\textbf{Overview of DriveLM.} Following~\cite{chen2024e2esurvey}, Graph Visual Question Answering (GVQA) links QA pairs via object-level and stage-level edges across perception $\rightarrow$ prediction $\rightarrow$ planning $\rightarrow$ behaviour $\rightarrow$ motion, supported by DriveLM-Data, DriveLM-Metrics and DriveLM-Agent.}
+  \caption{\textbf{Overview of DriveLM.} Following~\cite{chen2024e2esurvey}, Graph Visual Question Answering (GVQA) links QA pairs via object-level and stage-level edges across perception $\rightarrow$ prediction $\rightarrow$ planning $\rightarrow$ behaviour $\rightarrow$ motion, supported by DriveLM-Data, DriveLM-Metrics and DriveLM-Agent.}
   \label{drivelm:fig:teaser}
 \end{figure}
 
@@ -86,13 +86,13 @@ We instantiate GVQA in two datasets (Fig.~\ref{drivelm:fig:data_collection}, Tab
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-drivelm/images/data_v8_1_smch_revised.pdf}
-  \caption[Annotation pipelines of DriveLM-nuScenes and DriveLM-CARLA]{\textbf{Annotation pipelines.} DriveLM-nuScenes combines rule-extracted perception QAs from nuScenes and OpenLane-V2 with human prediction/planning annotations and multi-round quality checks; DriveLM-CARLA uses an automated rule pipeline driven by PDM-Lite~\cite{beisswenger2024pdmlite}.}
+  \caption{\textbf{Annotation pipelines.} DriveLM-nuScenes combines rule-extracted perception QAs from nuScenes and OpenLane-V2 with human prediction/planning annotations and multi-round quality checks; DriveLM-CARLA uses an automated rule pipeline driven by PDM-Lite~\cite{beisswenger2024pdmlite}.}
   \label{drivelm:fig:data_collection}
 \end{figure}
 
 \begin{table}[t]
   \centering
-  \caption[Comparison of DriveLM-Data with existing driving-language datasets]{\textbf{Comparison of DriveLM-Data with prior driving-language benchmarks.} DriveLM-Data provides dense frame-level QAs across \textbf{perception, prediction and planning} linked in a \textbf{graph}. Perc., Pred., Plan.: QAs per stage (\ding{55}: absent; 144k/153k/146k are rounded to the nearest thousand whereas 91.4 QA/frame is computed from the exact unrounded QA count $445{,}210 / 4{,}871$); \dag: full dataset; \ddag: keyframe subset; $^{*}$: hybrid rule/human; $^{**}$: rule-based; -: unreported.}
+  \caption{\textbf{Comparison of DriveLM-Data with prior driving-language benchmarks.} DriveLM-Data provides dense frame-level QAs across \textbf{perception, prediction and planning} linked in a \textbf{graph}. Perc., Pred., Plan.: QAs per stage (\ding{55}: absent; 144k/153k/146k are rounded to the nearest thousand whereas 91.4 QA/frame is computed from the exact unrounded QA count $445{,}210 / 4{,}871$); \dag: full dataset; \ddag: keyframe subset; $^{*}$: hybrid rule/human; $^{**}$: rule-based; -: unreported.}
   \label{drivelm:tab:dataset}
   \small
   \setlength{\tabcolsep}{4pt}
@@ -137,7 +137,7 @@ DriveLM-Agent adapts BLIP-2~\cite{li2023blip2} via Q-Former prompting, parent-to
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.8\linewidth]{ch-drivelm/images/model_pipeline_smch_v1.pdf}
-  \caption[Pipeline of DriveLM-Agent]{\textbf{Pipeline of DriveLM-Agent.} From the front-camera image, a fine-tuned VLM forwards parent QAs as ``Context:'' prefixes along graph edges across all five stages.}
+  \caption{\textbf{Pipeline of DriveLM-Agent.} From the front-camera image, a fine-tuned VLM forwards parent QAs as ``Context:'' prefixes along graph edges across all five stages.}
   \label{drivelm:fig:model_pipeline}
 \end{figure}
 
@@ -171,7 +171,7 @@ To reduce open-loop ego-history shortcuts on nuScenes~\cite{li2024ego}, DriveLM-
 
 \begin{table}[!tp]
   \centering
-  \caption[Open-loop planning on DriveLM-nuScenes and zero-shot generalisation to Waymo]{\textbf{Open-loop planning on DriveLM-nuScenes \texttt{val} and zero-shot transfer to 1k Waymo \texttt{val} frames.} Conditioning motion ($M$) on behaviour ($B$) lets DriveLM-Agent (`None') beat UniAD-Single in-domain, where Chain/Graph context hurts; on Waymo (where UniAD-Single loses its rear camera while VLMs use only the front view), Graph context achieves the best behaviour accuracy and ADE. Italicised UniAD uses video and CAN-bus ego status. Single-run results.}
+  \caption{\textbf{Open-loop planning on DriveLM-nuScenes \texttt{val} and zero-shot transfer to 1k Waymo \texttt{val} frames.} Conditioning motion ($M$) on behaviour ($B$) lets DriveLM-Agent (`None') beat UniAD-Single in-domain, where Chain/Graph context hurts; on Waymo (where UniAD-Single loses its rear camera while VLMs use only the front view), Graph context achieves the best behaviour accuracy and ADE. Italicised UniAD uses video and CAN-bus ego status. Single-run results.}
   \label{drivelm:tab:arch}
   \small
   \setlength{\tabcolsep}{3pt}
@@ -213,7 +213,7 @@ In Table~\ref{drivelm:tab:arch}(b), most of the ADE margin over UniAD-Single (4.
 \begin{figure}[t]
   \centering
   \includegraphics[width=\textwidth]{ch-drivelm/images/qualitative_smch_v7.pdf}
-  \caption[Qualitative results of DriveLM-Agent on nuScenes and Waymo]{\textbf{Qualitative examples from DriveLM-Agent} on DriveLM-nuScenes \texttt{val} (left) and Waymo \texttt{val} (right), showing questions (Q), context (C) and predicted answers (A).}
+  \caption{\textbf{Qualitative examples from DriveLM-Agent} on DriveLM-nuScenes \texttt{val} (left) and Waymo \texttt{val} (right), showing questions (Q), context (C) and predicted answers (A).}
   \label{drivelm:fig:qualitative}
 \end{figure}
 
@@ -226,7 +226,7 @@ We compare against TransFuser++~\cite{jaeger2023hidden}, which takes higher-reso
 
 \begin{table}[t]
   \centering
-  \caption[Generalisation to unseen pedestrians in DriveLM-CARLA]{\textbf{Transfer to unseen pedestrians on DriveLM-CARLA} (by co-authors; single runs). Adding a hand-crafted pedestrian prompt lifts DriveLM-Agent accuracy on DriveLM-CARLA-ped from 4.59 to 27.04 while lowering standard-scene accuracy from 59.63 to 52.17. Italicised `GT' rows supply ground-truth context at test time, directly disclosing pedestrian presence under `+ Pedestrian QA'. All methods score 100.00 on steering on DriveLM-CARLA-ped because every target is \texttt{straight}.}
+  \caption{\textbf{Transfer to unseen pedestrians on DriveLM-CARLA} (by co-authors; single runs). Adding a hand-crafted pedestrian prompt lifts DriveLM-Agent accuracy on DriveLM-CARLA-ped from 4.59 to 27.04 while lowering standard-scene accuracy from 59.63 to 52.17. Italicised `GT' rows supply ground-truth context at test time, directly disclosing pedestrian presence under `+ Pedestrian QA'. All methods score 100.00 on steering on DriveLM-CARLA-ped because every target is \texttt{straight}.}
   \label{drivelm:tab:carla}
   \begin{adjustbox}{max width=\textwidth}
   \begin{tabular}{l|ccc|ccc}
@@ -267,7 +267,7 @@ To assess how specific question types affect behaviour prediction, we select thr
 
 \begin{table}[t]
   \centering
-  \caption[Question-wise analysis on DriveLM-nuScenes]{\textbf{Question-level context ablation on DriveLM-nuScenes \texttt{val}} (single runs). Adding prediction and planning prompts ($P_2, P_3$) raises behaviour accuracy by 1.75--5.01 points over perception-only prompts ($P_1$), whereas intra-stage variations stay within 1.75 points.}
+  \caption{\textbf{Question-level context ablation on DriveLM-nuScenes \texttt{val}} (single runs). Adding prediction and planning prompts ($P_2, P_3$) raises behaviour accuracy by 1.75--5.01 points over perception-only prompts ($P_1$), whereas intra-stage variations stay within 1.75 points.}
   \label{drivelm:tab:question_wise}
   \begin{adjustbox}{max width=\textwidth}
   \begin{tabular}{c|ccc|ccc|ccc|ccc}
@@ -300,7 +300,7 @@ We compare zero-shot BLIP-2~\cite{li2023blip2} and fine-tuned DriveLM-Agent on $
 
 \begin{table}[t]
   \centering
-  \caption[Baseline results for $P_{1-3}$ on DriveLM-nuScenes and DriveLM-CARLA]{\textbf{Stage $P_{1-3}$ VQA baselines} (CARLA by co-authors; single runs). `Graph' context raises GPT Score across all four model--dataset pairs and SPICE in three, though BLIP-2 SPICE on CARLA (10.46 $\rightarrow$ 10.30) and `GT' GPT Score on nuScenes (42.97 $\rightarrow$ 41.10) dip slightly.}
+  \caption{\textbf{Stage $P_{1-3}$ VQA baselines} (CARLA by co-authors; single runs). `Graph' context raises GPT Score across all four model--dataset pairs and SPICE in three, though BLIP-2 SPICE on CARLA (10.46 $\rightarrow$ 10.30) and `GT' GPT Score on nuScenes (42.97 $\rightarrow$ 41.10) dip slightly.}
   \label{drivelm:tab:vqa}
   \begin{adjustbox}{max width=\textwidth}
   \begin{tabular}{l|cc|cc|cc|cc}
@@ -328,7 +328,7 @@ Our experiments show that graph-structured prompting hurts in-domain open-loop p
 
 \begin{table}[t]
   \centering
-  \caption[Computational cost of DriveLM-Agent and UniAD-Single]{\textbf{Model size and inference cost.} DriveLM-Agent updates fewer trainable weights than UniAD-Single but incurs higher total parameter count, FLOPs and latency.}
+  \caption{\textbf{Model size and inference cost.} DriveLM-Agent updates fewer trainable weights than UniAD-Single but incurs higher total parameter count, FLOPs and latency.}
   \label{drivelm:tab:latency}
   \begin{tabular}{lcccc}
     \toprule
@@ -376,14 +376,14 @@ In total, human annotators authored all 299k prediction and planning answers (ov
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-drivelm/images/nus_data_supp_v2.pdf}
-  \caption[Schema of DriveLM-nuScenes]{\textbf{Schema of DriveLM-nuScenes.} Clip summaries pair with \emph{perception}, \emph{planning} and \emph{prediction} QAs grounded via \emph{c tags} with 2D box centres.}
+  \caption{\textbf{Schema of DriveLM-nuScenes.} Clip summaries pair with \emph{perception}, \emph{planning} and \emph{prediction} QAs grounded via \emph{c tags} with 2D box centres.}
   \label{drivelm:fig:composition}
 \end{figure}
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-drivelm/images/nus_pipeline_supp_v2.pdf}
-  \caption[DriveLM-nuScenes annotation and auditing workflow]{\textbf{Left: three-stage human annotation workflow.} \textbf{Right: verification and translation pipeline} over 8-video batches.}
+  \caption{\textbf{Left: three-stage human annotation workflow.} \textbf{Right: verification and translation pipeline} over 8-video batches.}
   \label{drivelm:fig:nus_anno_pipeline}
 \end{figure}
 
@@ -392,21 +392,21 @@ Licensed drivers annotate six-camera panoramas in three steps (Fig.~\ref{drivelm
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.6\linewidth]{ch-drivelm/images/data_v8_2_smch.pdf}
-  \caption[Stage-level QA breakdown in DriveLM-nuScenes]{\textbf{Breakdown of QAs across perception, prediction and planning.}}
+  \caption{\textbf{Breakdown of QAs across perception, prediction and planning.}}
   \label{drivelm:fig:data_distribution}
 \end{figure}
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-drivelm/images/nus_stats_supp.pdf}
-  \caption[Fine-grained question subcategories in DriveLM-nuScenes]{\textbf{Fine-grained question subcategories within each stage of DriveLM-nuScenes.}}
+  \caption{\textbf{Fine-grained question subcategories within each stage of DriveLM-nuScenes.}}
   \label{drivelm:fig:nus_statis}
 \end{figure}
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-drivelm/images/nus_objstats_supp.pdf}
-  \caption[Object-centric QA statistics in DriveLM-nuScenes]{\textbf{Left: class breakdown of key objects in DriveLM-nuScenes.} \textbf{Right: question-type distribution by object group.}}
+  \caption{\textbf{Left: class breakdown of key objects in DriveLM-nuScenes.} \textbf{Right: question-type distribution by object group.}}
   \label{drivelm:fig:nus_obj_stats}
 \end{figure}
 
@@ -428,13 +428,13 @@ These dictionaries populate deterministic QA templates directly without LLM para
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-drivelm/images/carla_graph.pdf}
-  \caption[Directed QA topology in DriveLM-CARLA]{\textbf{Topology of the DriveLM-CARLA question graph} across perception, prediction and planning.}
+  \caption{\textbf{Topology of the DriveLM-CARLA question graph} across perception, prediction and planning.}
   \label{drivelm:fig:carla_graph}
 \end{figure}
 
 \begin{table}[!tp]
   \centering
-  \caption[PDM-Lite on the official CARLA validation routes]{\textbf{Validation performance of PDM-Lite on the 20 official CARLA Leaderboard 2.0 routes} (by co-authors): Driving Score (DS), Route Completion (RC), Infraction Score (IS), Normalised Driving Score (NDS) and Normalised Infraction Score (NIS). Route cells show mean $\pm$ SD over 3 seeds; Avg.\ pools all 60 runs ($36.3 \pm 28.1$ is the 60-run population mean and SD: $36.35$, rounding to $36.4$ from the one-decimal route cells, with sample route-mean SD $23.9$). Routes 10--19 repeat routes 0--9 under altered weather/traffic; simulator crashes on routes 3 and 13 received floor scores.}
+  \caption{\textbf{Validation performance of PDM-Lite on the 20 official CARLA Leaderboard 2.0 routes} (by co-authors): Driving Score (DS), Route Completion (RC), Infraction Score (IS), Normalised Driving Score (NDS) and Normalised Infraction Score (NIS). Route cells show mean $\pm$ SD over 3 seeds; Avg.\ pools all 60 runs ($36.3 \pm 28.1$ is the 60-run population mean and SD: $36.35$, rounding to $36.4$ from the one-decimal route cells, with sample route-mean SD $23.9$). Routes 10--19 repeat routes 0--9 under altered weather/traffic; simulator crashes on routes 3 and 13 received floor scores.}
   \label{drivelm:tab:pdm_results}
   \small
   \begin{adjustbox}{max width=\textwidth}
@@ -489,13 +489,13 @@ Table~\ref{drivelm:tab:vqa_more_metrics} reports the full VQA metric suite on Dr
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-drivelm/images/rebuttal_simple_pipeline.jpg}
-  \caption[Token-space trajectory mapping in DriveLM-Agent]{\textbf{End-to-end pipeline of DriveLM-Agent} quantising waypoints into \texttt{blip-2-flan-t5-xl} tokens.}
+  \caption{\textbf{End-to-end pipeline of DriveLM-Agent} quantising waypoints into \texttt{blip-2-flan-t5-xl} tokens.}
   \label{drivelm:fig:simple_pipeline}
 \end{figure}
 
 \begin{table}[t]
   \centering
-  \caption[Full VQA metric suite on DriveLM-nuScenes]{\textbf{Full VQA metric suite on DriveLM-nuScenes \texttt{val}} (Comp.: $\text{SPICE}>0.5$ percentage; single runs).}
+  \caption{\textbf{Full VQA metric suite on DriveLM-nuScenes \texttt{val}} (Comp.: $\text{SPICE}>0.5$ percentage; single runs).}
   \label{drivelm:tab:vqa_more_metrics}
   \small
   \setlength{\tabcolsep}{4pt}
@@ -518,7 +518,7 @@ Table~\ref{drivelm:tab:vqa_more_metrics} reports the full VQA metric suite on Dr
 
 \begin{table}[t]
   \centering
-  \caption[Stage-wise ablation on zero-shot generalisation to Waymo]{\textbf{Stage-wise context ablation for zero-shot transfer to Waymo} on 1k Waymo \texttt{val} frames ($B^{*}$: ground-truth behaviour QA context; single runs).}
+  \caption{\textbf{Stage-wise context ablation for zero-shot transfer to Waymo} on 1k Waymo \texttt{val} frames ($B^{*}$: ground-truth behaviour QA context; single runs).}
   \label{drivelm:tab:waymo_supp}
   \begin{adjustbox}{max width=\textwidth}
   \begin{tabular}{l|cc|ccc|cc}
@@ -547,7 +547,7 @@ Table~\ref{drivelm:tab:vqa_more_metrics} reports the full VQA metric suite on Dr
 
 \begin{table}[t]
   \centering
-  \caption[Other base VLMs on DriveLM-nuScenes]{\textbf{Alternative VLM backbones on DriveLM-nuScenes} ($^{*}$: multi-frame input to LLaMA-Adapter V2).}
+  \caption{\textbf{Alternative VLM backbones on DriveLM-nuScenes} ($^{*}$: multi-frame input to LLaMA-Adapter V2).}
   \label{drivelm:tab:llama}
   \begin{adjustbox}{max width=\textwidth}
   \begin{tabular}{l|cc|ccc|cc}
