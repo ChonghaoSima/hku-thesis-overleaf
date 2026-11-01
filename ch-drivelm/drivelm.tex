@@ -1,7 +1,14 @@
 \chapter{Reason: Driving with Graph Visual Question Answering}\label{ch:drivelm}
-\begin{contribution}
-This chapter adapts the ECCV 2024 paper ``DriveLM: Driving with Graph Visual Question Answering''~\cite{sima2024drivelm}, co-led by equal-contribution first authors Chonghao Sima and Katrin Renz under Andreas Geiger and Hongyang Li. Chonghao Sima defined the Graph VQA task and stage-wise topology, built DriveLM-nuScenes (templates, annotation workflow and quality control) and DriveLM-Agent, ran all nuScenes and Waymo experiments (Tables~\ref{drivelm:tab:arch}, \ref{drivelm:tab:question_wise}, \ref{drivelm:tab:vqa_more_metrics}, \ref{drivelm:tab:waymo_supp} and~\ref{drivelm:tab:llama}, plus the DriveLM-nuScenes columns of Table~\ref{drivelm:tab:vqa}), designed the metrics, drafted the paper, and led the CVPR 2024 ``Driving with Language'' challenge track. Katrin Renz, Kashyap Chitta and Jens Bei{\ss}wenger developed DriveLM-CARLA, PDM-Lite~\cite{beisswenger2024pdmlite} and the CARLA experiments (Tables~\ref{drivelm:tab:carla} and~\ref{drivelm:tab:pdm_results}, plus the DriveLM-CARLA columns of Table~\ref{drivelm:tab:vqa}). Adapted by permission of Springer Nature (ECCV 2024, LNCS, vol.~15110, pp.~256--274).
-\end{contribution}
+\begin{flushright}
+\itshape
+Based on: DriveLM: Driving with Graph Visual Question Answering.\\
+Chonghao Sima, Katrin Renz, Kashyap Chitta, Li Chen, Hanxue Zhang,\\
+Chengen Xie, Jens Bei{\ss}wenger, Ping Luo, Andreas Geiger, Hongyang Li.\\
+\textbf{ECCV 2024 Oral} \quad [\textbf{First Author, Project Lead}]
+\end{flushright}
+\vspace{0.6em}
+
+\section{Introduction}\label{drivelm:sec:motivation}
 
 Chapter~\ref{ch:occnet} established a geometry-first 3D occupancy representation, yet occupancy alone does not dictate ego control. A planner must still identify salient road users, anticipate their trajectories and choose a safe manoeuvre. When sensor layouts or obstacle classes depart from the training distribution, memorised input--output mappings falter and structured multi-step reasoning becomes essential, forming the second pillar of this thesis.
 
@@ -12,9 +19,7 @@ Web-pretrained vision-language models (VLMs) bring broad internet priors, human-
 
 To investigate RQ2, DriveLM comprises the Graph Visual Question Answering (GVQA) task, two datasets (DriveLM-Data), an evaluation suite, and the DriveLM-Agent baseline. GVQA represents dependencies among perception, prediction, planning, behaviour, and motion questions as a directed acyclic graph. DriveLM-nuScenes contains 4,871 keyframes with an average of 91.4 mostly human-authored QA pairs per frame, while DriveLM-CARLA contains about 1.6 million rule-generated QA pairs collected with the PDM-Lite expert~\cite{beisswenger2024pdmlite} on CARLA Leaderboard 2.0. DriveLM-Agent combines BLIP-2 parent-answer context conditioning with RT-2-style waypoint tokens. Graph context harms in-domain nuScenes planning (ADE 1.39 $\rightarrow$ 1.74, collision rate 1.67 $\rightarrow$ 1.89, behaviour accuracy 61.45 $\rightarrow$ 57.49) but improves speed classification (43.90\% to 54.29\%) after zero-shot transfer to Waymo (a perceptual sensing shift in Chapter~\ref{ch:methodology}); most of the Waymo trajectory advantage over single-frame UniAD (2.63\,m versus 4.16\,m ADE) is already present in the pre-trained backbone (2.78\,m), and the comparison is confounded by model size (3.955 billion versus 131.9 million parameters) and camera input. On withheld CARLA pedestrians, a class-specific prompt improves stopping accuracy (4.59\% to 27.04\%) while lowering regular-scene accuracy (59.63\% to 52.17\%). All reported model comparisons come from single-seed runs.
 
-Sections~\ref{drivelm:sec:motivation}--\ref{drivelm:sec:agent} present motivation, related work, the GVQA formalism, DriveLM-Data and DriveLM-Agent; Sections~\ref{drivelm:sec:experiments}--\ref{drivelm:sec:summary} cover experiments, limitations, community adoption, dataset and implementation details (Section~\ref{app:drivelm}), and conclusions.
-
-\section{Motivation}\label{drivelm:sec:motivation}
+Sections~\ref{drivelm:sec:related}--\ref{drivelm:sec:agent} review related work and present the GVQA formalism, DriveLM-Data, and DriveLM-Agent; Sections~\ref{drivelm:sec:experiments}--\ref{drivelm:sec:summary} cover experiments, limitations, community adoption, dataset and implementation details (Section~\ref{app:drivelm}), and conclusions.
 
 Autonomous driving stacks face persistent challenges in generalising to altered sensor rigs or rare hazards and in explaining decisions to human occupants or regulators~\cite{chen2024e2esurvey,chib2023recent,atakishiyev2023explaining}. Whereas most end-to-end planners map dense bird's-eye-view (BEV) grids directly to trajectories~\cite{hu2023uniad,chitta2023transfuser,li2023bevdevils}, we model driving through an object-centric progression $P_{1-3}$: spotting key road users, forecasting their future motions and selecting a safe ego manoeuvre. Inspired conceptually by object-centred vision~\cite{Marr82} and core object cognition~\cite{spelke2007core}, $P_{1-3}$ is treated here strictly as a structured task-design hypothesis; Chapters~\ref{ch:occnet}, \ref{ch:drivelm}, and~\ref{ch:centaur} investigate perception, reasoning, and test-time adaptation on their respective standard task stacks rather than passing intermediate tensors inside one monolithic software binary, and this chapter adopts a 2D front-camera VLM (BLIP-2~\cite{li2023blip2}) to evaluate language-model priors without confounding the representation with Chapter~\ref{ch:occnet}'s 3D voxel decoder.
 

@@ -1,8 +1,15 @@
 \chapter{Act II: Resource-Aware Robust Manipulation}\label{ch:kai0}
+\begin{flushright}
+\itshape
+Based on: $\chi_{0}$: Resource-Aware Robust Manipulation via Taming Distributional Inconsistencies.\\
+Chonghao Sima, Checheng Yu, Modi Shi, Lirui Zhao, Yibo Yuan, Qingwen Bu, Tianyu Li,\\
+Jin Chen, Kaiyang Wu, Shijia Peng, Huijie Wang, Haoguang Mai, Gangcheng Jiang,\\
+Hai Zhang, Li Chen, Ping Luo, Hongyang Li.\\
+\textbf{arXiv 2026} \quad [\textbf{First Author, Co-Project Lead}]
+\end{flushright}
+\vspace{0.6em}
 
-\begin{contribution}
-Adapted from our alphabetically ordered seventeen-author preprint~\cite{sima2026kai0}, this chapter reflects my work as co-project lead alongside Li Chen and as one of seven core contributors. I formulated the distributional framework across $P_{\mathrm{train}}$, $Q_{\mathrm{model}}$, and $P_{\mathrm{test}}$, co-developed Model Arithmetic with Modi Shi, and co-developed Train--Deploy Alignment (covering heuristic DAgger recovery, spatiotemporal augmentation, and chunk-wise smoothing) with Checheng Yu, Kaiyang Wu, and Yibo Yuan. I also co-designed the physical benchmarks, assisted with data capture and robot maintenance, and led manuscript writing and figure design. Co-author Lirui Zhao developed Stage Advantage, which is included here to keep the system presentation self-contained; Hongyang Li and Ping Luo provided compute resources and academic guidance.
-\end{contribution}
+\section{Introduction}\label{kai0:sec:intro}
 
 Chapter~\ref{ch:centaur} showed in non-reactive driving simulation that an end-to-end planner can adjust frame-level predictions at test time by lowering predictive uncertainty without ground-truth supervision~\cite{sima2024centaur}. Extending the Act pillar to physical robotics, RQ3(b) asks how a learned controller can stay dependable once test-time conditions diverge from offline training in \emph{real-world robot manipulation}. Deformable cloth manipulation entails contact-rich dynamics across a high-dimensional configuration space from arbitrary crumpled initial states, whereas human teleoperation samples only a narrow fraction of feasible trajectories. Practical resource limits add further constraints: recording demonstrations consumes substantial operator and robot time, post-training a large vision-language-action (VLA) model requires considerable GPU compute, and closed-loop control delays plus mechanical limits cause physically executed motions to drift from offline predictions.
 
@@ -15,10 +22,7 @@ Resource limits make data and model scale only part of the manipulation problem.
 
 We evaluate \chiz on two bimanual platforms across garment flattening, folding, conditional sorting, and rack hanging. The full system is compared with the base policy on Task~A (T-shirt flattening and folding), while Tasks~B and~C provide module-level tests. In 30 Task~A rollouts (with values read from the plotted evaluation summaries; Section~\ref{kai0:sec:protocol}), completion rises from approximately 8/30 (27\%; 95\% Wilson interval 14--44\%) for the $\pi_{0.5}$ baseline to 29/30 (97\%; 83--99\%) for \chiz (Table~\ref{kai0:tab:taskA}). Post-training uses a pre-trained $\pi_{0.5}$ backbone, about 20 hours of base demonstrations per task, and eight A100 GPUs; total compute, robot time, and operator time across all sub-experiments were not separately recorded. Because targeted DAgger recovery data supply the largest individual gain (Section~\ref{kai0:sec:exp_tda}) and no matched-budget data-scaling baseline was run, the experiment supports alignment as a useful complement to scale, not as evidence that alignment is the dominant bottleneck (Section~\ref{kai0:sec:limitations}).
 
-The rest of this chapter covers motivation (Section~\ref{kai0:sec:intro}), prior literature (Section~\ref{kai0:sec:related}), problem formulation (Section~\ref{kai0:sec:problem}), the three alignment modules (Section~\ref{kai0:sec:method}), hardware and benchmark protocols (Section~\ref{kai0:sec:setup}), system-level and component-level experiments (Sections~\ref{kai0:sec:exp} and~\ref{kai0:sec:ablation}), limitations (Section~\ref{kai0:sec:limitations}), implementation details and supplementary ablations (Section~\ref{app:kai0}), and conclusions (Section~\ref{kai0:sec:summary}).
-
-% =============================================================================
-\section{Motivation}\label{kai0:sec:intro}
+The rest of this chapter covers prior literature (Section~\ref{kai0:sec:related}), problem formulation (Section~\ref{kai0:sec:problem}), the three alignment modules (Section~\ref{kai0:sec:method}), hardware and benchmark protocols (Section~\ref{kai0:sec:setup}), system-level and component-level experiments (Sections~\ref{kai0:sec:exp} and~\ref{kai0:sec:ablation}), limitations (Section~\ref{kai0:sec:limitations}), implementation details and supplementary ablations (Section~\ref{app:kai0}), and conclusions (Section~\ref{kai0:sec:summary}).
 
 Learned driving systems now operate on public roads in both rider-only automated services and supervised driver-assistance deployments~\cite{Kusano2025waymocrash,tesla2025fsd,waymo2025blog}, whereas physical manipulation in open-ended environments remains fragile because controllers must act over high-dimensional joint spaces under wide variations in cloth geometry and lighting. Recent robotic foundation efforts have scaled VLA backbones on large compute clusters~\cite{black2024pi0,sunday2025act1,black2025pi05,zheng2025xvla,amin2026pistar06,beingbeyond2026beingh05,generalist2025gen0} and assembled large teleoperation datasets such as AgiBot World~\cite{bu2025agibot_iros} (co-authored by the author, comprising over one million trajectories across more than 100 robots). While network capacity and dataset scale are necessary, they do not by themselves ensure reliable closed-loop execution: a key barrier is \emph{the distributional mismatch across data collection ($P_{\mathrm{train}}$), policy-induced trajectory distribution ($Q_{\mathrm{model}}$; Eq.~\eqref{kai0:eq:qmodel}), and physical deployment ($P_{\mathrm{test}}$)}, which affects task completion, motion continuity, hourly throughput, and corrective retry counts~\cite{chen2025benchmarking,shi2025diversity,bu2025agibot_iros,jiang2025behavior,amin2026pistar06}.
 
@@ -139,7 +143,7 @@ where the coefficients $\{\alpha_i\}$ are selected to reduce validation loss on 
 \end{itemize}
 
 \subsection{Stage Advantage}\label{kai0:sec:sa}
-Developed by co-author Lirui Zhao (see the contribution statement), Stage Advantage (SA) addresses temporal ambiguity in $P_{\mathrm{test}}$ when visually similar cloth states recur at different phases of a multi-stage sequence, providing a low-variance, stage-aware progress signal for policy training~\cite{sima2026kai0}.
+Developed by co-author Lirui Zhao, Stage Advantage (SA) addresses temporal ambiguity in $P_{\mathrm{test}}$ when visually similar cloth states recur at different phases of a multi-stage sequence, providing a low-variance, stage-aware progress signal for policy training~\cite{sima2026kai0}.
 
 \paragraph{Value differencing vs.\ direct stage-conditioned advantage.} Prior VLA methods such as $\pi^{*}_{0.6}$~\cite{amin2026pistar06} pair AWR~\cite{wu2023elastic,kuba2023advantage} with state-value differences,
 \begin{equation}

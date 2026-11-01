@@ -1,14 +1,16 @@
 \chapter{Perceive: Scene as Occupancy}\label{ch:occnet}
-\begin{contribution}
-This chapter draws on a conference paper, a benchmark release, and two international challenges:
-\begin{itemize}[leftmargin=*, itemsep=1pt, topsep=2pt]
-  \item \emph{Scene as Occupancy} (ICCV 2023)~\cite{sima2023occnet}. Chonghao Sima and Wenwen Tong are co-first authors (Tong listed first in ICCV proceedings, Sima first on arXiv), with Hongyang Li as co-corresponding lead. Sima formulated the occupancy scene representation, designed the cascade voxel decoder and 3D deformable attention, built the OpenOcc occupancy-and-flow pipeline, ran the semantic scene completion and LiDAR segmentation experiments, and drafted the paper. Tong co-developed the codebase, ran the 3D detection, BEV segmentation, joint-training, and irregular-obstacle experiments (Tables~\ref{occnet:tab:joint_train} and~\ref{occnet:tab:irregular}), and co-wrote the manuscript. Tai Wang and Li Chen conducted the pre-training and planning evaluations (Fig.~\ref{occnet:fig:pretrain_for_detection}, Tables~\ref{occnet:tab:bev_seg} and~\ref{occnet:tab:planning}, Fig.~\ref{occnet:fig:planning}, Tables~\ref{occnet:tab:occupancy_metrics} and~\ref{occnet:tab:planning_pretrain}, and Fig.~\ref{occnet:fig:planning2}), credited in their captions.
-  \item \emph{OpenScene} (dataset release, 2023)~\cite{sima2023openscene}, led by the author under ``OpenScene Contributors''. The author curated the nuPlan logs, generated the 3D occupancy and flow labels, built the devkit, and integrated the benchmark into the CVPR 2024 and CVPR 2025 challenges.
-  \item \emph{Challenges.} The author led the CVPR 2023 3D Occupancy Prediction Challenge (evaluated on Occ3D-nuScenes) and contributed OpenOcc v2 to the CVPR 2024 Autonomous Grand Challenge Occupancy and Flow track (Section~\ref{occnet:sec:subsequent}).
-\end{itemize}
-\copyright{}~2023 IEEE. Reprinted, with permission, from W.~Tong, C.~Sima, T.~Wang, L.~Chen, S.~Wu, H.~Deng, Y.~Gu, L.~Lu, P.~Luo, D.~Lin and H.~Li, ``Scene as Occupancy'', in \emph{Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)}, October 2023. In reference to IEEE copyrighted material which is used with permission in this thesis, the IEEE does not endorse any of The University of Hong Kong's products or services. Internal or personal use of this material is permitted. If interested in reprinting/republishing IEEE copyrighted material for advertising or promotional purposes or for creating new collective works for resale or redistribution, please go to \url{http://www.ieee.org/publications_standards/publications/rights/rights_link.html} to learn how to obtain a License from RightsLink.
-\end{contribution}
+\begin{flushright}
+\itshape
+Based on: Scene as Occupancy.\\
+Chonghao Sima, Wenwen Tong, Tai Wang, Li Chen, Silei Wu, Hanming Deng,\\
+Yi Gu, Lewei Lu, Ping Luo, Dahua Lin, Hongyang Li.\\
+\textbf{ICCV 2023} \quad [\textbf{First Author, Project Lead}]
+\end{flushright}
+\vspace{0.6em}
 \hyphenation{Occ-Net Open-Occ Open-Scene Voxel-Net BEV-Net TPV-Former}
+
+\section{Introduction}\label{occnet:sec:intro}
+\suppressfloats[t]
 
 An embodied agent can only act on what its internal representation resolves. Before braking, changing lanes, or yielding, an automated vehicle must determine which 3D regions contain physical matter and what occupies them. Classical driving perception splits this task into two approximations: dynamic actors are enclosed in 3D cuboids from a fixed taxonomy, while static road layout is projected onto a planar bird's-eye-view (BEV) grid. This split assumes that every hazard belongs to a catalogued class, fits a rigid box, and lacks relevant vertical structure. Urban streets violate all three assumptions: truck-mounted cranes swing past their chassis, flatbeds carry overhanging pipes, gantries and bridges restrict vertical clearance, and irregular barriers border the road. Cuboids clip protruding geometry, whereas planar BEV maps discard elevation.
 
@@ -16,11 +18,7 @@ This chapter addresses the first research question (RQ1): whether an embodied dr
 
 This chapter makes four contributions. First, OccNet reconstructs dense 3D occupancy from a spatiotemporal BEV representation through a cascade voxel decoder with temporal attention and 3D deformable attention\footnote{Distinct from the continuous single-object Occupancy Networks of Mescheder \etal~\cite{mescheder2019occupancy}.}. Second, OpenOcc provides dense foreground and background semantics together with foreground velocity vectors on nuScenes~\cite{caesar2020nuscenes,fong2022panoptic}. Third, experiments cover semantic scene completion (SSC), point-queried LiDAR segmentation, 3D detection, BEV segmentation, and open-loop planning against planar BEV baselines and retrained TPVFormer~\cite{huang2023tpvformer}; the small open-loop planning differences (0.06--0.24 percentage points) are reported as single-run observations rather than established safety gains. Fourth, OpenScene extends occupancy and flow labels from 5.5 hours of nuScenes to more than 120 hours of multi-city nuPlan driving~\cite{sima2023openscene}, whose redistributed sensor streams underpin NAVSIM and the CVPR 2024 and CVPR 2025 Autonomous Grand Challenge tracks (which use the sensor streams rather than the voxel labels). Methodologically, OccNet shares BEVFormer~\cite{li2022bevformer} and 3D deformable-attention~\cite{Zhu2021DeformableDD} foundations with contemporaneous VoxFormer~\cite{li2023voxformer}, while contributing the coarse-to-fine height cascade, voxel temporal self-attention, OpenOcc pipeline, and cross-task evaluation.
 
-Sections~\ref{occnet:sec:intro} and~\ref{occnet:sec:related} cover motivation and related work; Section~\ref{occnet:sec:method} presents OccNet; Section~\ref{occnet:sec:benchmark} details OpenOcc; Section~\ref{occnet:sec:experiments} reports main experiments; Section~\ref{occnet:sec:discussion} discusses limitations, NAVSIM comparisons (Chapter~\ref{ch:centaur}), and 2023--2026 work; Section~\ref{occnet:sec:openscene} describes OpenScene; Section~\ref{app:occnet} presents implementation details and additional ablations; and Section~\ref{occnet:sec:summary} summarises the chapter.
-
-%-----------------------------------------------------------------------
-\section{Motivation}\label{occnet:sec:intro}
-\suppressfloats[t]
+The remainder of this chapter is organised as follows: Section~\ref{occnet:sec:related} reviews related work; Section~\ref{occnet:sec:method} presents OccNet; Section~\ref{occnet:sec:benchmark} details OpenOcc; Section~\ref{occnet:sec:experiments} reports main experiments; Section~\ref{occnet:sec:discussion} discusses limitations, NAVSIM comparisons (Chapter~\ref{ch:centaur}), and 2023--2026 work; Section~\ref{occnet:sec:openscene} describes OpenScene; Section~\ref{app:occnet} presents implementation details and additional ablations; and Section~\ref{occnet:sec:summary} concludes the chapter.
 
 Human drivers judge 3D obstacle geometry before identifying fine-grained categories, whether passing a saloon car or trailing a flatbed lorry with an overhanging pipe. For automated vehicles, determining whether a 3D volume is physically occupied precedes category recognition, yet inferring 3D structure from cameras alone is challenging across cluttered urban streets.
 
