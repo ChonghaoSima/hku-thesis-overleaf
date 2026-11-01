@@ -105,30 +105,35 @@ The remainder of this dissertation is organised into five chapters following the
 \subsection*{Core Publications Included in This Dissertation}
 
 \begin{enumerate}[label={[\arabic*]}, leftmargin=2.4em, labelwidth=1.8em, labelsep=0.6em, align=left, itemsep=4pt]
-  \item \textbf{C. Sima}$^{*\dagger}$, W. Tong$^{*}$, T. Wang, L. Chen, S. Wu, H. Deng, Y. Gu, L. Lu, P. Luo, D. Lin, and H. Li$^{\dagger}$.
+  \item \textbf{C. Sima}$^{\dagger}$, W. Tong, T. Wang, L. Chen, S. Wu, H. Deng, Y. Gu, L. Lu, P. Luo, D. Lin, and H. Li$^{\dagger}$.
         ``Scene as Occupancy''~\cite{sima2023occnet}.
         In \emph{IEEE/CVF International Conference on Computer Vision (ICCV)}, pp.~8406--8415, 2023.
-        \emph{Role:} first author and co-project lead. Lead organiser of the CVPR 2023 3D Occupancy Prediction Challenge (co-hosted with Occ3D on Occ3D-nuScenes) and contributor of OpenOcc v2 to the CVPR 2024 Autonomous Grand Challenge.
+        \emph{Role:} first author and co-project lead.
+        \emph{Impact:} 360+ citations; 700+ GitHub stars (\texttt{OpenDriveLab/OccNet}); lead organiser of the CVPR 2023 3D Occupancy Prediction Challenge (145 teams) and contributor of OpenOcc v2 to the CVPR 2024 Autonomous Grand Challenge.
         \hfill (Chapter~\ref{ch:occnet})
-  \item OpenScene Contributors.
+  \item OpenScene Contributors (led by \textbf{C. Sima}$^{\dagger}$).
         ``OpenScene: The Largest Up-to-Date 3D Occupancy Prediction Benchmark in Autonomous Driving''~\cite{sima2023openscene}.
-        Dataset and toolkit release, \url{https://github.com/OpenDriveLab/OpenScene}, 2023. A 2\,Hz redistribution of nuPlan with occupancy and flow labels.
-        \emph{Role:} project lead (with the OpenScene Contributors).
+        Dataset and toolkit release, \url{https://github.com/OpenDriveLab/OpenScene}, 2023.
+        \emph{Role:} project lead.
+        \emph{Impact:} 118 citations; 460+ GitHub stars (\texttt{OpenDriveLab/OpenScene}); foundational sensor redistribution for NAVSIM and the CVPR 2024 \& CVPR 2025 Autonomous Grand Challenge tracks.
         \hfill (Chapter~\ref{ch:occnet})
   \item \textbf{C. Sima}$^{*\dagger}$, K. Renz$^{*}$, K. Chitta, L. Chen, H. Zhang, C. Xie, J. Bei{\ss}wenger, P. Luo, A. Geiger$^{\dagger}$, and H. Li$^{\dagger}$.
         ``DriveLM: Driving with Graph Visual Question Answering''~\cite{sima2024drivelm}.
-        In \emph{European Conference on Computer Vision (ECCV)}, pp.~256--274, 2024. \textbf{Oral presentation.}
-        \emph{Role:} first author, project lead, and lead organiser of the ``Driving with Language'' track of the CVPR 2024 Autonomous Grand Challenge (152 teams).
+        In \emph{European Conference on Computer Vision (ECCV)}, pp.~256--274, 2024. \textbf{Oral presentation (top 2.3\%).}
+        \emph{Role:} first author and project lead.
+        \emph{Impact:} 1,090+ citations; 1,400+ GitHub stars (\texttt{OpenDriveLab/DriveLM}); lead organiser of the ``Driving with Language'' track at the CVPR 2024 Autonomous Grand Challenge (152 participating teams).
         \hfill (Chapter~\ref{ch:drivelm})
   \item \textbf{C. Sima}$^{*\dagger}$, K. Chitta$^{*}$, Z. Yu, S. Lan, P. Luo, A. Geiger, H. Li, and J. M. Alvarez.
         ``Centaur: Robust End-to-End Autonomous Driving with Test-Time Training''~\cite{sima2024centaur}.
-        \emph{arXiv preprint arXiv:2503.11650}, 2025.
+        In \emph{IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW, Workshop on Test-Time Scaling for Computer Vision)}, 2025.
         \emph{Role:} first author and project lead.
+        \emph{Impact:} 52 citations; ranked 1st among multi-seed entries on the official NAVSIM v1.1 leaderboard (March 2025).
         \hfill (Chapter~\ref{ch:centaur})
   \item \textbf{C. Sima}$^{*\dagger}$, C. Yu, M. Shi, L. Zhao, Y. Yuan, Q. Bu, T. Li, J. Chen, K. Wu, S. Peng, H. Wang, H. Mai, G. Jiang, H. Zhang, L. Chen$^{\dagger}$, P. Luo, and H. Li.
         ``$\chi_0$: Resource-Aware Robust Manipulation via Taming Distributional Inconsistencies''~\cite{sima2026kai0}.
-        \emph{arXiv preprint arXiv:2602.09021}, 2026.
+        In \emph{Robotics: Science and Systems Workshops (RSSW, Workshop on Deformable and Articulated Robotic Object Manipulation)}, 2026.
         \emph{Role:} first author and co-project lead (with L.~Chen).
+        \emph{Impact:} 450+ GitHub stars (\texttt{OpenDriveLab/KAI0}); 19 citations; featured in a 24-hour continuous live-streamed real-robot deployment.
         \hfill (Chapter~\ref{ch:kai0})
 \end{enumerate}
 
@@ -137,64 +142,79 @@ The remainder of this dissertation is organised into five chapters following the
 \begin{enumerate}[label={[\arabic*]}, leftmargin=2.4em, labelwidth=1.8em, labelsep=0.6em, align=left, itemsep=4pt, resume]
   \item Y. Hu, J. Yang, L. Chen, K. Li, \textbf{C. Sima}, X. Zhu, S. Chai, S. Du, T. Lin, W. Wang, L. Lu, X. Jia, Q. Liu, J. Dai, Y. Qiao, and H. Li.
         ``Planning-oriented Autonomous Driving'' (UniAD)~\cite{hu2023uniad}.
-        In \emph{IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)}, pp.~17853--17862, 2023. \textbf{Best Paper Award.}
+        In \emph{IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)}, pp.~17853--17862, 2023. \textbf{Best Paper Award (1 / 9,155).}
         \emph{Role:} co-author.
+        \emph{Impact:} 2,415 citations; 4,800+ GitHub stars (\texttt{OpenDriveLab/UniAD}).
   \item AgiBot-World-Contributors: Q. Bu, J. Cai, L. Chen, X. Cui, Y. Ding, S. Feng, X. He, X. Huang, \etal\ (including \textbf{C. Sima}).
         ``AgiBot World Colosseo: A Large-Scale Manipulation Platform for Scalable and Intelligent Embodied Systems''~\cite{bu2025agibot_iros}.
         In \emph{IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}, 2025. \textbf{Best Paper Finalist.}
-        \emph{Role:} co-author; the cited IROS release lists contributors alphabetically by surname, and the public contributor roster is version-dependent (co-led manuscript preparation).
+        \emph{Role:} co-author (co-led manuscript preparation).
+        \emph{Impact:} 404 citations; 3,200+ GitHub stars (\texttt{OpenDriveLab/AgiBot-World}); hosted the CVPR 2025 Autonomous Grand Challenge manipulation track.
   \item M. Liu, \textbf{C. Sima}, T. Feng, H. Wang, C. Chen, H. Chen, and C. Shen.
         ``PerturBot: Breaking Shortcut Priors in Vision-Language-Action Models with Perturbative Training''~\cite{liu2026perturbot}.
         \emph{arXiv preprint arXiv:2610.04616}, 2026.
         \emph{Role:} co-author.
+        \emph{Impact:} open-source release at \texttt{aim-uofa/PerturBot}.
   \item C. Xie, \textbf{C. Sima}, T. Li, B. Sun, J. Wu, Z. Hao, and H. Li.
         ``FLARE: Learning Future-Aware Latent Representations from Vision-Language Models for Autonomous Driving''~\cite{xie2026flare}.
         \emph{arXiv preprint arXiv:2601.05611}, 2026.
         \emph{Role:} co-author.
+        \emph{Impact:} 4 citations; latent VLM-to-planner distillation framework on NAVSIM.
   \item L. Chen, \textbf{C. Sima}, K. Chitta, A. Loquercio, P. Luo, Y. Ma, and H. Li.
         ``Intelligent Robot Manipulation Requires Self-Directed Learning''~\cite{chen2025robot}.
         In \emph{IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW)}, pp.~842--853, 2026.
         \emph{Role:} co-author.
+        \emph{Impact:} 10 citations.
   \item S. Hamdan, \textbf{C. Sima}, Z. Yang, H. Li, and F. G{\"u}ney.
         ``ETA: Efficiency Through Thinking Ahead, A Dual Approach to Self-Driving with Large Models''~\cite{hamdan2025eta}.
         In \emph{IEEE/CVF International Conference on Computer Vision (ICCV)}, pp.~26529--26538, 2025.
         \emph{Role:} co-author.
+        \emph{Impact:} 19 citations; 47 GitHub stars (\texttt{OpenDriveLab/ETA}).
   \item S. Xie, L. Kong, Y. Dong, \textbf{C. Sima}, W. Zhang, Q. A. Chen, Z. Liu, and L. Pan.
         ``Are VLMs Ready for Autonomous Driving? An Empirical Study from the Reliability, Data, and Metric Perspectives'' (DriveBench)~\cite{xie2025vlms}.
         In \emph{IEEE/CVF International Conference on Computer Vision (ICCV)}, pp.~6585--6597, 2025.
         \emph{Role:} co-author.
+        \emph{Impact:} 204 citations; 250+ GitHub stars (\texttt{worldbench/DriveBench}).
   \item K. Ding, B. Chen, Y. Su, H.-a. Gao, B. Jin, \textbf{C. Sima}, W. Zhang, X. Li, P. Barsch, H. Li, and H. Zhao.
         ``Hint-AD: Holistically Aligned Interpretability in End-to-End Autonomous Driving''~\cite{ding2024hint}.
         In \emph{Proceedings of the 8th Conference on Robot Learning (CoRL 2024)}, PMLR 270, pp.~3742--3765, published 2025.
         \emph{Role:} co-author.
+        \emph{Impact:} 48 citations; 74 GitHub stars (\texttt{Robot-K/Hint-AD}).
   \item H. Wang, T. Li, Y. Li, L. Chen, \textbf{C. Sima}, Z. Liu, B. Wang, P. Jia, Y. Wang, S. Jiang, F. Wen, H. Xu, P. Luo, J. Yan, W. Zhang, and H. Li.
         ``OpenLane-V2: A Topology Reasoning Benchmark for Unified 3D HD Mapping''~\cite{wang2023openlanev2}.
         In \emph{Advances in Neural Information Processing Systems (NeurIPS), Datasets and Benchmarks Track}, vol.~36, pp.~18873--18884, 2023.
         \emph{Role:} co-author.
+        \emph{Impact:} 162 citations; 670+ GitHub stars (\texttt{OpenDriveLab/OpenLane-V2}); benchmark for the CVPR 2023 \& CVPR 2024 Autonomous Driving Challenge tracks.
   \item L. Huang, Z. Li, \textbf{C. Sima}, W. Wang, J. Wang, Y. Qiao, and H. Li.
         ``Leveraging Vision-Centric Multi-Modal Expertise for 3D Object Detection'' (VCD)~\cite{huang2023vcd}.
         In \emph{Advances in Neural Information Processing Systems (NeurIPS)}, vol.~36, pp.~38504--38519, 2023.
         \emph{Role:} co-author.
+        \emph{Impact:} 39 citations; open-sourced in \texttt{OpenDriveLab/Birds-eye-view-Perception} (1,400+ GitHub stars).
   \item Y. Gao, \textbf{C. Sima}, S. Shi, S. Di, S. Liu, and H. Li.
         ``Sparse Dense Fusion for 3D Object Detection'' (SDF)~\cite{gao2023sdf}.
         In \emph{IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}, pp.~10939--10946, 2023.
         \emph{Role:} co-author.
+        \emph{Impact:} 20 citations.
   \item H. Li$^{*}$, \textbf{C. Sima}$^{*}$, J. Dai$^{*}$, W. Wang$^{*}$, L. Lu$^{*}$, H. Wang$^{*}$, J. Zeng$^{*}$, Z. Li$^{*}$, J. Yang$^{*}$, H. Deng$^{*}$, \etal
         ``Delving into the Devils of Bird's-Eye-View Perception: A Review, Evaluation and Recipe''~\cite{li2023bevdevils}.
         \emph{IEEE Transactions on Pattern Analysis and Machine Intelligence (T-PAMI)}, vol.~46, no.~4, pp.~2151--2170, 2024 (published online in 2023).
         \emph{Role:} co-first author.
+        \emph{Impact:} 349 citations; 1,400+ GitHub stars (\texttt{OpenDriveLab/Birds-eye-view-Perception}); ranked 1st (1 / 300) on the Waymo Open Challenge 2022 3D Camera-Only Detection Track.
   \item L. Chen$^{*}$, \textbf{C. Sima}$^{*}$, Y. Li$^{*}$, Z. Zheng, J. Xu, X. Geng, H. Li, C. He, J. Shi, Y. Qiao, and J. Yan.
         ``PersFormer: 3D Lane Detection via Perspective Transformer and the OpenLane Benchmark''~\cite{chen2022persformer}.
-        In \emph{European Conference on Computer Vision (ECCV)}, LNCS 13698, pp.~550--567, 2022. \textbf{Oral presentation.}
+        In \emph{European Conference on Computer Vision (ECCV)}, LNCS 13698, pp.~550--567, 2022. \textbf{Oral presentation (top 2.3\%).}
         \emph{Role:} co-first author.
+        \emph{Impact:} 335 citations; 500+ GitHub stars (\texttt{OpenDriveLab/PersFormer\_3DLane}).
   \item Z. Li, W. Wang, H. Li, E. Xie, \textbf{C. Sima}, T. Lu, Y. Qiao, and J. Dai.
         ``BEVFormer: Learning Bird's-Eye-View Representation from Multi-Camera Images via Spatiotemporal Transformers''~\cite{li2022bevformer}.
         In \emph{European Conference on Computer Vision (ECCV)}, pp.~1--18, 2022.
         \emph{Role:} co-author.
+        \emph{Impact:} 3,360+ citations; 4,600+ GitHub stars (\texttt{fundamentalvision/BEVFormer}); ranked 1st on the Waymo Open Challenge 2022 3D Camera-Only Detection Track.
   \item \textbf{C. Sima} and Y. Xue.
         ``LSH-SMILE: Locality Sensitive Hashing Accelerated Simulation and Learning''~\cite{sima2021lshsmile}.
         In \emph{Advances in Neural Information Processing Systems (NeurIPS)}, vol.~34, pp.~7484--7496, 2021.
         \emph{Role:} first author.
+        \emph{Impact:} 8 citations.
 \end{enumerate}
 
 \subsection*{Patents}
