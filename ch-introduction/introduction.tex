@@ -29,7 +29,7 @@ The curse of reality is especially acute for physical agents for four reasons: c
 \begin{figure}[t]
   \centering
   \includegraphics[width=\textwidth]{ch-introduction/figures/thesis_overview.pdf}
-  \caption{\textbf{Overview of the dissertation.} The core chapters follow the perceive--reason--act loop of a physical agent confronting the curse of reality: Chapter~\ref{ch:occnet} addresses 3D occupancy perception (Stage~1, RQ1), Chapter~\ref{ch:drivelm} addresses graph-structured vision-language reasoning (Stage~2, RQ2), and Chapters~\ref{ch:centaur} and~\ref{ch:kai0} address reliable action via test-time planner adaptation and resource-aware manipulation alignment (Stage~3, RQ3). Chapter~\ref{ch:conclusion} synthesises these findings into an evidence-graded architecture for self-correcting physical agents (RQ4). Works marked $^{*}$ are co-authored rather than led by the author.}
+  \caption{\textbf{Overview of the dissertation.} The core chapters follow the perceive--reason--act loop of a physical agent confronting the curse of reality: Chapter~\ref{ch:occnet} addresses 3D occupancy perception (Stage~1, RQ1), Chapter~\ref{ch:drivelm} addresses graph-structured vision-language reasoning (Stage~2, RQ2), and Chapters~\ref{ch:centaur} and~\ref{ch:kai0} address reliable action via test-time planner adaptation and resource-aware manipulation alignment (Stage~3, RQ3). Chapter~\ref{ch:conclusion} synthesises these findings into an evidence-graded architecture for self-correcting physical agents (RQ4), where (1)--(5) are the five architectural elements graded in Table~\ref{tab:disc:evidence}. Works marked $^{*}$ are co-authored rather than led by the author.}
   \label{fig:intro:overview}
 \end{figure}
 
@@ -46,7 +46,7 @@ Methodologically, the works in this dissertation follow a design-science paradig
 \begin{figure}[t]
   \centering
   \includegraphics[width=\textwidth]{ch-methodology/figures/lineage.pdf}
-  \caption{\textbf{Research lineage of the publications to which the author contributed, organised by year and perceive--reason--act pillar.} Solid arrows denote direct technical or data inheritance; dashed arrows denote motivation or contrast; dark bold outlines mark the five author-led core-chapter works; squares mark dataset and benchmark releases. Two capsules (\textsf{PersFormer + OpenLane} and \textsf{OccNet + OpenOcc}) pair a method and benchmark from the same paper, so the 18 capsules represent the 20 outputs in Section~\ref{sec:intro:publications}.}
+  \caption{\textbf{Research lineage of the publications to which the author contributed, organised by year and perceive--reason--act pillar.} Solid arrows denote direct technical or data inheritance; dashed arrows denote motivation or contrast; dark bold outlines mark the five author-led core-chapter works; squares mark dataset and benchmark releases. The 20 capsules correspond one-to-one to the 20 publications in Section~\ref{sec:intro:publications}; two capsules (\textsf{PersFormer + OpenLane} and \textsf{OccNet + OpenOcc}) each pair a method with the benchmark released in the same paper, and lane titles give the chapters that cover each pillar.}
   \label{fig:method:lineage}
 \end{figure}
 
@@ -137,7 +137,17 @@ The remainder of this dissertation is organised into five chapters following the
         \hfill (Chapter~\ref{ch:kai0})
 \end{enumerate}
 
-\subsection*{Other Related Publications}
+\subsection*{Other First-Authored Contributions (Not Forming Standalone Chapters)}
+
+\begin{enumerate}[label={[\arabic*]}, leftmargin=2.4em, labelwidth=1.8em, labelsep=0.6em, align=left, itemsep=4pt, resume]
+  \item \textbf{C. Sima} and Y. Xue.
+        ``LSH-SMILE: Locality Sensitive Hashing Accelerated Simulation and Learning''~\cite{sima2021lshsmile}.
+        In \emph{Advances in Neural Information Processing Systems (NeurIPS)}, vol.~34, pp.~7484--7496, 2021.
+        \emph{Role:} first author.
+        \emph{Impact:} 8 citations. (Algorithmic simulation and learning efficiency; mentioned in Chapter~\ref{ch:intro}.)
+\end{enumerate}
+
+\subsection*{Co-First-Authored and Co-Authored Contributions}
 
 \begin{enumerate}[label={[\arabic*]}, leftmargin=2.4em, labelwidth=1.8em, labelsep=0.6em, align=left, itemsep=4pt, resume]
   \item Y. Hu, J. Yang, L. Chen, K. Li, \textbf{C. Sima}, X. Zhu, S. Chai, S. Du, T. Lin, W. Wang, L. Lu, X. Jia, Q. Liu, J. Dai, Y. Qiao, and H. Li.
@@ -210,11 +220,6 @@ The remainder of this dissertation is organised into five chapters following the
         In \emph{European Conference on Computer Vision (ECCV)}, pp.~1--18, 2022.
         \emph{Role:} co-author.
         \emph{Impact:} 3,360+ citations; 4,600+ GitHub stars (\texttt{fundamentalvision/BEVFormer}); ranked 1st on the Waymo Open Challenge 2022 3D Camera-Only Detection Track.
-  \item \textbf{C. Sima} and Y. Xue.
-        ``LSH-SMILE: Locality Sensitive Hashing Accelerated Simulation and Learning''~\cite{sima2021lshsmile}.
-        In \emph{Advances in Neural Information Processing Systems (NeurIPS)}, vol.~34, pp.~7484--7496, 2021.
-        \emph{Role:} first author.
-        \emph{Impact:} 8 citations.
 \end{enumerate}
 
 \subsection*{Patents}

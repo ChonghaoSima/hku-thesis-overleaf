@@ -67,16 +67,14 @@
 
 | 图号 | 标签 | 源文件（同名 `.pptx` 为可编辑源文件，`.pdf` 为插入正文的导出件） | 内容 |
 |---|---|---|---|
-| 1.1 | `fig:intro:overview` | `ch-introduction/figures/thesis_overview.{pptx,pdf}` | 论文总览：现实世界 → 感知/推理/行动三栏（RQ1–3，第 4–7 章）→ RQ4 架构带 → 第 2/3/9 章 |
-| 3.1 | `fig:method:shift` | `ch-methodology/figures/shift_taxonomy.{pptx,pdf}` | 四类偏移（感知/语义/行为/部署）→ 部署时症状 → 方法论杠杆 → 对应章节 |
-| 3.2 | `fig:method:cycle` | `ch-methodology/figures/research_cycle.{pptx,pdf}` | benchmark-driven 研究循环六阶段，中心为 curse of reality，灰字为各阶段的代表作品 |
-| 3.3 | `fig:method:lineage` | `ch-methodology/figures/lineage.{pptx,pdf}` | 20 篇论文谱系：横轴年份，纵向四条泳道（Perceive/Reason/Act/Architecture）+ 早期工作行；实线=基于，虚线=启发/对比，箭头颜色=出发论文的泳道；深色粗外框=作者主导，右上角 ■=发布数据或基准 |
-| 3.4 | `fig:method:ladder` | `ch-methodology/figures/evaluation_ladder.{pptx,pdf}` | 评测保真度阶梯 L0–L3 及各章所处层级 |
-| 3.5 | `fig:method:decision` | `ch-methodology/figures/lever_decision.{pptx,pdf}` | 从现场失败到研究贡献的决策流程（6 个问题 → 6 个杠杆 → 评测与开放） |
-| 4.8 | `occnet:fig:openscene_usage` | `ch-occnet/figures/openscene_usage.{pptx,pdf}` | OpenScene 与其下游用途 |
-| 8.1 | `fig:disc:anatomy` | `ch-discussion/figures/self_correcting.{pptx,pdf}` | 自我纠错物理智能体的结构（表示/慢推理/快行动 + 能力监控 + 学习回路） |
+| 1.1 | `fig:intro:overview` | `ch-introduction/figures/thesis_overview.{pptx,pdf}` | 论文总览：现实世界 → 感知/推理/行动三栏（RQ1–3，第 2–5 章，内嵌 OccNet/DriveLM/Centaur/χ0 视觉小图与原生矢量 Graph VQA）→ RQ4 架构带（第 6 章 Table 6.1 五要素） |
+| 1.2 | `fig:method:lineage` | `ch-methodology/figures/lineage.{pptx,pdf}` | 20 篇论文谱系：横轴年份（2021–2026），纵向四条泳道（Perceive Ch. 2 / Reason Ch. 3 / Act Ch. 4–5 / Architecture Ch. 6）+ 早期工作行；实线=基于，虚线=启发/对比；深色粗外框=作者主导核心章节工作，右上角 ■=发布数据或基准 |
+| 2.8 | `occnet:fig:openscene_usage` | `ch-occnet/figures/openscene_usage.{pptx,pdf}` | OpenScene（2 Hz 下采样 + 体素与流标注）与其三大下游用途（占据预测、端到端驾驶、世界模型） |
+| 6.1 | `fig:disc:anatomy` | `ch-discussion/figures/self_correcting.{pptx,pdf}` | 自我纠错物理智能体的五要素结构（① 表示 / ② 慢推理 / 快行动 + ③ 能力监控 + ④ 测试时自适应 + ⑤ 学习回路，带 L0/L1/L3 保真度芯片） |
 
-这些图在正文中通过 `\includegraphics` 插入导出的 PDF，例如 `ch-methodology/methodology.tex` 中的 `\includegraphics[width=\textwidth]{ch-methodology/figures/research_cycle.pdf}`。PDF 按最终显示宽度导出，LaTeX 中基本不缩放：全宽图为 15.375 cm（`\textwidth`），3.4 为 `0.92\textwidth`，3.5 为 `0.86\textwidth`，4.8 按自然宽度（14.43 cm）插入。旧版 TikZ 源文件已删除，需要时可从 git 历史找回。
+> **已弃用（6 章 MMLab 结构中不再引用）**：`ch-methodology/figures/` 下的 `shift_taxonomy.{pptx,pdf}`、`research_cycle.{pptx,pdf}`、`evaluation_ladder.{pptx,pdf}`、`lever_decision.{pptx,pdf}` 已随独立方法论章合入第 1 章而不再被 `main.tex` 引用，保留在目录中仅供参考，不要再插回正文。
+
+这些图在正文中通过 `\includegraphics` 插入导出的 PDF，全宽图为 15.38 cm（`\textwidth` / `\linewidth`），PDF 按最终显示宽度导出，LaTeX 中不缩放。
 
 ### 3.2 论文插图（PDF/JPG/PNG，来自已发表论文）
 
@@ -84,14 +82,10 @@
 
 | 章 | 图号：标签 → 文件（均在该章的 `images/` 目录下） |
 |---|---|
-| 第 4 章 OccNet（`ch-occnet/occnet.tex`） | 4.1 `occnet:fig:motivation` → `fig_motivation_v7_used.pdf`；4.2 `occnet:fig:framework` → `fig_pipeline_overview_v8_used.pdf`；4.3 `occnet:fig:compare_gt` → `fig_compare_dataset_used.jpg`；4.4 `occnet:fig:compare_occ_method` → `fig_occ_gt_pred_used.jpg`；4.5 `occnet:fig:pretrain_for_detection` → `fig_compare_pretrain_v2_used.pdf`；4.6 `occnet:fig:planning` → `fig_planning_used.jpg`；4.7 `occnet:fig:irregular` → `fig_irregular_object_used.jpg` |
-| 第 5 章 DriveLM（`ch-drivelm/drivelm.tex`） | 5.1 `drivelm:fig:teaser` → `teaser_smch_v10.pdf`；5.2 `drivelm:fig:data_collection` → `data_v8_1_smch.pdf`；5.3 `drivelm:fig:model_pipeline` → `model_pipeline_smch_v1.pdf`；5.4 `drivelm:fig:qualitative` → `qualitative_smch_v7.pdf` |
-| 第 6 章 Centaur（`ch-centaur/centaur.tex`） | 6.1 `centaur:fig:teaser` → `main_fig_v15.pdf`；6.2 `centaur:fig:pipeline` → `pipeline_v11.pdf`；6.3 `centaur:fig:navsafe` → `navsafe_v12.pdf`；6.4 `centaur:fig:vis` → `vis_v7.pdf` |
-| 第 7 章 χ0（`ch-kai0/kai0.tex`） | 7.1 `kai0:fig:teaser` → `kai0_teaser_v5_4_compress.pdf`；7.2 `kai0:fig:pipeline` → `pipeline_v6_compress.pdf`；7.3 `kai0:fig:arithmetic` → `arithmetic_v4.pdf`；7.4 `kai0:fig:advantage` → `advantage_v4_1_compress.pdf`；7.5 `kai0:fig:consistency` → `consistency_v4.pdf`；7.6 `kai0:fig:robot_setup` → `setup_v3_compress.pdf`；7.7 `kai0:fig:exp_triple` → `triple_compress.pdf`（表 7.2 的 Task A 数值读自此图）；7.8 `kai0:fig:exp_souping` → `souping_compress.pdf`；7.9 `kai0:fig:exp_advantage` → `advantageA_B_compress.pdf`；7.10 `kai0:fig:exp_dagger_a` → `dagger_ff_compress.pdf`；7.11 `kai0:fig:exp_dagger_c` → `dagger_demoB_compress.pdf`；7.12 `kai0:fig:exp_aug_control` → `aug_control_compress.pdf` |
-| 附录 A（`ch-occnet/occnet_appendix.tex`） | A.1 `occnet:fig:occ_gt_pipeline` → `fig_occ_gt_pipeline_used.jpg`；A.2 `occnet:fig:statistics_occ` → `fig_occ_label_distribution_used.jpg`；A.3 `occnet:fig:statistics_flow` → `fig_flow_distribution_used.pdf`；A.4 `occnet:fig:planning2` → `fig_planning2_used.jpg`；A.5 `occnet:fig:occ_pred` → `fig_occ_vis_1_used.jpg` |
-| 附录 B（`ch-drivelm/drivelm_appendix.tex`） | B.1 `drivelm:fig:composition` → `nus_data_supp_v2.pdf`；B.2 `drivelm:fig:nus_anno_pipeline` → `nus_pipeline_supp_v2.pdf`；B.3 `drivelm:fig:data_distribution` → `data_v8_2_smch.pdf`；B.4 `drivelm:fig:nus_statis` → `nus_stats_supp.pdf`；B.5 `drivelm:fig:nus_obj_stats` → `nus_objstats_supp.pdf`；B.6 `drivelm:fig:carla_graph` → `carla_graph.pdf`；B.7 `drivelm:fig:simple_pipeline` → `rebuttal_simple_pipeline.jpg`（实为 PNG 格式，文件名保留） |
-| 附录 C（`ch-centaur/centaur_appendix.tex`） | C.1 `centaur:fig:vis_group` → `group12.pdf` |
-| 附录 D（`ch-kai0/kai0_appendix.tex`） | D.1 `kai0:fig:failure_case` → `failure_case_trim.pdf`；D.2 `kai0:fig:loss_curve_sa` → `loss_curve_SA.jpeg`；D.3 `kai0:fig:app_soup_a` → `souping_ff_compress.pdf` + `souping_demoA_compress.pdf`；D.4 `kai0:fig:app_sa_c` → `advantage_demoB_compress.pdf`；D.5–D.7 `kai0:fig:app_tda_{a,b,c}_abs` → `{ff,demoA,demoB}_{abs,delta}_compress.pdf` |
+| 第 2 章 OccNet（`ch-occnet/occnet.tex`） | 2.1 `occnet:fig:motivation` → `fig_motivation_v7_used.pdf`；2.2 `occnet:fig:framework` → `fig_pipeline_overview_v8_used.pdf`；2.3 `occnet:fig:compare_gt` → `fig_compare_dataset_used.jpg`；2.4 `occnet:fig:compare_occ_method` → `fig_occ_gt_pred_used.jpg`；2.5 `occnet:fig:pretrain_for_detection` → `fig_compare_pretrain_v2_used.pdf`；2.6 `occnet:fig:planning` → `fig_planning_used.jpg`；2.7 `occnet:fig:irregular` → `fig_irregular_object_used.jpg`；2.9 `occnet:fig:occ_gt_pipeline` → `fig_occ_gt_pipeline_used.jpg`；2.10 `occnet:fig:statistics_occ` → `fig_occ_label_distribution_used.jpg`；2.11 `occnet:fig:statistics_flow` → `fig_flow_distribution_used.pdf`；2.12 `occnet:fig:planning2` → `fig_planning2_used.jpg`；2.13 `occnet:fig:occ_pred` → `fig_occ_vis_1_used.jpg` |
+| 第 3 章 DriveLM（`ch-drivelm/drivelm.tex`） | 3.1 `drivelm:fig:teaser` → `teaser_smch_v10.pdf`；3.2 `drivelm:fig:data_collection` → `data_v8_1_smch_revised.pdf`；3.3 `drivelm:fig:model_pipeline` → `model_pipeline_smch_v1.pdf`；3.4 `drivelm:fig:qualitative` → `qualitative_smch_v7.pdf`；3.5 `drivelm:fig:composition` → `nus_data_supp_v2.pdf`；3.6 `drivelm:fig:nus_anno_pipeline` → `nus_pipeline_supp_v2.pdf`；3.7 `drivelm:fig:data_distribution` → `data_v8_2_smch.pdf`；3.8 `drivelm:fig:nus_statis` → `nus_stats_supp.pdf`；3.9 `drivelm:fig:nus_obj_stats` → `nus_objstats_supp.pdf`；3.10 `drivelm:fig:carla_graph` → `carla_graph.pdf`；3.11 `drivelm:fig:simple_pipeline` → `rebuttal_simple_pipeline.jpg` |
+| 第 4 章 Centaur（`ch-centaur/centaur.tex`） | 4.1 `centaur:fig:teaser` → `main_fig_v15.pdf`；4.2 `centaur:fig:pipeline` → `pipeline_v11.pdf`；4.3 `centaur:fig:navsafe` → `navsafe_v12.pdf`；4.4 `centaur:fig:vis` → `vis_v7.pdf`；4.5 `centaur:fig:vis_group` → `group12.pdf` |
+| 第 5 章 χ0（`ch-kai0/kai0.tex`） | 5.1 `kai0:fig:teaser` → `kai0_teaser_v5_4_compress.pdf`；5.2 `kai0:fig:pipeline` → `pipeline_v6_compress.pdf`；5.3 `kai0:fig:arithmetic` → `arithmetic_v4.pdf`；5.4 `kai0:fig:advantage` → `advantage_v4_1_compress.pdf`；5.5 `kai0:fig:consistency` → `consistency_v4.pdf`；5.6 `kai0:fig:robot_setup` → `setup_v3_compress.pdf`；5.7 `kai0:fig:exp_triple` → `triple_compress.pdf`；5.8 `kai0:fig:exp_souping` → `souping_compress.pdf`；5.9 `kai0:fig:exp_advantage` → `advantageA_B_compress.pdf`；5.10 `kai0:fig:exp_dagger_a` → `dagger_ff_compress.pdf`；5.11 `kai0:fig:exp_dagger_c` → `dagger_demoB_compress.pdf`；5.12 `kai0:fig:exp_aug_control` → `aug_control_compress.pdf`；5.13 `kai0:fig:loss_curve_sa` → `loss_curve_SA.jpeg`；5.14 `kai0:fig:app_soup_a` → `souping_ff_compress.pdf` + `souping_demoA_compress.pdf`；5.15 `kai0:fig:app_sa_c` → `advantage_demoB_compress.pdf`；5.16–5.18 `kai0:fig:app_tda_{a,b,c}` → `{ff,demoA,demoB}_{abs,delta}_compress.pdf`；5.19 `kai0:fig:failure_case` → `failure_case_trim.pdf` |
 
 ### 3.3 前置页图片
 
