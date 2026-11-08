@@ -1,6 +1,6 @@
 # 修改论文图片 / 流程图：给 agent 的操作手册
 
-本文件说明如何修改司马崇昊 HKU 博士论文 *Taming the Curse of Reality: Towards Robust Physical Agents from Perception to Action* 中的任何图片（PPT 概念图或论文插图），并保证改完仍能编译、与正文一致、能同步到 Overleaf / GitHub / HDFS。
+本文件说明如何修改司马崇昊 HKU 博士论文 *Lifting the Curse of Reality for Physical Agents* 中的任何图片（PPT 概念图或论文插图），并保证改完仍能编译、与正文一致、能同步到 Overleaf / GitHub / HDFS。
 
 ---
 
