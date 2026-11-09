@@ -5,7 +5,7 @@ Based on: Centaur: Robust End-to-End Autonomous Driving with Test-Time Training.
 Chonghao Sima, Kashyap Chitta, Zhiding Yu, Shiyi Lan, Ping Luo,\\
 Andreas Geiger, Hongyang Li, Jose M. Alvarez.\\
 \textbf{CVPR 2025 Workshop on Test-Time Scaling for Computer Vision}\\
-{[\textbf{First Author, Project Lead}]} \quad {\small 52 Citations $\cdot$ 1st on NAVSIM v1.1 (Multi-Seed)}
+{[\textbf{Co-First Author, Project Lead}]}
 \end{flushright}
 \vspace{0.6em}
 
@@ -13,16 +13,16 @@ Andreas Geiger, Hongyang Li, Jose M. Alvarez.\\
 
 While Chapters~\ref{ch:occnet} and~\ref{ch:drivelm} examined perception and reasoning through 3D occupancy and vision-language grounding, action remains the ultimate test of an embodied agent. Because an end-to-end planner directly governs vehicle motion on public roads, any planning error risks a collision when encountering rare, safety-critical situations absent from training logs, such as unfamiliar roundabouts, ambiguous yellow signals, or sudden pedestrian crossings, a long-tail exposure known as the curse of rarity~\cite{liu2024curse}.
 
-Existing end-to-end planners are often paired with fallback rules that override plans upon rule breaches or post-hoc cost optimisation over auxiliary drivable-area maps and obstacle boxes. Those safeguards add engineering and annotation requirements and may trade progress for caution. Centaur instead asks a bounded version of RQ3a: \emph{whether planner weights can adapt at deployment under distributional shift without ground-truth labels or a hand-crafted test-time objective.} We compare that adaptation with a simple uncertainty-triggered prior-trajectory fallback implemented for this study and with UniAD's reported post-hoc optimisation~\cite{hu2023uniad}. The scope is deliberately limited: NAVSIM scores independent plans per frame from logged states, so closed-loop errors cannot accumulate (Section~\ref{centaur:sec:setup}), and while no rules run at test time, the base Hydra-MDP heads were trained offline to distil rule-based simulator metrics (Section~\ref{centaur:sec:prelim}).
+Existing end-to-end planners are often paired with fallback rules that override plans upon rule breaches or post-hoc cost optimisation over auxiliary drivable-area maps and obstacle boxes. Those safeguards add engineering and annotation requirements and may trade progress for caution. Centaur instead asks a bounded version of RQ3(a): \emph{whether planner weights can adapt at deployment under distributional shift without ground-truth labels or a hand-crafted test-time objective.} We compare that adaptation with a simple uncertainty-triggered prior-trajectory fallback implemented for this study and with UniAD's reported post-hoc optimisation~\cite{hu2023uniad}. The scope is deliberately limited: NAVSIM scores independent plans per frame from logged states, so closed-loop errors cannot accumulate (Section~\ref{centaur:sec:setup}), and while no rules run at test time, the base Hydra-MDP heads were trained offline to distil rule-based simulator metrics (Section~\ref{centaur:sec:prelim}).
 
 We propose \emph{Centaur} (\textbf{C}luster \textbf{En}tropy for \textbf{T}est-time tr\textbf{A}ining using \textbf{U}nce\textbf{r}tainty), which updates a pre-trained planner via test-time training (TTT) rather than overriding its outputs, taking a single gradient step averaged over a short ring buffer of recent frames to reduce trajectory-score dispersion (evaluated sequentially here, though compatible with asynchronous execution). Three contributions anchor this chapter: (i) introducing TTT for an end-to-end planner on NAVSIM (March 2025), contrasting with forecasting TTT~\cite{park2024t4p} and fixed-weight search~\cite{yang2024diffusiones}; (ii) formulating \emph{Cluster Entropy} across five lateral steering directions; and (iii) curating \texttt{navsafe}, a 229-frame diagnostic subset of \texttt{navtest} across ten safety-critical categories guided by the US National Highway Traffic Safety Administration (NHTSA) pre-crash typology~\cite{najm2007pre} and ranked by baseline Hydra-MDP~\cite{li2024hydramdp} scores on NAVSIM~\cite{dauner2024navsim}.
 
-In NAVSIM v1.0 non-reactive 4-second replay~\cite{dauner2024navsim} (where each frame resets to the human state, leaving closed-loop shift in Chapter~\ref{ch:intro} and long-horizon drift untested), Centaur raises Hydra-MDP from 90.3 to 92.6 PDMS in one run (human reference: 94.8). On v1.1 it reaches $92.10 \pm 0.33$ over three seeds (ranking first among three-seed leaderboard entries in March 2025), although the leaderboard has no matched three-seed unadapted Hydra-MDP entry. The 229-frame \texttt{navsafe} analysis (Table~\ref{centaur:tab:navsafe_overall}, Section~\ref{centaur:sec:navsafe_results}) is less uniform: Centaur improves the frame-weighted mean from 49.36 to 68.86 (68.9 \vs 49.4), the simple category mean from 48.33 to 71.96 (72.0 \vs 48.3), and the preprint Overall from 56.47 to 74.14, but the subset was selected using Hydra-MDP scores and performance on yielding falls from 71.6 to 59.3 while trailing human logs (94.65). NAVSIM derives from OpenScene~\cite{sima2023openscene} (Chapter~\ref{ch:occnet}) and nuPlan~\cite{caesar2021nuplan}, and Cluster Entropy reuses DriveLM's five lateral steering bins~\cite{sima2024drivelm} (Chapter~\ref{ch:drivelm}) without longitudinal speed bins. Sections~\ref{centaur:sec:related}--\ref{centaur:sec:summary} cover related work, method, \texttt{navsafe}, experiments, analysis, discussion, supplementary evaluations (Section~\ref{app:centaur}), and summary.
+In NAVSIM v1.0 non-reactive 4-second replay~\cite{dauner2024navsim} (where each frame resets to the human state, leaving closed-loop shift in Chapter~\ref{ch:intro} and long-horizon drift untested), Centaur raises Hydra-MDP from 90.3 to 92.6 PDMS in one run (human reference: 94.8). On v1.1 it reaches $92.10 \pm 0.33$ over three seeds (ranking first among three-seed leaderboard entries in March 2025), although the leaderboard has no matched three-seed unadapted Hydra-MDP entry. The 229-frame \texttt{navsafe} analysis (Table~\ref{centaur:tab:navsafe_overall}, Section~\ref{centaur:sec:navsafe_results}) is less uniform: Centaur improves the frame-weighted mean PDMS from 49.4 to 68.9 and the simple category mean from 48.3 to 72.0, but the subset was selected using Hydra-MDP scores and performance on yielding falls from 71.6 to 59.3 while trailing human logs (94.65). NAVSIM derives from OpenScene~\cite{sima2023openscene} (Chapter~\ref{ch:occnet}) and nuPlan~\cite{caesar2021nuplan}, and Cluster Entropy reuses DriveLM's five lateral steering bins~\cite{sima2024drivelm} (Chapter~\ref{ch:drivelm}) without longitudinal speed bins.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.55\textwidth]{ch-centaur/images/main_fig_v15.pdf}
-  \caption{\textbf{Minimising directional score entropy via test-time training (TTT).} The trajectory-scoring planner Hydra-MDP~\cite{li2024hydramdp} scores candidate trajectories on \texttt{navtest}~\cite{dauner2024navsim} across five directional clusters ($\bigstar$: top-scoring plan). \textbf{Left:} Entering a roundabout, the unadapted model picks an isolated `slight left' outlier despite low cluster support. \textbf{Right:} Minimising Cluster Entropy via TTT sharpens the score distribution toward `slight right', avoiding oncoming traffic.}
+  \caption[Minimising directional score entropy via test-time training]{\textbf{Minimising directional score entropy via test-time training (TTT).} The trajectory-scoring planner Hydra-MDP~\cite{li2024hydramdp} scores candidate trajectories on \texttt{navtest}~\cite{dauner2024navsim} across five directional clusters ($\bigstar$: top-scoring plan). \textbf{Left:} Entering a roundabout, the unadapted model picks an isolated `slight left' outlier despite low cluster support. \textbf{Right:} Minimising Cluster Entropy via TTT sharpens the score distribution toward `slight right', avoiding oncoming traffic.}
   \label{centaur:fig:teaser}
 \end{figure}
 
@@ -31,6 +31,8 @@ Operating safely alongside human traffic requires handling rare interactions and
 Centaur achieves this online adaptation via test-time training~\cite{sun2020ttt,liang2025ttasurvey,wang2022cotta,Gao2024fstta}, updating score decoder weights by gradient descent on an unsupervised uncertainty loss over recent observations (evaluated sequentially in Section~\ref{centaur:sec:latency}, though compatible with asynchronous execution). Whereas classic trajectory regression policies output a single continuous waypoint sequence~\cite{hu2023uniad,chitta2023transfuser,weng2024paradrive,li2024ego}, discrete trajectory-scoring planners~\cite{li2024hydramdp,Sadat2020P3,Casas2021mp3} evaluate a fixed candidate vocabulary analogous to classification~\cite{Gao2024fstta,wang2021tent}, enabling Cluster Entropy over five directional trajectory buckets.
 
 In Fig.~\ref{centaur:fig:teaser}, a single TTT step on Hydra-MDP~\cite{li2024hydramdp} shifts selection from an isolated `slight left' outlier to the `slight right' cluster, preventing a turn into oncoming traffic. Cluster Entropy can also flag high-risk frames at a fixed threshold, attaining the highest true-positive rate among tested uncertainty estimators, though its overall accuracy remains below a never-flag baseline and threshold-free curves were not logged (Section~\ref{centaur:sec:failure}). Lastly, because aggregate test averages obscure rare failures, we curate \texttt{navsafe}, a 229-frame NHTSA-guided subset of \texttt{navtest} that exposes shared vulnerabilities across planners (Section~\ref{centaur:sec:navsafe}).
+
+Sections~\ref{centaur:sec:related}--\ref{centaur:sec:summary} cover related work, method, \texttt{navsafe}, experiments, analysis, discussion, supplementary evaluations (Section~\ref{app:centaur}), and summary.
 
 %-------------------------------------------------------------------------------
 \section{Related Work}\label{centaur:sec:related}
@@ -49,13 +51,41 @@ Fig.~\ref{centaur:fig:pipeline} summarises the Centaur pipeline: trajectory scor
 \begin{figure}[t]
   \centering
   \includegraphics[width=\textwidth]{ch-centaur/images/pipeline_v11.pdf}
-  \caption{\textbf{Overview of test-time training (TTT) in Centaur.} \textbf{Top:} At each deployment frame, a fixed subset of $M$ candidate trajectories is grouped into five directional clusters to compute Cluster Entropy and its gradient via backpropagation. \textbf{Bottom:} Gradients from the $F$ preceding evaluation steps are buffered and averaged for a single gradient step from base decoder weights $\theta$ (Algorithm~\ref{centaur:alg:ttt}).}
+  \caption[Overview of test-time training in Centaur]{\textbf{Overview of test-time training (TTT) in Centaur.} \textbf{Top:} At each deployment frame, a fixed subset of $M$ candidate trajectories is grouped into five directional clusters to compute Cluster Entropy and its gradient via backpropagation. \textbf{Bottom:} Gradients from the $F$ preceding evaluation steps are buffered and averaged for a single gradient step from base decoder weights $\theta$ (Algorithm~\ref{centaur:alg:ttt}).}
   \label{centaur:fig:pipeline}
 \end{figure}
 
 \subsection{Preliminary}\label{centaur:sec:prelim}
 
-Following the multi-camera driving formulation in Section~\ref{occnet:sec:preliminary} and the five discrete lateral steering behaviour bins introduced in Section~\ref{drivelm:sec:task} (Eq.~\eqref{drivelm:eq:xy_dist}), an end-to-end driving policy $\pi$ maps sensor observations $\mathbf{x}_0$ and discrete route command $\mathbf{c}_0$ at step $0$ to $N$ Bird's Eye View (BEV) waypoints $\tilde{\mathbf{t}} = (\mathbf{p}_0, \mathbf{p}_1, \dots, \mathbf{p}_N)$. While TTT can also adapt continuous trajectory regression policies by attaching evidential heads (see Sections~\ref{centaur:app:regression} and~\ref{centaur:app:ablations} for UniAD~\cite{hu2023uniad} and TransFuser~\cite{chitta2023transfuser}), we focus primarily on trajectory scoring planners such as Hydra-MDP~\cite{li2024hydramdp}, VADv2~\cite{chen2024vadv2}, and RAD~\cite{gao2025rad}.
+Following the multi-camera driving formulation in Section~\ref{occnet:sec:preliminary} and the five discrete lateral steering behaviour bins introduced in Section~\ref{drivelm:sec:task} (Eq.~\eqref{drivelm:eq:xy_dist}), an end-to-end driving policy $\pi$ maps sensor observations $\mathbf{x}_0$ and discrete route command $\mathbf{c}_0$ at step $0$ to $N$ Bird's Eye View (BEV) waypoints $\tilde{\mathbf{t}} = (\mathbf{p}_0, \mathbf{p}_1, \dots, \mathbf{p}_N)$. While TTT can also adapt continuous trajectory regression policies by attaching evidential heads (see Sections~\ref{centaur:app:regression} and~\ref{centaur:app:ablations} for UniAD~\cite{hu2023uniad} and TransFuser~\cite{chitta2023transfuser}), we focus primarily on trajectory scoring planners such as Hydra-MDP~\cite{li2024hydramdp}, VADv2~\cite{chen2024vadv2}, and RAD~\cite{gao2025rad}. Table~\ref{centaur:tab:notation} summarises the notation used in this chapter.
+
+\begin{table}[t]
+  \centering
+  \caption[Summary of mathematical symbols and definitions in Chapter~\ref{ch:centaur}]{\textbf{Summary of mathematical symbols and definitions in Chapter~\ref{ch:centaur}.}}
+  \label{centaur:tab:notation}
+  \begin{tabular}{cl}
+    \toprule
+    \textbf{Notation} & \textbf{Description} \\
+    \midrule
+    $\mathcal{L}_{im}$ & Imitation objective \\
+    $\mathcal{L}_{kd}$ & Distillation objective \\
+    $\mathbf{t}$ & Ego trajectory \\
+    $\mathbf{p}$ & BEV waypoint coordinate \\
+    $\pi$ & Planning policy network \\
+    $\mathbf{x}$ & Multi-sensor observation \\
+    $\mathbf{c}$ & High-level route command \\
+    $\theta$ & Trainable decoder weights \\
+    $H$ & Directional Cluster Entropy \\
+    $M$ & Sampled candidate count \\
+    $\mathit{score}_a$ & Aggregated cluster score \\
+    $k$ & Vocabulary trajectory count \\
+    $\gamma, \alpha, \beta, \upsilon$ & NIG distribution parameters \\
+    $F$ & Gradient buffer horizon \\
+    $\eta$ & Test-time step size \\
+    $\tau$ & Feature-distance cutoff \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 \paragraph{Trajectory scoring.} Rather than regressing continuous coordinates, a scoring planner evaluates a fixed vocabulary of $k$ candidate trajectories $\{\mathbf{t}_j\}_{j=1}^k$, predicting score feature vectors $\{s_j\}_{j=1}^k$ that a combining function $\phi$ maps to a scalar utility to pick the highest-scoring plan:
 \begin{equation}
@@ -125,7 +155,7 @@ dampening isolated high-scoring outliers in weakly supported directions (Fig.~\r
 \begin{figure}[tbp]
   \centering
   \includegraphics[width=\textwidth]{ch-centaur/images/navsafe_v12.pdf}
-  \caption{\textbf{Curation workflow of \texttt{navsafe}.} \texttt{navtest} clips are ranked by Hydra-MDP PDMS (Step~0), inspected by human annotators (Step~1), and grouped into ten scenario classes (Steps~2--4) guided by the NHTSA pre-crash typology~\cite{najm2007pre} (top-left inset), with a qualitative 2D OpenCLIP~\cite{ilharco2021openclip} projection of \texttt{navtest} (blue) and \texttt{navsafe} (red) frames at top right.}
+  \caption[Curation workflow of navsafe]{\textbf{Curation workflow of \texttt{navsafe}.} \texttt{navtest} clips are ranked by Hydra-MDP PDMS (Step~0), inspected by human annotators (Step~1), and grouped into ten scenario classes (Steps~2--4) guided by the NHTSA pre-crash typology~\cite{najm2007pre} (top-left inset), with a qualitative 2D OpenCLIP~\cite{ilharco2021openclip} projection of \texttt{navtest} (blue) and \texttt{navsafe} (red) frames at top right.}
   \label{centaur:fig:navsafe}
 \end{figure}
 
@@ -164,7 +194,7 @@ combining No at-fault Collision (NC), Drivable Area Compliance (DAC), 1-second T
 
 \begin{table}[t]
   \centering
-  \caption{\textbf{Impact of TTT on \texttt{navtest} (NAVSIM v1.0, single seed).} TTT lifts PDMS under all uncertainty measures, led by Cluster Entropy. Prior fallback rows are audited against Table~\ref{centaur:tab:fail_class} in Section~\ref{centaur:sec:results}; three-seed v1.1 results appear in Table~\ref{centaur:tab:navtest_all}.}
+  \caption[Impact of TTT on navtest (NAVSIM v1.0, single seed)]{\textbf{Impact of TTT on \texttt{navtest} (NAVSIM v1.0, single seed).} TTT lifts PDMS under all uncertainty measures, led by Cluster Entropy. Prior-fallback rows are indicative only (Section~\ref{centaur:sec:results}); three-seed v1.1 results appear in Table~\ref{centaur:tab:navtest_all}.}
   \label{centaur:tab:navtest_ablation}
   \begin{adjustbox}{max width=\textwidth}
   \begin{tabular}{l|ll|rrrr|rr}
@@ -196,7 +226,7 @@ combining No at-fault Collision (NC), Drivable Area Compliance (DAC), 1-second T
 
 \begin{table}[t]
   \centering
-  \caption{\textbf{Failure identification on \texttt{navtest}} (audited in Section~\ref{centaur:sec:failure}).}
+  \caption[Failure identification on navtest]{\textbf{Failure identification on \texttt{navtest}} (fixed cut-offs; Section~\ref{centaur:sec:failure}).}
   \label{centaur:tab:fail_class}
   \begin{tabular}{l|c|rr}
     \toprule
@@ -219,7 +249,7 @@ Table~\ref{centaur:tab:fail_class} tests binary failure detection at fixed cutof
 
 \begin{table}[t]
   \centering
-  \caption{\textbf{\texttt{navtest} leaderboard} (NAVSIM v1.1, March 2025, 3 seeds). *Hydra-MDP is a single run of the 2024 3-model ensemble.}
+  \caption[navtest leaderboard]{\textbf{\texttt{navtest} leaderboard} (NAVSIM v1.1, March 2025, 3 seeds). *Hydra-MDP is a single run of the 2024 3-model ensemble.}
   \label{centaur:tab:navtest_all}
   \begin{adjustbox}{max width=\textwidth}
   \begin{tabular}{l|llll|ll}
@@ -244,7 +274,7 @@ Across 3 seeds on the official NAVSIM v1.1 leaderboard~\cite{dauner2024navsim} (
 
 \begin{table}[t]
   \centering
-  \caption{\textbf{\texttt{navsafe} PDM scores} across \textbf{RDBT} (Roundabout), \textbf{YLLT} (Yellow light), \textbf{EXR} (Exit ramp), \textbf{UNPL} (Unprotected left), \textbf{ENR} (Enter ramp), \textbf{UNTS} (Uncommon traffic sign), \textbf{OTLC} (Overtaking with lane change), \textbf{NLA} (No lane area), \textbf{BWTH} (Bad weather), and \textbf{YLD} (Yielding). Preprint Overall~\cite{sima2024centaur} (74.14 vs.\ 56.47, 17.67 gap) differs from the frame-weighted (49.36 vs.\ 68.86, or 49.4 vs.\ 68.9) and simple (48.33 vs.\ 71.96, or 48.3 vs.\ 72.0) means in Table~\ref{centaur:tab:navsafe_overall} (Section~\ref{centaur:sec:navsafe}).}
+  \caption[navsafe PDM scores by scenario category]{\textbf{\texttt{navsafe} PDM scores} across \textbf{RDBT} (Roundabout), \textbf{YLLT} (Yellow light), \textbf{EXR} (Exit ramp), \textbf{UNPL} (Unprotected left), \textbf{ENR} (Enter ramp), \textbf{UNTS} (Uncommon traffic sign), \textbf{OTLC} (Overtaking with lane change), \textbf{NLA} (No lane area), \textbf{BWTH} (Bad weather), and \textbf{YLD} (Yielding). Overall is the frame-weighted mean over the 229 frames; the simple category mean and the differently aggregated Overall column of the preprint~\cite{sima2024centaur} are reconciled in Table~\ref{centaur:tab:navsafe_overall} (Section~\ref{centaur:app:consistency}).}
   \label{centaur:tab:navsafe}
   \begin{adjustbox}{max width=\textwidth}
   \begin{tabular}{l|rrrrrrrrrr|r}
@@ -253,22 +283,22 @@ Across 3 seeds on the official NAVSIM v1.1 leaderboard~\cite{dauner2024navsim} (
     \midrule
     Num.\ frames & $7$ & $23$ & $45$ & $28$ & $51$ & $12$ & $8$ & $5$ & $39$ & $11$ & $229$ \\
     \midrule
-    Constant Velocity~\cite{dauner2024navsim} & $0.0$ & $3.8$ & $3.6$ & $0.0$ & $2.9$ & $7.4$ & $0.0$ & $6.4$ & $6.3$ & $3.8$ & $3.41$ \\
-    Ego Status MLP~\cite{dauner2024navsim} & $28.9$ & $22.7$ & $26.0$ & $8.9$ & $37.7$ & $28.0$ & $35.0$ & $8.8$ & $33.4$ & $22.1$ & $24.10$ \\
-    LTF~\cite{chitta2023transfuser} & $42.8$ & $\mathbf{70.2}$ & $43.8$ & $59.4$ & $70.6$ & $55.3$ & $55.8$ & $31.5$ & $62.8$ & $47.5$ & $53.74$ \\
-    TransFuser~\cite{chitta2023transfuser} & $47.3$ & $55.1$ & $35.6$ & $55.7$ & $66.3$ & $51.7$ & $56.2$ & $42.7$ & $55.2$ & $61.6$ & $51.87$ \\
-    Hydra-MDP~\cite{li2024hydramdp} & $32.6$ & $34.3$ & $37.7$ & $64.9$ & $65.5$ & $59.6$ & $43.3$ & $38.1$ & $35.7$ & $71.6$ & $56.47$ \\
+    Constant Velocity~\cite{dauner2024navsim} & $0.0$ & $3.8$ & $3.6$ & $0.0$ & $2.9$ & $7.4$ & $0.0$ & $6.4$ & $6.3$ & $3.8$ & $3.52$ \\
+    Ego Status MLP~\cite{dauner2024navsim} & $28.9$ & $22.7$ & $26.0$ & $8.9$ & $37.7$ & $28.0$ & $35.0$ & $8.8$ & $33.4$ & $22.1$ & $27.39$ \\
+    LTF~\cite{chitta2023transfuser} & $42.8$ & $\mathbf{70.2}$ & $43.8$ & $59.4$ & $70.6$ & $55.3$ & $55.8$ & $31.5$ & $62.8$ & $47.5$ & $58.46$ \\
+    TransFuser~\cite{chitta2023transfuser} & $47.3$ & $55.1$ & $35.6$ & $55.7$ & $66.3$ & $51.7$ & $56.2$ & $42.7$ & $55.2$ & $61.6$ & $53.52$ \\
+    Hydra-MDP~\cite{li2024hydramdp} & $32.6$ & $34.3$ & $37.7$ & $64.9$ & $65.5$ & $59.6$ & $43.3$ & $38.1$ & $35.7$ & $71.6$ & $49.36$ \\
     \midrule
-    Hydra-SE & $62.2$ & $53.9$ & $50.5$ & $57.8$ & $72.0$ & $65.6$ & $74.0$ & $57.6$ & $\mathbf{64.4}$ & $\mathbf{84.6}$ & $62.84$ \\
-    \textbf{Centaur (Ours)} & $\mathbf{76.5}$ & $65.0$ & $\mathbf{61.4}$ & $\mathbf{73.6}$ & $\mathbf{75.0}$ & $\mathbf{85.2}$ & $\mathbf{83.6}$ & $\mathbf{79.8}$ & $60.2$ & $59.3$ & $\mathbf{74.14}$ \\
+    Hydra-SE & $62.2$ & $53.9$ & $50.5$ & $57.8$ & $72.0$ & $65.6$ & $74.0$ & $57.6$ & $\mathbf{64.4}$ & $\mathbf{84.6}$ & $62.65$ \\
+    \textbf{Centaur (Ours)} & $\mathbf{76.5}$ & $65.0$ & $\mathbf{61.4}$ & $\mathbf{73.6}$ & $\mathbf{75.0}$ & $\mathbf{85.2}$ & $\mathbf{83.6}$ & $\mathbf{79.8}$ & $60.2$ & $59.3$ & $\mathbf{68.86}$ \\
     \midrule
-    \textit{Human Trajectory} & $\mathit{96.4}$ & $\mathit{97.6}$ & $\mathit{95.2}$ & $\mathit{94.3}$ & $\mathit{97.2}$ & $\mathit{95.8}$ & $\mathit{94.1}$ & $\mathit{93.7}$ & $\mathit{90.7}$ & $\mathit{91.5}$ & $\mathit{94.65}$ \\
+    \textit{Human Trajectory} & $\mathit{96.4}$ & $\mathit{97.6}$ & $\mathit{95.2}$ & $\mathit{94.3}$ & $\mathit{97.2}$ & $\mathit{95.8}$ & $\mathit{94.1}$ & $\mathit{93.7}$ & $\mathit{90.7}$ & $\mathit{91.5}$ & $\mathit{94.83}$ \\
     \bottomrule
   \end{tabular}
   \end{adjustbox}
 \end{table}
 
-On \texttt{navsafe} (Table~\ref{centaur:tab:navsafe}), all unadapted planners score below 50 PDMS on EXR and NLA (though five categories have 5--12 frames), Hydra-MDP nears Ego Status MLP on RDBT and OTLC, and LTF tops TransFuser on YLLT and ENR. Centaur leads seven of ten categories, topping Hydra-MDP and Hydra-SE (62.84) on the preprint Overall (74.14 \vs 56.47) as well as the frame-weighted (68.9 \vs 49.4) and simple (72.0 \vs 48.3) means in Table~\ref{centaur:tab:navsafe_overall} (where Hydra-MDP trails LTF and TransFuser). Still, sorting by Hydra-MDP induces regression to the mean (Section~\ref{centaur:sec:navsafe}), Centaur drops from 71.6 to 59.3 on YLD and trails on BWTH and YLLT (Section~\ref{centaur:sec:discussion}), and all policies remain far below human logs (94.65).
+On \texttt{navsafe} (Table~\ref{centaur:tab:navsafe}), all unadapted planners score below 50 PDMS on EXR and NLA (though five categories have 5--12 frames), Hydra-MDP nears Ego Status MLP on RDBT and OTLC, and LTF tops TransFuser on YLLT and ENR. Centaur leads seven of ten categories and tops Hydra-MDP and Hydra-SE (62.65) on the frame-weighted Overall (68.9 \vs 49.4), as well as on the simple category mean (72.0 \vs 48.3) in Table~\ref{centaur:tab:navsafe_overall}, where Hydra-MDP trails LTF and TransFuser. Still, sorting by Hydra-MDP induces regression to the mean (Section~\ref{centaur:sec:navsafe}), Centaur drops from 71.6 to 59.3 on YLD and trails on BWTH and YLLT (Section~\ref{centaur:sec:discussion}), and all policies remain far below human logs (94.65).
 
 %-------------------------------------------------------------------------------
 \section{Analysis}\label{centaur:sec:analysis}
@@ -280,7 +310,7 @@ We examine trajectory shifts, regression transfer, hyper-parameters, and runtime
 \begin{figure}[t]
   \centering
   \includegraphics[width=\textwidth]{ch-centaur/images/vis_v7.pdf}
-  \caption{\textbf{Qualitative results} ($\bigstar$: top-scoring plan ordered by lateral endpoint). \textbf{Top:} TTT shifts selection from `Slight Left' to `Forward', improving TTC. \textbf{Bottom:} TTT fails to overturn an overconfident choice.}
+  \caption[Qualitative results]{\textbf{Qualitative results} ($\bigstar$: top-scoring plan ordered by lateral endpoint). \textbf{Top:} TTT shifts selection from `Slight Left' to `Forward', improving TTC. \textbf{Bottom:} TTT fails to overturn an overconfident choice.}
   \label{centaur:fig:vis}
 \end{figure}
 
@@ -294,61 +324,33 @@ In Fig.~\ref{centaur:fig:vis} (top), Cluster Entropy TTT shifts Hydra-MDP from a
 
 \subsection{Computational Cost}\label{centaur:sec:latency}
 
-On one A100 GPU (Table~\ref{centaur:tab:navtest_ablation_supp}), unadapted Hydra-MDP runs at 4.1\,Hz (243.9\,ms per frame) versus 103.1\,ms for ResNet-34 TransFuser (roughly 7 PDMS lower). Synchronous TTT runs at 2.8--3.2\,Hz (312.5--357.1\,ms on one A100, with Cluster Entropy's exact overhead matching the 100-candidate entropy pass), above NAVSIM's 2\,Hz rate (4 frames in 1.5\,s). Asynchronous updates (Section~\ref{centaur:sec:ttt}) or uncertainty-gated $\text{Hydra-SE}^{\mathbf{4}}$ (3.6\,Hz / 279.6\,ms at 91.3 PDMS) reduce this overhead.
+On one A100 GPU (Table~\ref{centaur:tab:navtest_ablation_supp}), unadapted Hydra-MDP runs at 4.1\,Hz (243.9\,ms per frame) versus 103.1\,ms for ResNet-34 TransFuser (roughly 7 PDMS lower). Synchronous TTT runs at 2.8--3.2\,Hz (312.5--357.1\,ms on one A100; Centaur itself was not timed separately, but Cluster Entropy shares the 100-candidate entropy pass of Hydra-SE, Table~\ref{centaur:tab:navtest_ablation_supp}), above NAVSIM's 2\,Hz rate (4 frames in 1.5\,s). Asynchronous updates (Section~\ref{centaur:sec:ttt}) or uncertainty-gated $\text{Hydra-SE}^{\mathbf{4}}$ (3.6\,Hz / 279.6\,ms at 91.3 PDMS) reduce this overhead.
 
 %-------------------------------------------------------------------------------
 \section{Discussion and Limitations}\label{centaur:sec:discussion}
 
-\paragraph{Evidence and fallback comparison.} Under NAVSIM v1 non-reactive replay, TTT lifts single-seed Hydra-MDP from 90.3 to 92.6 PDMS (TTC 93.9 to 98.0, EP 86.5 to 85.9), reaches 92.10 $\pm$ 0.33 across three v1.1 seeds (without a matched three-seed Hydra-MDP baseline), and adds 0.8 to 2.3 PDMS across base planners (or 0.4 with SVD gradient projection; Tables~\ref{centaur:tab:navtest_ablation}, \ref{centaur:tab:navtest_all_supp}, and~\ref{centaur:tab:navtest_ablation_supp}) using offline rule-distilled heads. Whereas our 20-prior fallback cut EP below 15 (PDMS 63.1--65.9 on Hydra-MDP and 59.9--67.4 across all tested planners, with mismatched trigger rates in Section~\ref{centaur:sec:results}) and UniAD's cost optimiser reduced all sub-scores, full rule verifiers like SafetyNet~\cite{vitelli2022safetynet} remain untested here. On \texttt{navsafe}, Centaur's lead over Hydra-MDP (17.67 points in preprint Overall, 68.9 \vs 49.4 frame-weighted, and 72.0 \vs 48.3 simple mean in Table~\ref{centaur:tab:navsafe_overall}) is confounded by Hydra-MDP selection bias (Section~\ref{centaur:sec:navsafe}) and accompanied by a drop on YLD (71.6 to 59.3).
+\paragraph{Evidence and fallback comparison.} Under NAVSIM v1 non-reactive replay, TTT lifts single-seed Hydra-MDP from 90.3 to 92.6 PDMS (TTC 93.9 to 98.0, EP 86.5 to 85.9), reaches 92.10 $\pm$ 0.33 across three v1.1 seeds (without a matched three-seed Hydra-MDP baseline), and adds 0.8 to 2.3 PDMS across base planners (or 0.4 with SVD gradient projection; Tables~\ref{centaur:tab:navtest_ablation}, \ref{centaur:tab:navtest_all_supp}, and~\ref{centaur:tab:navtest_ablation_supp}) using offline rule-distilled heads. Whereas our 20-prior fallback cut EP below 15 (PDMS 63.1--65.9 on Hydra-MDP and 59.9--67.4 across all tested planners, with mismatched trigger rates in Section~\ref{centaur:sec:results}) and UniAD's cost optimiser reduced all sub-scores, full rule verifiers like SafetyNet~\cite{vitelli2022safetynet} remain untested here. On \texttt{navsafe}, Centaur's lead over Hydra-MDP (68.9 \vs 49.4 frame-weighted mean and 72.0 \vs 48.3 simple mean; Table~\ref{centaur:tab:navsafe_overall}) is confounded by Hydra-MDP selection bias (Section~\ref{centaur:sec:navsafe}) and accompanied by a drop on YLD (71.6 to 59.3).
 
 \paragraph{Cluster Entropy and failure detection.} Across three v1.1 seeds, Centaur leads Hydra-SE by 0.23 PDMS (92.10 $\pm$ 0.33 \vs 91.87 $\pm$ 0.19 in Table~\ref{centaur:tab:navtest_all}), within inter-seed variance, and all four objectives in Table~\ref{centaur:tab:navtest_ablation} gain 1.2 to 2.3 PDMS; thus the primary gain comes from generic test-time score sharpening, while Cluster Entropy provides directional interpretability (Figs.~\ref{centaur:fig:teaser} and~\ref{centaur:fig:vis}). As a failure detector (Table~\ref{centaur:tab:fail_class}), Cluster Entropy's 62.8\% TPR comes with 73.6\% accuracy (below the 84.4\% Select None baseline at a 15.6\% non-zero failure rate) and no AUROC/AUPRC curves (Section~\ref{centaur:sec:failure}).
 
 \paragraph{Threats to validity.} Four threats qualify our findings:
 \begin{enumerate}[leftmargin=*]
-  \item \textbf{Evaluation protocol:} NAVSIM v1 resets each frame to logged human states with non-reactive traffic and Episodic weight resets to $\theta$ (Section~\ref{centaur:sec:ttt}), leaving closed-loop compounding errors, oscillation, and continual weight drift untested; hyper-parameters and \texttt{navsafe} were also selected on \texttt{navtest} without multi-seed confidence bounds on v1.0 ablations.
+  \item \textbf{Evaluation protocol:} NAVSIM v1 resets each frame to logged human states with non-reactive traffic and episodic weight resets to $\theta$ (Section~\ref{centaur:sec:ttt}), leaving closed-loop compounding errors, oscillation, and continual weight drift untested; hyper-parameters and \texttt{navsafe} were also selected on \texttt{navtest} without multi-seed confidence bounds on v1.0 ablations.
   \item \textbf{Confounding mechanisms:} Single-step TTT ($\eta=10^{-4}$) could reflect generic score re-calibration of heads distilled from NC, DAC, EP, C, and TTC on pre-filtered \texttt{navtrain} candidates (Section~\ref{centaur:app:entropy}); static pre-test sharpening, unrelated-clip buffers, and independent NAVSIM v2~\cite{cao2025pseudo} metrics were not tested.
   \item \textbf{Objective expressivity:} Lateral-only anchors cannot represent longitudinal stop-or-go uncertainty (YLD, YLLT, and NHTSA ``Lead Vehicle Stopped'', where Centaur drops from 71.6 to 59.3 on YLD): while Cluster Entropy groups candidates by full-trajectory Euclidean $L_2$ distance around five endpoint lateral anchors (conflating stopping and cruising along the same path), Semantic Entropy (Hydra-SE, which reaches 84.6 on YLD) clusters in the 5D predicted sub-score space where EP and TTC separate stopping from cruising, and entropy minimisation can reinforce confident errors~\cite{wang2022cotta} (Fig.~\ref{centaur:fig:vis}).
-  \item \textbf{\texttt{navsafe} curation:} Sorting \texttt{navtest} by Hydra-MDP PDMS induces regression to the mean without an independent seed control, five of ten categories have 5--12 frames without inter-annotator agreement, and Table~\ref{centaur:tab:navsafe_overall} audits the preprint Overall column of Table~\ref{centaur:tab:navsafe}.
+  \item \textbf{\texttt{navsafe} curation:} Sorting \texttt{navtest} by Hydra-MDP PDMS induces regression to the mean without an independent seed control, five of ten categories have 5--12 frames without inter-annotator agreement, and the Overall column printed in the preprint~\cite{sima2024centaur} used an aggregation that could not be reconstructed, so Table~\ref{centaur:tab:navsafe} reports the frame-weighted mean instead (Table~\ref{centaur:tab:navsafe_overall}).
 \end{enumerate}
 
 \paragraph{Limitations.} Future work must test closed-loop simulators, NAVSIM v2~\cite{cao2025pseudo}, and vehicle hardware under asynchronous compute (Section~\ref{centaur:sec:latency}), address regressions on YLD (59.3 \vs 71.6 Hydra-MDP, 84.6 Hydra-SE, 61.6 TransFuser), BWTH (60.2 \vs 64.4 Hydra-SE, 62.8 LTF), YLLT (65.0 \vs 70.2 LTF), and \texttt{navtest} EP (85.9 \vs 86.5), and extend adaptation beyond frozen perception backbones (Chapter~\ref{ch:conclusion}).
 
 %-------------------------------------------------------------------------------
-\section{Implementation Details and Supplementary Evaluations}\label{app:centaur}\label{centaur:app:related}\label{centaur:app:method}\label{centaur:app:regression}\label{centaur:app:entropy}\label{centaur:app:experiments}\label{centaur:app:leaderboard}\label{centaur:app:ablations}\label{centaur:app:consistency}\label{centaur:app:qualitative}
+\section{Implementation Details and Supplementary Evaluations}\label{app:centaur}
 
-This section provides supplementary context on related literature, mathematical formulations for regression and scoring policies, extended ablations, and arithmetic consistency audits.
+This section provides supplementary context on related literature, mathematical formulations for regression and scoring policies, extended ablations, and errata reconciling the published numbers with the tables of this chapter.
 
-\subsection{Related Literature and Methodological Formulations}\label{centaur:app:scoring}
+\subsection{Related Literature and Methodological Formulations}\label{centaur:app:scoring}\label{centaur:app:related}\label{centaur:app:method}\label{centaur:app:regression}\label{centaur:app:entropy}
 
-\paragraph{Context and uncertainty formulations.} Hydra-MDP~\cite{li2024hydramdp} pairs TransFuser~\cite{chitta2023transfuser} with rule-based PDM~\cite{dauner2023parting} distillation; unlike model ensembles~\cite{lakshminarayanan2017simple,li2024perceptionuncertainties}, Centaur updates decoder parameters online via TTT. Semantic Entropy follows paraphrase clustering in language models~\cite{kuhn2023semantic} by grouping trajectories in feature space prior to computing entropy. For scenario evaluation, whereas open-loop ADE/FDE~\cite{hu2023uniad,jiang2023vad,li2024ego} omits rule compliance, NAVSIM~\cite{dauner2024navsim} scores non-reactive replay, Bench2Drive~\cite{jia2024bench2drive} evaluates 44 closed-loop scenario families, InterPlan~\cite{hallgarten2024interplan} synthesises rare hazards, and \texttt{navsafe} isolates 229 low-scoring \texttt{navtest} frames (Section~\ref{centaur:sec:navsafe}). For continuous regression policies, Deep Evidential Regression~\cite{amini2020deepevidential} predicts target coordinates alongside conjugate prior parameters in a single forward pass. Table~\ref{centaur:tab:notation} summarises the notation used across Chapter~\ref{ch:centaur}.
-
-\begin{table}[t]
-  \centering
-  \caption{\textbf{Summary of mathematical symbols and definitions in Chapter~\ref{ch:centaur}.}}
-  \label{centaur:tab:notation}
-  \begin{tabular}{cl}
-    \toprule
-    \textbf{Notation} & \textbf{Description} \\
-    \midrule
-    $\mathcal{L}_{im}$ & Imitation objective \\
-    $\mathcal{L}_{kd}$ & Distillation objective \\
-    $\mathbf{t}$ & Ego trajectory \\
-    $\mathbf{p}$ & BEV waypoint coordinate \\
-    $\pi$ & Planning policy network \\
-    $\mathbf{x}$ & Multi-sensor observation \\
-    $\mathbf{c}$ & High-level route command \\
-    $\theta$ & Trainable decoder weights \\
-    $H$ & Directional Cluster Entropy \\
-    $M$ & Sampled candidate count \\
-    $\mathit{score}_a$ & Aggregated cluster score \\
-    $k$ & Vocabulary trajectory count \\
-    $\gamma, \alpha, \beta, \upsilon$ & NIG distribution parameters \\
-    $F$ & Gradient buffer horizon \\
-    $\eta$ & Test-time step size \\
-    $\tau$ & Feature-distance cutoff \\
-    \bottomrule
-  \end{tabular}
-\end{table}
+\paragraph{Context and uncertainty formulations.} Hydra-MDP~\cite{li2024hydramdp} pairs TransFuser~\cite{chitta2023transfuser} with rule-based PDM~\cite{dauner2023parting} distillation; unlike model ensembles~\cite{lakshminarayanan2017simple,li2024perceptionuncertainties}, Centaur updates decoder parameters online via TTT. Semantic Entropy follows paraphrase clustering in language models~\cite{kuhn2023semantic} by grouping trajectories in feature space prior to computing entropy. For scenario evaluation, whereas open-loop ADE/FDE~\cite{hu2023uniad,jiang2023vad,li2024ego} omits rule compliance, NAVSIM~\cite{dauner2024navsim} scores non-reactive replay, Bench2Drive~\cite{jia2024bench2drive} evaluates 44 closed-loop scenario families, InterPlan~\cite{hallgarten2024interplan} synthesises rare hazards, and \texttt{navsafe} isolates 229 low-scoring \texttt{navtest} frames (Section~\ref{centaur:sec:navsafe}). For continuous regression policies, Deep Evidential Regression~\cite{amini2020deepevidential} predicts target coordinates alongside conjugate prior parameters in a single forward pass.
 
 \paragraph{Evidential regression planner.} Deep Evidential Regression~\cite{amini2020deepevidential} predicts Normal Inverse Gamma (NIG) parameters ($\alpha$, $\beta$, $\gamma$, $\upsilon$) for each scalar target $y_i$ of $\pi_\theta$:
 \begin{align}
@@ -361,17 +363,7 @@ with Gaussian $\mathcal{N}(\cdot)$, inverse-gamma distribution $\operatorname{In
   \label{centaur:eq:objective}
   \argmin_{\theta} \mathbb{E}_{(\mathbf{x},\mathbf{t},\mathbf{c})\sim D_{im}} \left[\mathcal{L}_{im}\big(\mathbf{t}, \pi_\theta(\mathbf{x},\mathbf{c})\big)\right].
 \end{equation}
-For an $N$-step vector trajectory $\vec{\mathbf{t}} = (\mathbf{p}_0, \mathbf{p}_1, \dots, \mathbf{p}_N)$ parameterised by $(\vec{\alpha}, \vec{\beta}, \vec{\gamma}, \vec{\upsilon})$:
-\begin{align}
-  (\vec{\mathbf{t}}_1, \dots, \vec{\mathbf{t}}_N) &\sim \mathcal{N}(\vec{\mu}, \vec{\sigma^2}), \nonumber \\
-  \vec{\mu} \sim \mathcal{N}(\vec{\gamma}, \vec{\sigma^2 \upsilon^{-1}}), \quad & \qquad \vec{\sigma^2} \sim \operatorname{InvGamma}(\vec{\alpha}, \vec{\beta}),
-  \label{centaur:eq:evidential-vector}
-\end{align}
-with mean plan $\vec{\gamma} = \pi_\theta(\mathbf{x}_0) = \hat{\mathbf{t}}_0$ and vectorised imitation objective over $(\mathbf{x},\vec{\mathbf{t}},\mathbf{c}) \in D_{im}$:
-\begin{equation}
-  \label{centaur:eq:objective-imi-kd}
-  \argmin_{\theta} \mathbb{E}_{(\mathbf{x},\vec{\mathbf{t}},\mathbf{c})\sim D_{im}} \left[\mathcal{L}_{im}\big(\vec{\mathbf{t}}, \pi_\theta(\mathbf{x},\mathbf{c})\big)\right].
-\end{equation}
+For an $N$-step vector trajectory $\vec{\mathbf{t}} = (\mathbf{p}_0, \mathbf{p}_1, \dots, \mathbf{p}_N)$, the same NIG parameterisation and imitation objective apply elementwise, with mean plan $\vec{\gamma} = \pi_\theta(\mathbf{x}_0) = \hat{\mathbf{t}}_0$.
 
 \paragraph{Scoring objective and Semantic Entropy.} Following VADv2~\cite{chen2024vadv2}, Hydra-MDP~\cite{li2024hydramdp} combines the multi-target distillation loss $\mathcal{L}_{kd} = \sum_{j=1}^{k} \mathcal{L}_{kd}\big(e(\mathbf{t}_j,\mathbf{x},\mathbf{c}), \allowbreak \pi_\theta(\mathbf{t}_j,\mathbf{x},\mathbf{c})\big)$ (Eq.~\eqref{centaur:eq:objective-score}) and human imitation regularisation $\mathcal{L}_{im}$:
 \begin{equation}
@@ -380,20 +372,20 @@ with mean plan $\vec{\gamma} = \pi_\theta(\mathbf{x}_0) = \hat{\mathbf{t}}_0$ an
 \end{equation}
 where $\mathcal{L}_{im}$ is the vocabulary-level cross-entropy~\cite{li2024hydramdp} over the $k$ candidates $\{\mathbf{t}_j\}_{j=1}^{k}$ with target distribution given by softmax-normalised negative $L_2$ distances to the logged trajectory $\tilde{\mathbf{t}}$. For entropy estimation, $M=100$ fixed candidates are sampled offline from the $8192$ vocabulary weighted by mean \texttt{navtrain} PDMS (Algorithm~\ref{centaur:alg:ttt}) around five lateral DriveLM~\cite{sima2024drivelm} anchors (Sections~\ref{centaur:sec:ce} and~\ref{centaur:sec:discussion}). Semantic Entropy assigns each of the $M$ candidates to the closest of the five anchors by feature-space $L_2$ distance $D(\cdot, \cdot)$ when $D \le \tau$ (falling back to trajectory-space $L_2$ distance if $D > \tau$) before computing Shannon entropy $H$: feature vectors are predicted sub-scores for scoring policies, or 2D pairs $\{L_{\gamma}, L_{\mu}\}$ ($L_2$ distances to $\gamma$ and the closest of $N$ samples $\mu \sim \mathcal{N}(\gamma, \sigma^2 \upsilon^{-1})$ with $\sigma^2 \sim \operatorname{InvGamma}(\alpha, \beta)$) for evidential regression policies.
 
-\subsection{Hyper-Parameters, Baselines, and Extended Ablations}\label{centaur:app:exp}\label{centaur:app:baselines}
+\subsection{Hyper-Parameters, Baselines, and Extended Ablations}\label{centaur:app:exp}\label{centaur:app:baselines}\label{centaur:app:experiments}\label{centaur:app:leaderboard}\label{centaur:app:ablations}\label{centaur:app:qualitative}
 
 \paragraph{Implementation and baseline design.} Hydra-MDP evaluates $8192$ candidate trajectories~\cite{li2024hydramdp}, whereas TransFuser regresses $40$ waypoints at $10$\,Hz ($4$\,s horizon) with an evidential head~\cite{amini2020deepevidential} trained on one A100 GPU (batch size $64$, learning rate $10^{-4}$), using $\tau=0.06$ for Hydra-SE and $\tau=0.02$ for TransFuser-SE tuned on \texttt{navtest} (Section~\ref{centaur:sec:setup}). Three uncertainty and deployment baselines complement Cluster Entropy: (i) \textbf{KL Divergence}, motivated by inter-head sub-score divergence (particularly between NC and DAC) on failed versus successful scenes (Fig.~\ref{centaur:fig:vis_group}); (ii) \textbf{Evidential uncertainty}, providing single-pass epistemic and aleatoric estimates for continuous regression in TransFuser; and (iii) \textbf{Prior fallback}, which flags frames exceeding the Table~\ref{centaur:tab:fail_class} cutoff and selects the nearest ($L_2$) trajectory among $20$ \texttt{navtrain} priors without explicit perceptual maps (audited in Section~\ref{centaur:app:consistency}).
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.55\textwidth]{ch-centaur/images/group12.pdf}
-  \caption{\textbf{Score distributions on failed (top) vs.\ successful (bottom) pairs.}}
+  \caption[Score distributions on failed (top) vs.\ successful (bottom) pairs]{\textbf{Score distributions on failed (top) vs.\ successful (bottom) pairs.}}
   \label{centaur:fig:vis_group}
 \end{figure}
 
 \begin{table}[t]
   \centering
-  \caption{\textbf{Single-seed NAVSIM v1.0 results} (2024 Challenge protocol; cf.\ Table~\ref{centaur:tab:navtest_all}).}
+  \caption[Single-seed NAVSIM v1.0 results]{\textbf{Single-seed NAVSIM v1.0 results} (2024 Challenge protocol; cf.\ Table~\ref{centaur:tab:navtest_all}).}
   \label{centaur:tab:navtest_all_supp}
   \begin{adjustbox}{max width=\textwidth}
   \begin{tabular}{ll|cccc|cc}
@@ -421,7 +413,7 @@ where $\mathcal{L}_{im}$ is the vocabulary-level cross-entropy~\cite{li2024hydra
 
 \begin{table}[tbp]
   \centering
-  \caption{\textbf{NAVSIM v1.0 ablations and runtime.} Fallback is audited in Section~\ref{centaur:app:consistency}; TTT$^{*}$ uses SVD; Hydra-SE$^{\mathbf{f}}$ buffers $f$ steps; \colorbox{gray!50}{Hydra-SE$^{\mathbf{4}}$} gates TTT by uncertainty.}
+  \caption[NAVSIM v1.0 ablations and runtime]{\textbf{NAVSIM v1.0 ablations and runtime.} Fallback rows are indicative only (Section~\ref{centaur:app:consistency}); TTT$^{*}$ uses SVD; Hydra-SE$^{\mathbf{f}}$ buffers $f$ steps; \colorbox{gray!50}{Hydra-SE$^{\mathbf{4}}$} gates TTT by uncertainty; $^{\ddagger}$: not timed separately, Cluster Entropy shares the $M=100$ entropy pass of Hydra-SE$^{\mathbf{4}}$ (Section~\ref{centaur:sec:latency}).}
   \label{centaur:tab:navtest_ablation_supp}
   \footnotesize\begin{adjustbox}{max width=\textwidth}
   \begin{tabular}{l|ll|rrrr|rr|c}
@@ -446,6 +438,8 @@ where $\mathcal{L}_{im}$ is the vocabulary-level cross-entropy~\cite{li2024hydra
     & Fallback & Semantic Entropy & $99.6$ & $97.5$ & $11.8$ & $100.0$ & $94.1$ & $61.0$ & $255.7$ \\
     & TTT & KL Divergence & $99.1$ & $98.2$ & $89.6$ & $100.0$ & $96.7$ & $90.9$ & $354.1$ \\
     \midrule
+    Centaur & TTT & Cluster Entropy & $99.5$ & $98.9$ & $85.9$ & $100.0$ & $98.0$ & $92.6$ & $\approx 312.5^{\ddagger}$ \\
+    \midrule
     Hydra-SE$^{\mathbf{4}}$ & \multirow{4}{*}{TTT} & \multirow{4}{*}{Semantic Entropy} & $99.2$ & $98.5$ & $85.7$ & $100.0$ & $97.1$ & $91.8$ & \multirow{4}{*}{$312.5$} \\
     Hydra-SE$^{\mathbf{3}}$ & & & $98.9$ & $98.7$ & $86.7$ & $100.0$ & $95.1$ & $91.5$ & \\
     Hydra-SE$^{\mathbf{2}}$ & & & $98.8$ & $98.6$ & $86.5$ & $100.0$ & $95.0$ & $91.3$ & \\
@@ -459,7 +453,7 @@ where $\mathcal{L}_{im}$ is the vocabulary-level cross-entropy~\cite{li2024hydra
 
 \begin{table}[t]
   \centering
-  \caption{\textbf{Failure classification across models and cut-offs} (cf.\ Table~\ref{centaur:tab:fail_class}; audited in Section~\ref{centaur:app:consistency}).}
+  \caption[Failure classification across models and cut-offs]{\textbf{Failure classification across models and cut-offs} (cf.\ Table~\ref{centaur:tab:fail_class}).}
   \label{centaur:tab:fail_class_supp}
   \begin{tabular}{l|l|c|rr}
     \toprule
@@ -492,15 +486,15 @@ where $\mathcal{L}_{im}$ is the vocabulary-level cross-entropy~\cite{li2024hydra
 
 \paragraph{Supplementary ablations and latency.} On single-seed NAVSIM v1.0 (Table~\ref{centaur:tab:navtest_all_supp}), Centaur achieves the highest PDMS ($92.6$) and TransFuser-SE gains $+2.3$ PDMS over base TransFuser, whereas UniAD~\cite{hu2023uniad} cost optimisation reduces all five sub-scores and PARA-Drive~\cite{weng2024paradrive} with an occupancy head shifts from $84.0$ to $83.6$. Measured on a single A100 GPU (driver $535.54.03$), $16$-core AMD EPYC $9124$ CPU, and $500$\,GB RAM (Table~\ref{centaur:tab:navtest_ablation_supp}), ResNet-34 TransFuser runs in $103.1$\,ms versus $243.9$\,ms for \mbox{V2-99} Hydra-MDP ($\approx 7$ PDMS higher); SVD gradient filtering ($\text{TTT}^{*}$)~\cite{Gao2024fstta} underperforms uniform gradient averaging on TransFuser-SE ($83.8$ \vs $85.7$), \mbox{V2-99} outperforms ViT-L except under KL fallback, varying buffer horizon $F \in \{1,2,3,4\}$ spans $0.5$ PDMS, and every threshold in Table~\ref{centaur:tab:fail_class_supp} remains below the Select None accuracy baseline.
 
-\subsection{Arithmetic Consistency Audits}
+\subsection{Errata and Reconciliation with the Published Version}\label{centaur:app:consistency}
 
-We audit internal arithmetic across Tables~\ref{centaur:tab:navtest_ablation}, \ref{centaur:tab:fail_class}, \ref{centaur:tab:navsafe}, \ref{centaur:tab:navtest_all_supp}, \ref{centaur:tab:navtest_ablation_supp}, and~\ref{centaur:tab:fail_class_supp}.
+This subsection reconciles the numbers printed in the preprint~\cite{sima2024centaur} with Tables~\ref{centaur:tab:navtest_ablation}, \ref{centaur:tab:fail_class}, \ref{centaur:tab:navsafe}, \ref{centaur:tab:navtest_all_supp}, \ref{centaur:tab:navtest_ablation_supp}, and~\ref{centaur:tab:fail_class_supp}, and records the two places where the archived summaries are not internally consistent: the fallback trigger rates and the \texttt{navsafe} Overall column.
 
 \paragraph{Failure base rate and fallback trigger proportions.} Because $\mathrm{PDMS} \in [0, 100]$, a $15.6\%$ fraction of strict $\mathrm{PDMS}=0$ frames (Table~\ref{centaur:tab:fail_class}) would bound mean Hydra-MDP PDMS at $84.4 < 90.3$ (Table~\ref{centaur:tab:navtest_ablation}), while Eq.~\eqref{centaur:eq:pdms} with $98.4$ NC and $97.8$ DAC bounds zero-PDMS frames at $1.6\% + 2.2\% = 3.8\%$ (for TransFuser, $24.1\%$ bounds PDMS at $75.9 < 83.4$, and $97.1$ NC with $91.9$ DAC allows at most $2.9\% + 8.1\% = 11.0\%$). Furthermore, given base rate $p$, $\mathrm{TPR}$, and accuracy $a$, the flagged fraction $1 - p - a + 2p\,\mathrm{TPR}$ and false-positive rate $(1 - p - a + p\,\mathrm{TPR})/(1 - p)$ imply $29.0\%$--$33.3\%$ triggered frames in Table~\ref{centaur:tab:implied_rates} (Sections~\ref{centaur:sec:setup} and~\ref{centaur:app:baselines}), which bounds Hydra-MDP EP at $\ge 53.2$ against the reported $8.2$--$13.2$ ($73.3\%$--$78.3\%$ trigger rates required; reported PDMS $63.1, 64.2, 65.3, 65.9$ also increases with flagging rate). Similarly, TransFuser-SE at threshold $0.8$ flags $29.8\%$ of frames, bounding EP at $49.5$ versus the reported $14.6$.
 
 \begin{table}[t]
   \centering
-  \caption{\textbf{Implied fallback trigger proportions at the cut-offs of Table~\ref{centaur:tab:fail_class}}, derived from Tables~\ref{centaur:tab:navtest_ablation} and~\ref{centaur:tab:fail_class} at $p=15.6$\% (in \%).}
+  \caption[Implied fallback trigger proportions]{\textbf{Implied fallback trigger proportions at the cut-offs of Table~\ref{centaur:tab:fail_class}}, derived from Tables~\ref{centaur:tab:navtest_ablation} and~\ref{centaur:tab:fail_class} at $p=15.6$\% (in \%). Flagged $= 1 - p - a + 2p\,\mathrm{TPR}$ and FPR $= (1 - p - a + p\,\mathrm{TPR})/(1-p)$ for accuracy $a$; EP bound $= 86.5 - \text{Flagged}$ is the lowest mean EP compatible with that flagged fraction, since an overridden frame can lower the mean EP by at most one point from the unadapted 86.5; Needed $= 86.5 - \text{Reported EP}$ is the trigger rate that the reported EP would require.}
   \label{centaur:tab:implied_rates}
   \small
   \setlength{\tabcolsep}{4pt}
@@ -516,15 +510,15 @@ We audit internal arithmetic across Tables~\ref{centaur:tab:navtest_ablation}, \
   \end{tabular}
 \end{table}
 
-\paragraph{\texttt{navsafe} summary aggregations.} Across the $229$ \texttt{navsafe} frames (Table~\ref{centaur:tab:navsafe}), the preprint Overall column lies within $1.5$ points of the category mean on six rows, but exceeds the unweighted and frame-weighted means by $8.14$ and $7.11$ points for Hydra-MDP and by $2.18$ and $5.28$ points for Centaur (Table~\ref{centaur:tab:navsafe_overall}), increasing Centaur's margin over Hydra-MDP from $17.67$ to $23.63$ ($72.0$ \vs $48.3$ simple mean) or $19.50$ ($68.9$ \vs $49.4$ frame-weighted mean; Section~\ref{centaur:sec:navsafe}).
+\paragraph{\texttt{navsafe} summary aggregations.} The Overall column printed in the preprint~\cite{sima2024centaur} (first column of Table~\ref{centaur:tab:navsafe_overall}) lies within $1.5$ points of the simple category mean on six rows but exceeds the simple and frame-weighted means by $8.14$ and $7.11$ points for Hydra-MDP and by $2.18$ and $5.28$ points for Centaur; the aggregation it used could not be reconstructed from the archived per-category scores. Table~\ref{centaur:tab:navsafe} therefore reports the frame-weighted mean over the $229$ frames as Overall, under which Centaur's margin over Hydra-MDP is $19.50$ points ($68.86$ \vs $49.36$; $23.63$ points, $71.96$ \vs $48.33$, under the simple mean) rather than the $17.67$ points of the preprint (Section~\ref{centaur:sec:navsafe}).
 
 \begin{table}[htb]
   \centering
-  \caption{\textbf{Comparison of \texttt{navsafe} summary aggregations} from Table~\ref{centaur:tab:navsafe} (frame-weighted accurate to $\pm 0.05$).}
+  \caption[navsafe summary aggregations]{\textbf{\texttt{navsafe} summary aggregations.} Preprint Overall: the column printed in~\cite{sima2024centaur}; Mean: simple mean of the ten category scores in Table~\ref{centaur:tab:navsafe}; Frame-weighted: mean over the 229 frames, reported as Overall in Table~\ref{centaur:tab:navsafe} (accurate to $\pm 0.05$).}
   \label{centaur:tab:navsafe_overall}
   \begin{tabular}{l|r|rr}
     \toprule
-    \textbf{Planner} & \textbf{Reported Overall} & \textbf{Mean} & \textbf{Frame-weighted} \\
+    \textbf{Planner} & \textbf{Preprint Overall} & \textbf{Mean} & \textbf{Frame-weighted} \\
     \midrule
     Constant Velocity~\cite{dauner2024navsim} & $3.41$ & $3.42$ & $3.52$ \\
     Ego Status MLP~\cite{dauner2024navsim} & $24.10$ & $25.15$ & $27.39$ \\
@@ -544,8 +538,8 @@ We audit internal arithmetic across Tables~\ref{centaur:tab:navtest_ablation}, \
 \FloatBarrier
 \section{Conclusion}\label{centaur:sec:summary}
 
-Addressing RQ3a on per-frame logged states with offline rule-distilled heads, this chapter introduced Centaur, which resets decoder weights each step and applies one buffered ($F=4$) gradient step on Cluster Entropy across five lateral directions, alongside the 229-frame NHTSA-motivated \texttt{navsafe} subset of \texttt{navtest}.
+Addressing RQ3(a) on per-frame logged states with offline rule-distilled heads, this chapter introduced Centaur, which resets decoder weights each step and applies one buffered ($F=4$) gradient step on Cluster Entropy across five lateral directions, alongside the 229-frame NHTSA-motivated \texttt{navsafe} subset of \texttt{navtest}.
 
-Under NAVSIM v1 non-reactive replay, Centaur lifts single-seed Hydra-MDP from 90.3 to 92.6 PDMS (TTC 93.9 to 98.0, EP 86.5 to 85.9) while prior fallback drops PDMS to 63.1--65.9 on Hydra-MDP (59.9--67.4 across all tested planners, EP $<15$), and places first on the three-seed v1.1 leaderboard at 92.10 $\pm$ 0.33 PDMS (0.23 ahead of Hydra-SE, with +1.2 to +2.3 PDMS across the four Hydra-MDP objectives, +0.8 to +2.3 across base planners, or +0.4 with SVD gradient projection, and +2.3 on TransFuser-SE, whereas UniAD cost refinement drops PDMS from 83.4 to 75.2). At a fixed failure cutoff, Cluster Entropy reaches 62.8\% TPR and 73.6\% accuracy (vs.\ 84.4\% Select None at 15.6\% base rate). On \texttt{navsafe}, Centaur leads on frame-weighted (68.9 \vs 49.4), simple (72.0 \vs 48.3), and preprint Overall (74.14 \vs 56.47) means (Table~\ref{centaur:tab:navsafe_overall}), but drops from 71.6 to 59.3 on yielding and trails human logs (94.65). Open-loop resets, validation-free tuning, metric-distilled calibration, and lateral-only clustering remain key limitations.
+Under NAVSIM v1 non-reactive replay, Centaur lifts single-seed Hydra-MDP from 90.3 to 92.6 PDMS (TTC 93.9 to 98.0, EP 86.5 to 85.9) while prior fallback drops PDMS to 63.1--65.9 on Hydra-MDP (59.9--67.4 across all tested planners, EP $<15$), and places first on the three-seed v1.1 leaderboard at 92.10 $\pm$ 0.33 PDMS (0.23 ahead of Hydra-SE, with +1.2 to +2.3 PDMS across the four Hydra-MDP objectives, +0.8 to +2.3 across base planners, or +0.4 with SVD gradient projection, and +2.3 on TransFuser-SE, whereas UniAD cost refinement drops PDMS from 83.4 to 75.2). At a fixed failure cutoff, Cluster Entropy reaches 62.8\% TPR and 73.6\% accuracy (vs.\ 84.4\% Select None at 15.6\% base rate). On \texttt{navsafe}, Centaur leads on the frame-weighted (68.9 \vs 49.4) and simple (72.0 \vs 48.3) means (Table~\ref{centaur:tab:navsafe_overall}), but drops from 71.6 to 59.3 on yielding and trails human logs (94.65). Open-loop resets, validation-free tuning, metric-distilled calibration, and lateral-only clustering remain key limitations.
 
 \textbf{Looking ahead.} Centaur demonstrates that single-step test-time adaptation can improve trajectory selection under distributional shift in non-reactive driving replay (L1 fidelity), where each frame resets to the logged state. In physical closed-loop deployment (L3 fidelity), however, errors compound across hundreds of control steps, human demonstrations exhibit multimodal inconsistencies, and hardware actuation introduces execution delays that per-frame score sharpening alone cannot resolve. Chapter~\ref{ch:kai0} addresses this challenge in real-world bimanual garment manipulation by aligning demonstration collection ($P_{\mathrm{train}}$), policy learning ($Q_{\mathrm{model}}$), and physical execution ($P_{\mathrm{test}}$) across the training--deployment loop.

@@ -4,8 +4,7 @@
 Based on: Scene as Occupancy.\\
 Chonghao Sima, Wenwen Tong, Tai Wang, Li Chen, Silei Wu, Hanming Deng,\\
 Yi Gu, Lewei Lu, Ping Luo, Dahua Lin, Hongyang Li.\\
-\textbf{ICCV 2023} \quad [\textbf{First Author, Project Lead}]\\
-{\small 360+ Citations $\cdot$ 700+ GitHub Stars (OccNet) $\cdot$ 460+ GitHub Stars (OpenScene)}
+\textbf{ICCV 2023} \quad [\textbf{Co-First Author, Project Lead}]
 \end{flushright}
 \vspace{0.6em}
 \hyphenation{Occ-Net Open-Occ Open-Scene Voxel-Net BEV-Net TPV-Former}
@@ -15,18 +14,16 @@ Yi Gu, Lewei Lu, Ping Luo, Dahua Lin, Hongyang Li.\\
 
 An embodied agent can only act on what its internal representation resolves. Before braking, changing lanes, or yielding, an automated vehicle must determine which 3D regions contain physical matter and what occupies them. Classical driving perception splits this task into two approximations: dynamic actors are enclosed in 3D cuboids from a fixed taxonomy, while static road layout is projected onto a planar bird's-eye-view (BEV) grid. This split assumes that every hazard belongs to a catalogued class, fits a rigid box, and lacks relevant vertical structure. Urban streets violate all three assumptions: truck-mounted cranes swing past their chassis, flatbeds carry overhanging pipes, gantries and bridges restrict vertical clearance, and irregular barriers border the road. Cuboids clip protruding geometry, whereas planar BEV maps discard elevation.
 
-This chapter addresses the first research question (RQ1): whether an embodied driving system can represent arbitrary 3D obstacle geometry from surround-view cameras in a form that downstream planners can query. We use \emph{3D occupancy}: a regular ego-centric voxel grid in which occupied cells receive semantic labels and dynamic cells receive motion vectors. The grid imposes no cuboid shape prior and represents foreground objects and background structure in one coordinate frame, although its 16-class vocabulary remains closed. We evaluate occupancy as a shared scene descriptor on nuScenes under single-run perception and open-loop planning experiments. The study covers unusual geometries within known classes; it does not test open-set or cross-domain generalisation.
+This chapter addresses the first research question, \textbf{RQ1 (Perceive)}: \emph{How should a physical agent represent its 3D surroundings so that the representation remains geometrically valid for arbitrary obstacle shapes while remaining learnable from multi-view cameras and queryable by downstream driving tasks?} We use \emph{3D occupancy}: a regular ego-centric voxel grid in which occupied cells receive semantic labels and dynamic cells receive motion vectors. The grid imposes no cuboid shape prior and represents foreground objects and background structure in one coordinate frame, although its 16-class vocabulary remains closed. We evaluate occupancy as a shared scene descriptor on nuScenes under single-run perception and open-loop planning experiments. The study covers unusual geometries within known classes; it does not test open-set or cross-domain generalisation.
 
 This chapter makes four contributions. First, OccNet reconstructs dense 3D occupancy from a spatiotemporal BEV representation through a cascade voxel decoder with temporal attention and 3D deformable attention\footnote{Distinct from the continuous single-object Occupancy Networks of Mescheder \etal~\cite{mescheder2019occupancy}.}. Second, OpenOcc provides dense foreground and background semantics together with foreground velocity vectors on nuScenes~\cite{caesar2020nuscenes,fong2022panoptic}. Third, experiments cover semantic scene completion (SSC), point-queried LiDAR segmentation, 3D detection, BEV segmentation, and open-loop planning against planar BEV baselines and retrained TPVFormer~\cite{huang2023tpvformer}; the small open-loop planning differences (0.06--0.24 percentage points) are reported as single-run observations rather than established safety gains. Fourth, OpenScene extends occupancy and flow labels from 5.5 hours of nuScenes to more than 120 hours of multi-city nuPlan driving~\cite{sima2023openscene}, whose redistributed sensor streams underpin NAVSIM and the CVPR 2024 and CVPR 2025 Autonomous Grand Challenge tracks (which use the sensor streams rather than the voxel labels). Methodologically, OccNet shares BEVFormer~\cite{li2022bevformer} and 3D deformable-attention~\cite{Zhu2021DeformableDD} foundations with contemporaneous VoxFormer~\cite{li2023voxformer}, while contributing the coarse-to-fine height cascade, voxel temporal self-attention, OpenOcc pipeline, and cross-task evaluation.
-
-The remainder of this chapter is organised as follows: Section~\ref{occnet:sec:related} reviews related work; Section~\ref{occnet:sec:method} presents OccNet; Section~\ref{occnet:sec:benchmark} details OpenOcc; Section~\ref{occnet:sec:experiments} reports main experiments; Section~\ref{occnet:sec:discussion} discusses limitations, NAVSIM comparisons (Chapter~\ref{ch:centaur}), and 2023--2026 work; Section~\ref{occnet:sec:openscene} describes OpenScene; Section~\ref{app:occnet} presents implementation details and additional ablations; and Section~\ref{occnet:sec:summary} concludes the chapter.
 
 Human drivers judge 3D obstacle geometry before identifying fine-grained categories, whether passing a saloon car or trailing a flatbed lorry with an overhanging pipe. For automated vehicles, determining whether a 3D volume is physically occupied precedes category recognition, yet inferring 3D structure from cameras alone is challenging across cluttered urban streets.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.72\linewidth]{ch-occnet/images/fig_motivation_v7_used.pdf}
-  \caption{\textbf{Scene as occupancy.} Industrial camera systems estimate pseudo-LiDAR points via Mobileye's VIDAR~\cite{mobile2020ces}~(a) or 3D voxel occupancy as in Tesla's stack~\cite{tesla_ai_day}~(b) (frames adapted from~\cite{mobile2020ces,tesla_ai_day}). Rigid 3D boxes miss overhanging cargo~(a) or crane booms~(c), whereas 3D occupancy~(d) captures arbitrary contours as a shared descriptor~(e) for perception and planning.}
+  \caption[Scene as occupancy]{\textbf{Scene as occupancy.} Industrial camera systems estimate pseudo-LiDAR points via Mobileye's VIDAR~\cite{mobile2020ces}~(a) or 3D voxel occupancy as in Tesla's stack~\cite{tesla_ai_day}~(b) (frames adapted from~\cite{mobile2020ces,tesla_ai_day}). Rigid 3D boxes miss overhanging cargo~(a) or crane booms~(c), whereas 3D occupancy~(d) captures arbitrary contours as a shared descriptor~(e) for perception and planning.}
   \label{occnet:fig:motivation}
 \end{figure}
 
@@ -34,7 +31,7 @@ Partitioning space into semantically labelled voxels (3D occupancy) directly cap
 
 \begin{table}[t]
   \centering
-  \caption{\textbf{Comparison of scene representations.} Volumetric 3D occupancy models dynamic foreground actors and static background structure in one voxel grid without test-time LiDAR (training labels may still use LiDAR, as in OpenOcc).}
+  \caption[Comparison of scene representations]{\textbf{Comparison of scene representations.} Volumetric 3D occupancy models dynamic foreground actors and static background structure in one voxel grid without test-time LiDAR (training labels may still use LiDAR, as in OpenOcc).}
   \label{occnet:tab:compare_to_other_form}
   \small
   \begin{adjustbox}{max width=\linewidth}
@@ -52,17 +49,19 @@ Partitioning space into semantically labelled voxels (3D occupancy) directly cap
   \end{adjustbox}
 \end{table}
 
-Table~\ref{occnet:tab:compare_to_other_form} contrasts 3D occupancy with standard representations: 3D boxes cover only enumerated foreground categories; LiDAR segmentation resolves $\sim$0.02\,m surfaces but requires range sensors at deployment; and BEV segmentation collapses height. Volumetric occupancy unifies foreground and background in 3D at 0.25--0.5\,m resolution from cameras alone. Unlike classical binary occupancy grids~\cite{moras2015grid} and early SSC models~\cite{song2017sscnet,huang2023tpvformer,li2023voxformer,cao2022monoscene,miao2023occdepth}, which mostly processed single frames (except VoxFormer-T~\cite{li2023voxformer}) and were disconnected from planning, OccNet lifts temporal BEV features~\cite{li2022bevformer,chen2022persformer,wang2022monocular} into a shared 3D occupancy descriptor for SSC, 3D detection, BEV segmentation, and open-loop planning; planning-oriented end-to-end design is represented separately by UniAD~\cite{hu2023uniad}. Trained on OpenOcc (34,149 nuScenes frames~\cite{caesar2020nuscenes,fong2022panoptic}, $>$1.4B voxels across 16 classes plus unbenchmarked foreground flow), our experiments show three results (qualified in Sections~\ref{occnet:sec:experiments} and~\ref{occnet:sec:discussion}):
+Table~\ref{occnet:tab:compare_to_other_form} contrasts 3D occupancy with standard representations: 3D boxes cover only enumerated foreground categories; LiDAR segmentation resolves $\sim$0.02\,m surfaces but requires range sensors at deployment; and BEV segmentation collapses height. Volumetric occupancy unifies foreground and background in 3D at 0.25--0.5\,m resolution from cameras alone. Unlike classical binary occupancy grids~\cite{moravec1985high,elfes1989using} and early SSC models~\cite{song2017sscnet,huang2023tpvformer,li2023voxformer,cao2022monoscene,miao2023occdepth}, which mostly processed single frames (except VoxFormer-T~\cite{li2023voxformer}) and were disconnected from planning, OccNet lifts temporal BEV features~\cite{li2022bevformer,chen2022persformer,wang2022monocular} into a shared 3D occupancy descriptor for SSC, 3D detection, BEV segmentation, and open-loop planning; planning-oriented end-to-end design is represented separately by UniAD~\cite{hu2023uniad}. Trained on OpenOcc (34,149 nuScenes frames~\cite{caesar2020nuscenes,fong2022panoptic}, $>$1.4B voxels across 16 classes plus unbenchmarked foreground flow), our experiments show three results (qualified in Sections~\ref{occnet:sec:experiments} and~\ref{occnet:sec:discussion}):
 \begin{itemize}
   \item \emph{Perception.} OccNet reaches 26.98 mIoU on OpenOcc SSC (+14\% relative over retrained TPVFormer~\cite{huang2023tpvformer} at 23.67 mIoU) and trails LiDAR RangeNet++~\cite{milioto2019rangenet++} by $\sim$5 mIoU on point-queried LiDAR segmentation. Occupancy pre-training lifts low-data 3D detection (1/256--1/64 splits) over FCOS3D~\cite{wang2021fcos3d} initialisation by up to $\sim$10 mAP at 1/128.
   \item \emph{Open-loop planning.} Rasterised occupancy lowers open-loop nuScenes collision rates by 0.06--0.24 percentage points relative to boxes from OccNet's detection head (single runs), without uniform L2 gains.
   \item \emph{Supervision density.} Dense OpenOcc pre-training beats sparse LiDAR-voxel pre-training at the 1/128 detection split while performing similarly at 1/256 and 1/64.
 \end{itemize}
 
+The remainder of this chapter is organised as follows: Section~\ref{occnet:sec:related} reviews related work; Section~\ref{occnet:sec:method} presents OccNet; Section~\ref{occnet:sec:benchmark} details OpenOcc; Section~\ref{occnet:sec:experiments} reports main experiments; Section~\ref{occnet:sec:discussion} discusses limitations, NAVSIM comparisons (Chapter~\ref{ch:centaur}), and 2023--2026 work; Section~\ref{occnet:sec:openscene} describes OpenScene; Section~\ref{app:occnet} presents implementation details and additional ablations; and Section~\ref{occnet:sec:summary} concludes the chapter.
+
 %-----------------------------------------------------------------------
 \section{Related Work}\label{occnet:sec:related}
 
-We situate 3D occupancy against standard driving perception outputs and contemporaneous SSC models; broader multi-camera 3D perception is surveyed in Chapter~\ref{ch:background} and~\cite{li2023bevdevils}, while 2023--2026 occupancy work appears in Section~\ref{occnet:sec:subsequent}.
+We situate 3D occupancy against standard driving perception outputs and contemporaneous SSC models; broader multi-camera 3D perception is surveyed in Chapter~\ref{ch:intro} and~\cite{li2023bevdevils}, while 2023--2026 occupancy work appears in Section~\ref{occnet:sec:subsequent}.
 
 \paragraph{3D detection, LiDAR segmentation, and BEV segmentation.} 3D detectors~\cite{Shi2020PVRCNNPF,wang2021fcos3d,li2022bevformer,liu2023bevfusion} fit oriented cuboids to foreground actors, omitting background hazards and distorting articulated geometry. Point-cloud segmenters~\cite{zhu2021cylindrical,milioto2019rangenet++} label 3D laser returns directly but require LiDAR hardware and suffer from distance-dependent sparsity and occlusion~\cite{song2017sscnet}. Planar BEV segmentation~\cite{zhou2022cross,li2022hdmapnet} jointly maps road layout and actors but discards vertical clearance (gantries, overhangs, bridges). Volumetric occupancy retains 3D height and arbitrary contours from cameras alone.
 
@@ -77,7 +76,7 @@ As shown in Fig.~\ref{occnet:fig:framework}, OccNet maps multi-camera images to 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-occnet/images/fig_pipeline_overview_v8_used.pdf}
-  \caption{\textbf{The OccNet pipeline.} \textbf{I.~Occupancy reconstruction.} Surround-view images pass through a spatiotemporal BEV encoder, after which a cascade voxel decoder progressively expands vertical resolution, fusing historical voxel features $V'_{t-1,i}$ and image features via 3D deformable attention (skip connections omitted). \textbf{II.~Occupancy exploitation.} Task heads decode semantic scene completion and 3D boxes from the shared descriptor; vertical projection yields a BEV obstacle map for trajectory planning~\cite{hu2022stp3}.}
+  \caption[The OccNet pipeline]{\textbf{The OccNet pipeline.} \textbf{I.~Occupancy reconstruction.} Surround-view images pass through a spatiotemporal BEV encoder, after which a cascade voxel decoder progressively expands vertical resolution, fusing historical voxel features $V'_{t-1,i}$ and image features via 3D deformable attention (skip connections omitted). \textbf{II.~Occupancy exploitation.} Task heads decode semantic scene completion and 3D boxes from the shared descriptor; vertical projection yields a BEV obstacle map for trajectory planning~\cite{hu2022stp3}.}
   \label{occnet:fig:framework}
 \end{figure}
 
@@ -89,7 +88,7 @@ To lift 2D camera features~\cite{li2022bevformer,chen2022persformer,liang2022bev
 
 \subsection{Cascade Voxel Decoder}\label{occnet:sec:cascade_voxel_decoder}
 
-\paragraph{From BEV to cascaded voxels.} Decoding 3D voxels directly from 2D BEV loses vertical fidelity, whereas full-grid 3D transformers incur heavy memory and latency costs (Table~\ref{occnet:tab:efficiency}). We factor the mapping from $B_t\in\mathbb{R}^{H\times W\times C_{\text{BEV}}}$ to $V_t\in\mathbb{R}^{Z\times H\times W\times C_{\text{Voxel}}}$ across $N$ stages, where $H\times W$ is horizontal resolution, $Z$ is final voxel height, and $C_{\text{BEV}}, C_{\text{Voxel}}$ are channel widths. Stage $i$ produces $V'_{t,i}\in\mathbb{R}^{Z_i\times H\times W\times C_i}$, doubling height $Z_i$ towards $Z$ while halving channels $C_i$ from $C_{\text{BEV}}$ to $C_{\text{Voxel}}$ (Section~\ref{occnet:sec:exp_setup}). Linear projections lift $B_{t-1}$ and $B_t$ to $V'_{t-1,1}$ and $V'_{t,1}$, and inter-stage MLPs map $Z_i\times C_i$ to $Z_{i+1}\times C_{i+1}$ (Section~\ref{occnet:app:implementation}). Each stage applies voxel temporal self-attention between $V'_{t,i}$ and ego-motion-aligned $V'_{t-1,i}$, followed by voxel spatial cross-attention over image features $F_t$. On OpenOcc, adding two history frames improves single-run mIoU by 0.27 points over single-frame input, and four frames by 1.60 points (Table~\ref{occnet:tab:frame_number_ssc}).
+\paragraph{From BEV to cascaded voxels.} Decoding 3D voxels directly from 2D BEV loses vertical fidelity, whereas full-grid 3D transformers incur heavy memory and latency costs (Table~\ref{occnet:tab:efficiency}). We factor the mapping from $B_t\in\mathbb{R}^{H\times W\times C_{\text{BEV}}}$ to $V_t\in\mathbb{R}^{Z\times H\times W\times C_{\text{Voxel}}}$ across $N$ stages, where $H\times W$ is horizontal resolution, $Z$ is final voxel height, and $C_{\text{BEV}}, C_{\text{Voxel}}$ are channel widths. Stage $i$ produces $V'_{t,i}\in\mathbb{R}^{Z_i\times H\times W\times C_i}$, doubling height $Z_i$ towards $Z$ while reducing channels $C_i$ from $C_{\text{BEV}}$ to $C_{\text{Voxel}}$ ($C_1=C_2=128$ and $C_3=C_4=64$; Section~\ref{occnet:sec:exp_setup}). Linear projections lift $B_{t-1}$ and $B_t$ to $V'_{t-1,1}$ and $V'_{t,1}$, and inter-stage MLPs map $Z_i\times C_i$ to $Z_{i+1}\times C_{i+1}$ (Section~\ref{occnet:app:implementation}). Each stage applies voxel temporal self-attention between $V'_{t,i}$ and ego-motion-aligned $V'_{t-1,i}$, followed by voxel spatial cross-attention over image features $F_t$. On OpenOcc, adding two history frames improves single-run mIoU by 0.27 points over single-frame input, and four frames by 1.60 points (Table~\ref{occnet:tab:frame_number_ssc}).
 
 \paragraph{3D deformable attention and spatial cross-attention.} Because dense 3D self-attention is quadratic in the voxel token count $ZHW$, we extend 2D deformable attention~\cite{Zhu2021DeformableDD} to 3D (\emph{3D-DA}). Given volume $V'_{t,i}\in\mathbb{R}^{Z_i\times H\times W\times C_i}$, query $\boldsymbol{q}\in\mathbb{R}^{C_i}$, and normalised 3D reference point $\boldsymbol{p}\in[0,1]^3$, 3D-DA computes
 \begin{equation}
@@ -114,7 +113,7 @@ OpenOcc accumulates multi-sweep LiDAR returns and 3D box tracks across all 700 t
 
 \begin{table}[t]
   \centering
-  \caption{\textbf{Comparison of OpenOcc with earlier occupancy datasets.} \emph{Multi-view}: 360-degree cameras. \emph{Flow}: per-voxel foreground velocity vectors. \emph{Density}: mean occupied voxels per frame relative to OpenOcc (${}=1$). Concurrent dense nuScenes benchmarks~\cite{tian2023occ3d,wang2023openoccupancy,wei2023surroundocc} appear in Table~\ref{occnet:tab:openscene}.}
+  \caption[Comparison of OpenOcc with earlier occupancy datasets]{\textbf{Comparison of OpenOcc with earlier occupancy datasets.} \emph{Multi-view}: 360-degree cameras. \emph{Flow}: per-voxel foreground velocity vectors. \emph{Density}: mean occupied voxels per frame relative to OpenOcc (${}=1$). Concurrent dense nuScenes benchmarks~\cite{tian2023occ3d,wang2023openoccupancy,wei2023surroundocc} appear in Table~\ref{occnet:tab:openscene}.}
   \label{occnet:tab:compare_gt}
   \begin{tabular}{lcccc}
     \toprule
@@ -132,7 +131,7 @@ OpenOcc accumulates multi-sweep LiDAR returns and 3D box tracks across all 700 t
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.68\linewidth]{ch-occnet/images/fig_compare_dataset_used.jpg}
-  \caption{\textbf{Comparison of 3D occupancy ground truth.} Compared with (a)~single-sweep sparse LiDAR voxels~\cite{huang2023tpvformer} and (b)~OccData~\cite{Fang2023}, OpenOcc yields (c)~denser surface coverage and (d)~per-voxel foreground motion flow.}
+  \caption[Comparison of 3D occupancy ground truth]{\textbf{Comparison of 3D occupancy ground truth.} Compared with (a)~single-sweep sparse LiDAR voxels~\cite{huang2023tpvformer} and (b)~OccData~\cite{Fang2023}, OpenOcc yields (c)~denser surface coverage and (d)~per-voxel foreground motion flow.}
   \label{occnet:fig:compare_gt}
 \end{figure}
 
@@ -149,13 +148,13 @@ To aggregate nuScenes' 2\,Hz annotated key frames with 20\,Hz unannotated interm
 
 \paragraph{Implementation.} Following BEVFormer~\cite{li2022bevformer}, we use ImageNet-pretrained ResNet50~\cite{he2016deep,deng2009imagenet} and FCOS3D-pretrained ResNet101-DCN~\cite{he2016deep,wang2021fcos3d} backbones. The BEV grid $B_t$ has $H=W=200$ and $C_{\text{BEV}}=256$. Across $N=4$ cascade stages, $V'_{t,i}\in\mathbb{R}^{Z_i\times H\times W\times C_i}$ uses heights $Z_i=2^i$, widths $C_1=C_2=128$ and $C_3=C_4=64$, and $N_{\text{ref},i}=4$ reference heights per voxel. Models train for 24 epochs at learning rate $2\times10^{-4}$ with two history frames (matching BEVFormer-small for memory efficiency, though four frames reach 20.81 vs.\ 19.48 mIoU in Table~\ref{occnet:tab:frame_number_ssc}). Details for BEVNet and VoxelNet appear in Section~\ref{occnet:app:implementation}.
 
-\paragraph{Tasks and metrics.} OpenOcc SSC is evaluated by 16-class voxel mIoU and binary geometric $\text{IoU}_{\text{geo}}$ (RayIoU~\cite{liu2024sparseocc} was introduced later; Section~\ref{occnet:sec:subsequent}). LiDAR segmentation and 3D detection use standard nuScenes validation metrics, BEV segmentation uses class IoU, and open-loop planning follows ST-P3~\cite{hu2022stp3} (L2 error and box collision rate on recorded logs, which ego kinematics alone can largely satisfy~\cite{zhai2023rethinking,li2024ego}; Chapter~\ref{ch:background}). Metric definitions appear in Section~\ref{occnet:app:metrics}; all tables report single runs.
+\paragraph{Tasks and metrics.} OpenOcc SSC is evaluated by 16-class voxel mIoU and binary geometric $\text{IoU}_{\text{geo}}$ (RayIoU~\cite{liu2024sparseocc} was introduced later; Section~\ref{occnet:sec:subsequent}). LiDAR segmentation and 3D detection use standard nuScenes validation metrics, BEV segmentation uses class IoU, and open-loop planning follows ST-P3~\cite{hu2022stp3} (L2 error and box collision rate on recorded logs, which ego kinematics alone can largely satisfy~\cite{zhai2023rethinking,li2024ego}; Chapter~\ref{ch:intro}). Metric definitions appear in Section~\ref{occnet:app:metrics}; all tables report single runs.
 
 \subsection{Main Results}\label{occnet:sec:main_results}
 
 \begin{sidewaystable}[p]
   \centering
-  \caption{\textbf{Semantic scene completion on OpenOcc} (single runs). BEV baselines attach a completion head to BEV features and appear under-tuned (Section~\ref{occnet:sec:main_results}). $^{\ast}$: retrained on OpenOcc. R50/R101: ResNet50/ResNet101.}
+  \caption[Semantic scene completion on OpenOcc]{\textbf{Semantic scene completion on OpenOcc} (single runs). BEV baselines attach a completion head to BEV features and appear under-tuned (Section~\ref{occnet:sec:main_results}). $^{\ast}$: retrained on OpenOcc. R50/R101: ResNet50/ResNet101.}
   \label{occnet:tab:occ_method}
   \footnotesize
   \setlength{\tabcolsep}{3.5pt}
@@ -179,7 +178,7 @@ To aggregate nuScenes' 2\,Hz annotated key frames with 20\,Hz unannotated interm
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-occnet/images/fig_occ_gt_pred_used.jpg}
-  \caption{\textbf{Qualitative occupancy predictions.} OccNet recovers finer geometry and small foreground actors (pedestrian in dashed box) than TPVFormer~\cite{huang2023tpvformer}.}
+  \caption[Qualitative occupancy predictions]{\textbf{Qualitative occupancy predictions.} OccNet recovers finer geometry and small foreground actors (pedestrian in dashed box) than TPVFormer~\cite{huang2023tpvformer}.}
   \label{occnet:fig:compare_occ_method}
 \end{figure}
 
@@ -187,7 +186,7 @@ To aggregate nuScenes' 2\,Hz annotated key frames with 20\,Hz unannotated interm
 
 \begin{sidewaystable}[p]
   \centering
-  \caption{\textbf{LiDAR segmentation on nuScenes validation} (ResNet101). Camera methods are queried at ground-truth LiDAR points. $^{\ast}$: trained on OpenOcc. $^{\dagger}$: published validation numbers from~\cite{huang2023tpvformer} (one decimal; Cylinder3D's 76.10 mIoU is reproduced as printed in~\cite{huang2023tpvformer}, whereas the unweighted mean of its 16 one-decimal class cells is 76.21).}
+  \caption[LiDAR segmentation on nuScenes validation]{\textbf{LiDAR segmentation on nuScenes validation} (ResNet101). Camera methods are queried at ground-truth LiDAR points. $^{\ast}$: trained on OpenOcc. $^{\dagger}$: published validation numbers, reproduced as printed in~\cite{huang2023tpvformer}.}
   \label{occnet:tab:lidarseg}
   \footnotesize
   \setlength{\tabcolsep}{3.5pt}
@@ -211,7 +210,7 @@ To aggregate nuScenes' 2\,Hz annotated key frames with 20\,Hz unannotated interm
 
 \begin{table}[t]
   \centering
-  \caption{\textbf{Joint occupancy and 3D detection training} on nuScenes validation (ResNet50, single runs). Shifts of $+0.007$ to $+0.013$ NDS and $0$ to $+0.012$ mAP lie within single-run noise.}
+  \caption[Joint occupancy and 3D detection training]{\textbf{Joint occupancy and 3D detection training} on nuScenes validation (ResNet50, single runs). Shifts of $+0.007$ to $+0.013$ NDS and $0$ to $+0.012$ mAP lie within single-run noise.}
   \label{occnet:tab:joint_train}
   \small
   \begin{adjustbox}{max width=\linewidth}
@@ -237,13 +236,13 @@ To aggregate nuScenes' 2\,Hz annotated key frames with 20\,Hz unannotated interm
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.9\linewidth]{ch-occnet/images/fig_compare_pretrain_v2_used.pdf}
-  \caption{\textbf{Detection transfer across training fractions} (co-author-led, single runs): (a)~mAP and (b)~NDS when initialising from sparse/dense OpenOcc OccNet vs.\ monocular FCOS3D~\cite{wang2021fcos3d}.}
+  \caption[Detection transfer across training fractions]{\textbf{Detection transfer across training fractions} (co-author-led, single runs): (a)~mAP and (b)~NDS when initialising from sparse/dense OpenOcc OccNet vs.\ monocular FCOS3D~\cite{wang2021fcos3d}.}
   \label{occnet:fig:pretrain_for_detection}
 \end{figure}
 
 \begin{table}[t]
   \centering
-  \caption{\textbf{Pre-training transfer to BEV segmentation} (IoU; co-author-led, single runs; Mean IoU: 4-class mean).}
+  \caption[Pre-training transfer to BEV segmentation]{\textbf{Pre-training transfer to BEV segmentation} (IoU; co-author-led, single runs; Mean IoU: 4-class mean).}
   \label{occnet:tab:bev_seg}
   \begin{tabular}{lccccc}
     \toprule
@@ -259,7 +258,7 @@ To aggregate nuScenes' 2\,Hz annotated key frames with 20\,Hz unannotated interm
 
 \begin{table}[t]
   \centering
-  \caption{\textbf{Open-loop planning across scene representations} on nuScenes under ST-P3~\cite{hu2022stp3} (co-author-led, single runs; \emph{full}: all 16 occupancy classes vs.\ vehicle/pedestrian only; $^{\dagger}$published ST-P3~\cite{hu2022stp3}).}
+  \caption[Open-loop planning across scene representations]{\textbf{Open-loop planning across scene representations} on nuScenes under ST-P3~\cite{hu2022stp3} (co-author-led, single runs; \emph{full}: all 16 occupancy classes vs.\ vehicle/pedestrian only; $^{\dagger}$published ST-P3~\cite{hu2022stp3}).}
   \label{occnet:tab:planning}
   \small
   \begin{adjustbox}{max width=\linewidth}
@@ -286,7 +285,7 @@ To aggregate nuScenes' 2\,Hz annotated key frames with 20\,Hz unannotated interm
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.8\linewidth]{ch-occnet/images/fig_planning_used.jpg}
-  \caption{\textbf{Planning visualisation} (co-author-led): planned trajectory (blue) over rasterised boxes (left) vs.\ occupancy (right).}
+  \caption[Planning visualisation]{\textbf{Planning visualisation} (co-author-led): planned trajectory (blue) over rasterised boxes (left) vs.\ occupancy (right).}
   \label{occnet:fig:planning}
 \end{figure}
 
@@ -300,7 +299,7 @@ To aggregate nuScenes' 2\,Hz annotated key frames with 20\,Hz unannotated interm
 
 \begin{table}[t]
   \centering
-  \caption{\textbf{Efficiency and accuracy of the three decoders} on OpenOcc SSC (ResNet50, single runs, V100 GPU).}
+  \caption[Efficiency and accuracy of the three decoders]{\textbf{Efficiency and accuracy of the three decoders} on OpenOcc SSC (ResNet50, single runs, V100 GPU).}
   \label{occnet:tab:efficiency}
   \begin{tabular}{lccccc}
     \toprule
@@ -317,7 +316,7 @@ To aggregate nuScenes' 2\,Hz annotated key frames with 20\,Hz unannotated interm
 
 \begin{table}[t]
   \centering
-  \caption{\textbf{Voxelised 3D boxes vs.\ occupancy on irregular classes} (single runs; $\text{mIoU}_{\text{ir}}$: truck, trailer, construction vehicle mean; no regular-class control).}
+  \caption[Voxelised 3D boxes vs.\ occupancy on irregular classes]{\textbf{Voxelised 3D boxes vs.\ occupancy on irregular classes} (single runs; $\text{mIoU}_{\text{ir}}$: truck, trailer, construction vehicle mean; no regular-class control).}
   \label{occnet:tab:irregular}
   \begin{tabular}{lccccc}
     \toprule
@@ -335,7 +334,7 @@ To aggregate nuScenes' 2\,Hz annotated key frames with 20\,Hz unannotated interm
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-occnet/images/fig_irregular_object_used.jpg}
-  \caption{\textbf{Predicted 3D boxes (top) vs.\ semantic occupancy (bottom)} on articulated vehicles and overhead structures (dashed ellipses).}
+  \caption[Predicted 3D boxes (top) vs.\ semantic occupancy (bottom)]{\textbf{Predicted 3D boxes (top) vs.\ semantic occupancy (bottom)} on articulated vehicles and overhead structures (dashed ellipses).}
   \label{occnet:fig:irregular}
 \end{figure}
 
@@ -354,7 +353,7 @@ To aggregate nuScenes' 2\,Hz annotated key frames with 20\,Hz unannotated interm
 
 \subsection{Limitations and Threats to Validity}\label{occnet:sec:limitations}
 
-Key boundaries include: (i) \emph{LiDAR and box supervision}: OpenOcc relies on calibrated nuScenes LiDAR sweeps and interpolated 3D boxes without manual voxel audits; (ii) \emph{single home benchmark}: all 3D perception runs use OpenOcc against baselines retrained in our codebase without cross-evaluating on Occ3D-nuScenes, SurroundOcc, or OpenOccupancy (Section~\ref{sec:method:validity}); (iii) \emph{voxel metrics and resolution}: evaluation uses voxel mIoU/$\text{IoU}_{\text{geo}}$ rather than RayIoU, queries LiDAR segmentation at known laser returns, and uses a 0.5\,m grid that is too coarse for sub-voxel box regression (Table~\ref{occnet:tab:joint_train}) compared with 0.25\,m (Tables~\ref{occnet:tab:irregular} and~\ref{occnet:tab:lidarseg_resolution}); (iv) \emph{task-dependent transfers and unvalidated flow}: occupancy pre-training does not beat detection pre-training for planning (Table~\ref{occnet:tab:planning_pretrain}), voxel-collision ranking flips at 2\,s (Table~\ref{occnet:tab:occupancy_metrics}), TPVFormer leads on large vehicles, Cylinder3D leads LiDAR segmentation (76.10 vs.\ 60.46 mIoU), and foreground flow vectors are not benchmarked; and (v) \emph{single-seed open-loop within nuScenes}: all tables report single runs without confidence intervals, reactive closed-loop rollouts, or cross-domain/open-set tests.
+Key boundaries include: (i) \emph{LiDAR and box supervision}: OpenOcc relies on calibrated nuScenes LiDAR sweeps and interpolated 3D boxes without manual voxel audits; (ii) \emph{single home benchmark}: all 3D perception runs use OpenOcc against baselines retrained in our codebase without cross-evaluating on Occ3D-nuScenes, SurroundOcc, or OpenOccupancy; (iii) \emph{voxel metrics and resolution}: evaluation uses voxel mIoU/$\text{IoU}_{\text{geo}}$ rather than RayIoU, queries LiDAR segmentation at known laser returns, and uses a 0.5\,m grid that is too coarse for sub-voxel box regression (Table~\ref{occnet:tab:joint_train}) compared with 0.25\,m (Tables~\ref{occnet:tab:irregular} and~\ref{occnet:tab:lidarseg_resolution}); (iv) \emph{task-dependent transfers and unvalidated flow}: occupancy pre-training does not beat detection pre-training for planning (Table~\ref{occnet:tab:planning_pretrain}), voxel-collision ranking flips at 2\,s (Table~\ref{occnet:tab:occupancy_metrics}), TPVFormer leads on large vehicles, Cylinder3D leads LiDAR segmentation (76.10 vs.\ 60.46 mIoU), and foreground flow vectors are not benchmarked; and (v) \emph{single-seed open-loop within nuScenes}: all tables report single runs without confidence intervals, reactive closed-loop rollouts, or cross-domain/open-set tests.
 
 \subsection{Subsequent Developments (2023--2026)}\label{occnet:sec:subsequent}
 
@@ -365,13 +364,13 @@ Key boundaries include: (i) \emph{LiDAR and box supervision}: OpenOcc relies on 
 %-----------------------------------------------------------------------
 \section{Scaling Up: The OpenScene Benchmark}\label{occnet:sec:openscene}
 
-To scale beyond nuScenes' 5.5 hours (Table~\ref{occnet:tab:openscene}), OpenScene~\cite{sima2023openscene} curates over 120 hours of 2\,Hz multi-sensor logs (eight cameras + merged LiDAR) and 3D occupancy/flow labels across 1,521 nuPlan~\cite{caesar2021nuplan} logs in Las Vegas (64\%), Singapore (15\%), Pittsburgh (12\%), and Boston (9%) (1,310 trainval, 147 test, 64 mini logs), shrinking raw storage from $>$20\,TB to $\sim$2\,TB while preserving nuPlan's directory layout and 75 scenario types.
+To scale beyond nuScenes' 5.5 hours (Table~\ref{occnet:tab:openscene}), OpenScene~\cite{sima2023openscene} curates over 120 hours of 2\,Hz multi-sensor logs (eight cameras + merged LiDAR) and 3D occupancy/flow labels across 1,521 nuPlan~\cite{caesar2021nuplan} logs in Las Vegas (64\%), Singapore (15\%), Pittsburgh (12\%), and Boston (9\%) (1,310 trainval, 147 test, 64 mini logs), shrinking raw storage from $>$20\,TB to $\sim$2\,TB while preserving nuPlan's directory layout and 75 scenario types.
 
 \paragraph{Labels, tasks, and downstream use.} Within $[-50\,\text{m},50\,\text{m}]\times[-50\,\text{m},50\,\text{m}]\times[-4\,\text{m},4\,\text{m}]$ at 0.5\,m resolution, 20\,s LiDAR accumulation provides per-voxel semantics (seven foreground classes plus merged background) and 3D velocity vectors alongside ego states, traffic lights, route commands, and tracked 3D boxes. OpenScene defines a large-scale occupancy track (Eq.~\eqref{occnet:eq:miou}, ResNet50 OccNet baseline) and a nine-task OpenScene Metric track. Its redistributed 2\,Hz sensor logs and v1.1 splits underpin NAVSIM~\cite{dauner2024navsim} (Chapter~\ref{ch:centaur}) and the End-to-End Driving and Predictive World Model (ViDAR~\cite{yang2024vidar}) tracks at the CVPR 2024 and CVPR 2025 Autonomous Grand Challenges (Fig.~\ref{occnet:fig:openscene_usage}). Public documentation omits a manual label-accuracy audit, leaves a few v1.1 frames without voxel files, and inherits non-commercial nuPlan/CC BY-NC-SA terms.
 
 \begin{table}[t]
   \centering
-  \caption{\textbf{Comparison of 3D occupancy dataset scale}, adapted from the OpenScene release notes~\cite{sima2023openscene} (selected entries shown). Duration values indicate source-corpus sensor hours. $^{\dagger}$Although omitted from the flow column in the public OpenScene table (under the name OccNet), OpenOcc includes foreground flow vectors (Section~\ref{occnet:sec:benchmark_overview}).}
+  \caption[Comparison of 3D occupancy dataset scale]{\textbf{Comparison of 3D occupancy dataset scale}, adapted from the OpenScene release notes~\cite{sima2023openscene} (selected entries shown). Duration values indicate source-corpus sensor hours. $^{\dagger}$Although omitted from the flow column in the public OpenScene table (under the name OccNet), OpenOcc includes foreground flow vectors (Section~\ref{occnet:sec:benchmark_overview}).}
   \label{occnet:tab:openscene}
   \begin{adjustbox}{max width=\linewidth}
   \begin{tabular}{llcc}
@@ -394,7 +393,7 @@ To scale beyond nuScenes' 5.5 hours (Table~\ref{occnet:tab:openscene}), OpenScen
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{ch-occnet/figures/openscene_usage.pdf}
-  \caption{\textbf{Overview of OpenScene and its downstream benchmarks.} Downsampling nuPlan to 2\,Hz and augmenting it with 3D occupancy and flow annotations, OpenScene underpins large-scale occupancy prediction as well as the end-to-end driving and world-modelling tracks at the CVPR 2024 and CVPR 2025 (NAVSIM-v2) Autonomous Grand Challenges. Both NAVSIM and the end-to-end driving tracks consume the redistributed sensor logs rather than the voxel occupancy targets.}
+  \caption[Overview of OpenScene and its downstream benchmarks]{\textbf{Overview of OpenScene and its downstream benchmarks.} Downsampling nuPlan to 2\,Hz and augmenting it with 3D occupancy and flow annotations, OpenScene underpins large-scale occupancy prediction as well as the end-to-end driving and world-modelling tracks at the CVPR 2024 and CVPR 2025 (NAVSIM-v2) Autonomous Grand Challenges. Both NAVSIM and the end-to-end driving tracks consume the redistributed sensor logs rather than the voxel occupancy targets.}
   \label{occnet:fig:openscene_usage}
 \end{figure}
 
@@ -421,35 +420,35 @@ Detection on nuScenes~\cite{caesar2020nuscenes} combines mAP and five TP errors 
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.72\linewidth]{ch-occnet/images/fig_occ_gt_pipeline_used.jpg}
-  \caption{\textbf{Four-stage OpenOcc pipeline:} (a)~voxelisation (unlabelled sweeps in black), (b)~propagation, (c)~denoising, (d)~hole-filling (red box).}
+  \caption[Four-stage OpenOcc pipeline]{\textbf{Four-stage OpenOcc pipeline:} (a)~voxelisation (unlabelled sweeps in black), (b)~propagation, (c)~denoising, (d)~hole-filling (red box).}
   \label{occnet:fig:occ_gt_pipeline}
 \end{figure}
 
-Interpolating 2\,Hz nuScenes~\cite{caesar2020nuscenes} box centres and yaw across 20\,Hz sweeps accumulates instance points for the four stages in Fig.~\ref{occnet:fig:occ_gt_pipeline}. Across 700 training and 150 validation logs (34,149 key frames, $>1.4$ billion occupied voxels in 16 classes; Fig.~\ref{occnet:fig:statistics_occ}), the ten foreground classes form 5.33\% of voxels (bicycles 0.02\%, motorcycles 0.03\%); across the eight movable foreground classes (excluding static barriers and traffic cones), over half of voxels move above $v_{\text{th}}=0.2$\,m/s (Fig.~\ref{occnet:fig:statistics_flow}).
+Interpolating 2\,Hz nuScenes~\cite{caesar2020nuscenes} box centres and yaw across 20\,Hz sweeps accumulates instance points for the four stages in Fig.~\ref{occnet:fig:occ_gt_pipeline}. Across 700 training and 150 validation logs (34,149 key frames, $>1.4$ billion occupied voxels in 16 classes; Fig.~\ref{occnet:fig:statistics_occ}), the ten foreground classes form 5.33\% of voxels (bicycles 0.02\%, motorcycles 0.03\%); in seven of the eight movable foreground classes (excluding static barriers and traffic cones), over half of the voxels move above $v_{\text{th}}=0.2$\,m/s; buses are the exception at 37.41\% (Fig.~\ref{occnet:fig:statistics_flow}).
 
 \begin{figure}[t]
   \centering
   \begin{minipage}[t]{0.48\linewidth}
     \centering
     \includegraphics[width=\linewidth]{ch-occnet/images/fig_occ_label_distribution_used.jpg}
-    \caption{\textbf{OpenOcc class frequencies.} Static background exceeds 94\% of occupied voxels.}
+    \caption[OpenOcc class frequencies]{\textbf{OpenOcc class frequencies.} Static background exceeds 94\% of occupied voxels.}
     \label{occnet:fig:statistics_occ}
   \end{minipage}\hfill
   \begin{minipage}[t]{0.48\linewidth}
     \centering
     \includegraphics[width=\linewidth]{ch-occnet/images/fig_flow_distribution_used.pdf}
-    \caption{\textbf{Moving-voxel share ($v > 0.2$\,m/s)} across the eight movable foreground classes.}
+    \caption[Moving-voxel share ($v > 0.2$\,m/s)]{\textbf{Moving-voxel share ($v > 0.2$\,m/s)} across the eight movable foreground classes.}
     \label{occnet:fig:statistics_flow}
   \end{minipage}
 \end{figure}
 
 \subsection{Supplementary Ablations and Visualisations}\label{occnet:app:experiments}\label{occnet:app:visualization}
 
-\paragraph{Temporal window, voxel collisions, and pre-training.} In single-run history sweeps (Tables~\ref{occnet:tab:frame_number_ssc} and~\ref{occnet:tab:frame_number_lidarseg}), SSC mIoU rises from 19.21 (0 frames) to 20.81 (4 frames), though 1 history frame dips below 0 (18.35 vs.\ 19.21 SSC; 48.41 vs.\ 53.82 LiDAR segmentation, $\sim$1 mIoU single-seed noise); Table~\ref{occnet:tab:frame_number_lidarseg} (2 frames) logs 52.33 mIoU from multi-task training vs.\ 47.29 in the single-task resolution sweep of Table~\ref{occnet:tab:lidarseg_resolution}. Scoring collisions against occupied voxels of 14 classes (Table~\ref{occnet:tab:occupancy_metrics}), predicted occupancy lowers collisions vs.\ boxes at 1\,s and 3\,s (1.68\% vs.\ 1.75\%; 4.32\% vs.\ 4.37%) but is higher at 2\,s (2.94\% vs.\ 2.85%), while cumulative-horizon L2/collision fine-tuning in Table~\ref{occnet:tab:planning_pretrain} favours detection over occupancy pre-training. Table~\ref{occnet:tab:occ_ablation} gives the full per-class decoder comparison, Table~\ref{occnet:tab:lidarseg_resolution} shows LiDAR segmentation across $\Delta s\in\{1.0,0.5,0.25\}$\,m (46.60, 47.29, 53.00 mIoU), and Figs.~\ref{occnet:fig:planning2}--\ref{occnet:fig:occ_pred} show qualitative planning and 3D occupancy predictions.
+\paragraph{Temporal window, voxel collisions, and pre-training.} In single-run history sweeps (Tables~\ref{occnet:tab:frame_number_ssc} and~\ref{occnet:tab:frame_number_lidarseg}), SSC mIoU rises from 19.21 (0 frames) to 20.81 (4 frames), though 1 history frame dips below 0 (18.35 vs.\ 19.21 SSC, a $\sim$1 mIoU difference consistent with single-seed noise; 48.41 vs.\ 53.82 LiDAR segmentation, a 5.4-point dip for which no repeated run is available); Table~\ref{occnet:tab:frame_number_lidarseg} (2 frames) logs 52.33 mIoU from multi-task training vs.\ 47.29 in the single-task resolution sweep of Table~\ref{occnet:tab:lidarseg_resolution}. Scoring collisions against occupied voxels of 14 classes (Table~\ref{occnet:tab:occupancy_metrics}), predicted occupancy lowers collisions vs.\ boxes at 1\,s and 3\,s (1.68\% vs.\ 1.75\%; 4.32\% vs.\ 4.37\%) but is higher at 2\,s (2.94\% vs.\ 2.85\%), while cumulative-horizon L2/collision fine-tuning in Table~\ref{occnet:tab:planning_pretrain} favours detection over occupancy pre-training. Table~\ref{occnet:tab:occ_ablation} gives the full per-class decoder comparison, Table~\ref{occnet:tab:lidarseg_resolution} shows LiDAR segmentation across $\Delta s\in\{1.0,0.5,0.25\}$\,m (46.60, 47.29, 53.00 mIoU), and Figs.~\ref{occnet:fig:planning2}--\ref{occnet:fig:occ_pred} show qualitative planning and 3D occupancy predictions.
 
 \begin{table}[t]
   \centering
-  \caption{\textbf{History frame sweep on SSC} for OccNet with ResNet50 (single runs; \#Num: past sweeps; $^{\ast}$: two-frame default).}
+  \caption[History frame sweep on SSC]{\textbf{History frame sweep on SSC} for OccNet with ResNet50 (single runs; \#Num: past sweeps; $^{\ast}$: two-frame default).}
   \label{occnet:tab:frame_number_ssc}
   \footnotesize
   \begin{tabular}{lccccc}
@@ -468,7 +467,7 @@ Interpolating 2\,Hz nuScenes~\cite{caesar2020nuscenes} box centres and yaw acros
 
 \begin{table}[t]
   \centering
-  \caption{\textbf{History frame sweep on LiDAR segmentation} for OccNet with ResNet50 (single runs; \#Num: past sweeps).}
+  \caption[History frame sweep on LiDAR segmentation]{\textbf{History frame sweep on LiDAR segmentation} for OccNet with ResNet50 (single runs; \#Num: past sweeps).}
   \label{occnet:tab:frame_number_lidarseg}
   \footnotesize
   \begin{tabular}{lcccccc}
@@ -487,7 +486,7 @@ Interpolating 2\,Hz nuScenes~\cite{caesar2020nuscenes} box centres and yaw acros
 
 \begin{table}[t]
   \centering
-  \caption{\textbf{Open-loop planning under voxel collisions} (co-author-led, single runs).}
+  \caption[Open-loop planning under voxel collisions]{\textbf{Open-loop planning under voxel collisions} (co-author-led, single runs).}
   \label{occnet:tab:occupancy_metrics}
   \footnotesize
   \begin{tabular}{lcccccc}
@@ -507,7 +506,7 @@ Interpolating 2\,Hz nuScenes~\cite{caesar2020nuscenes} box centres and yaw acros
 
 \begin{table}[t]
   \centering
-  \caption{\textbf{Pre-training comparison for trajectory fine-tuning} (co-author-led, single runs; cumulative L2 and collisions).}
+  \caption[Pre-training comparison for trajectory fine-tuning]{\textbf{Pre-training comparison for trajectory fine-tuning} (co-author-led, single runs; cumulative L2 and collisions).}
   \label{occnet:tab:planning_pretrain}
   \footnotesize
   \begin{tabular}{lcccccc}
@@ -524,7 +523,7 @@ Interpolating 2\,Hz nuScenes~\cite{caesar2020nuscenes} box centres and yaw acros
 
 \begin{sidewaystable}[p]
   \centering
-  \caption{\textbf{Per-category decoder comparison on OpenOcc} (single runs; R50/R101: ResNet50/ResNet101).}
+  \caption[Per-category decoder comparison on OpenOcc]{\textbf{Per-category decoder comparison on OpenOcc} (single runs; R50/R101: ResNet50/ResNet101).}
   \label{occnet:tab:occ_ablation}
   \footnotesize
   \setlength{\tabcolsep}{3.5pt}
@@ -547,7 +546,7 @@ Interpolating 2\,Hz nuScenes~\cite{caesar2020nuscenes} box centres and yaw acros
 
 \begin{sidewaystable}[p]
   \centering
-  \caption{\textbf{Voxel size $\Delta s$ sweep on LiDAR segmentation} using OccNet with ResNet50 (single runs).}
+  \caption[Voxel size $\Delta s$ sweep on LiDAR segmentation]{\textbf{Voxel size $\Delta s$ sweep on LiDAR segmentation} using OccNet with ResNet50 (single runs).}
   \label{occnet:tab:lidarseg_resolution}
   \footnotesize
   \setlength{\tabcolsep}{3.5pt}
@@ -569,13 +568,13 @@ Interpolating 2\,Hz nuScenes~\cite{caesar2020nuscenes} box centres and yaw acros
   \begin{minipage}[t]{0.48\linewidth}
     \centering
     \includegraphics[width=\linewidth]{ch-occnet/images/fig_planning2_used.jpg}
-    \caption{\textbf{Planning input comparison} (co-author-led): predicted 3D boxes (left) vs.\ occupancy (right).}
+    \caption[Planning input comparison]{\textbf{Planning input comparison} (co-author-led): predicted 3D boxes (left) vs.\ occupancy (right).}
     \label{occnet:fig:planning2}
   \end{minipage}\hfill
   \begin{minipage}[t]{0.48\linewidth}
     \centering
     \includegraphics[width=\linewidth]{ch-occnet/images/fig_occ_vis_1_used.jpg}
-    \caption{\textbf{Validation occupancy predictions} across six camera views and BEV voxel grids.}
+    \caption[Validation occupancy predictions]{\textbf{Validation occupancy predictions} across six camera views and BEV voxel grids.}
     \label{occnet:fig:occ_pred}
   \end{minipage}
 \end{figure}
@@ -588,4 +587,4 @@ To address RQ1, this chapter formulated 3D semantic occupancy as a geometry-open
 
 Our experimental evaluation provides graded evidence across the three requirements of RQ1. First, volumetric occupancy can be inferred from surround-view cameras alone: on OpenOcc, OccNet attains 26.98 mIoU and 41.08 $\text{IoU}_{\text{geo}}$, outperforming our retrained TPVFormer baseline (23.67 mIoU and 37.47 $\text{IoU}_{\text{geo}}$), and when evaluated at ground-truth LiDAR returns it reaches 60.46 mIoU, trailing the LiDAR segmenter RangeNet++ (65.50) by roughly 5 points and the point-supervised camera model TPVFormer-Base (68.9). Second, volumetric grids capture non-cuboid vehicles more accurately than voxelised 3D detections, with the $\text{mIoU}_{\text{ir}}$ margin expanding from 2.21 to 3.51 points as grid resolution tightens from 0.5\,m to 0.25\,m, though part of this gap reflects comparing surface-shell labels against solid cuboids. Third, in single-run open-loop nuScenes planning, rasterised occupancy predictions lower collision percentages by 0.06--0.24 points relative to box predictions from the same network without a consistent improvement in L2 error. Architecturally, with a ResNet50 backbone, the cascade decoder improves upon both planar BEVNet and dense VoxelNet while trimming VoxelNet's parameter count from 72M to 40M. At the same time, clear boundaries apply: supervision still depends on curated LiDAR sweeps and interpolated 3D boxes; semantic predictions remain confined to 16 fixed classes; occupancy flow is annotated but not experimentally evaluated; occupancy pre-training does not aid the trajectory planner; all perception benchmarks rely on our own OpenOcc split; and every table reports single-seed runs without closed-loop simulation or domain-shift testing. Combined with the neutral or negative occupancy results observed on NAVSIM in Chapter~\ref{ch:centaur}, this thesis does not establish that 3D occupancy universally improves downstream planning.
 
-\textbf{Looking ahead.} A 3D occupancy grid specifies \emph{what occupies each location}, but not \emph{why a traffic configuration matters} or \emph{how the ego vehicle should respond}. Identical occupied voxels represent a kerbside pedestrian whether waiting or stepping into the roadway, and a stationary lead vehicle whether parked or held by a red signal, even though each scenario demands a distinct driving manoeuvre. Resolving such ambiguities requires world knowledge of traffic conventions together with explicit reasoning that links scene perception to agent intent prediction and ego trajectory planning. Chapter~\ref{ch:drivelm} addresses this gap by grounding vision-language models in driving scenes through structured, verifiable graph reasoning spanning perception, prediction, and planning; note that Chapters~\ref{ch:occnet}, \ref{ch:drivelm}, and~\ref{ch:centaur} investigate perception, reasoning, and test-time adaptation on their respective standard task stacks rather than passing intermediate tensors inside one monolithic software binary, and Chapter~\ref{ch:drivelm} adopts a 2D front-camera VLM (BLIP-2) to evaluate language-model priors without confounding the representation with this chapter's 3D voxel decoder.
+\textbf{Looking ahead.} A 3D occupancy grid specifies \emph{what occupies each location}, but not \emph{why a traffic configuration matters} or \emph{how the ego vehicle should respond}. Identical occupied voxels represent a kerbside pedestrian whether waiting or stepping into the roadway, and a stationary lead vehicle whether parked or held by a red signal, even though each scenario demands a distinct driving manoeuvre. Resolving such ambiguities requires world knowledge of traffic conventions together with explicit reasoning that links scene perception to agent intent prediction and ego trajectory planning. Chapter~\ref{ch:drivelm} addresses this gap by grounding vision-language models in driving scenes through structured, verifiable graph reasoning spanning perception, prediction, and planning, using a 2D front-camera VLM (BLIP-2) so that language-model priors are evaluated without confounding them with this chapter's 3D voxel decoder.

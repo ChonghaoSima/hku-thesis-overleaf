@@ -72,11 +72,9 @@ Stage B: Behaviour Classification (Discretised Speed and Steering Bins)
 ==============================================================================
 Q8 (Discretised speed-and-steering decision):
   "Predict the behaviour of the ego vehicle. The speed options are:
-   [stopping, decelerating to stop, decelerating Slowly, decelerating fast,
-    keeping speed, accelerating slowly, accelerating fast].
+   [fast_2, fast_1, moderate, slow_1, slow_2].
    The steering options are:
-   [going straight, turning slightly left, turning left, turning slightly right,
-    turning right, changing to the left lane, changing to the right lane]."
+   [left_2, left_1, straight, right_1, right_2]."
 A8 (Joint behaviour tuple):
   "The ego vehicle is <B_sp> and <B_st>."
 
@@ -92,16 +90,20 @@ A9 (Quantised 256-bin coordinate tokens between <SOT> and <EOT>):
 \end{verbatim}
 \end{footnotesize}
 
+The speed and steering options of Q8 are the five displacement-derived classes of Section~\ref{drivelm:sec:task} (Eq.~\eqref{drivelm:eq:xy_dist}); all behaviour accuracies reported in Chapter~\ref{ch:drivelm} are computed in this $5 \times 5$ class space, to which both predicted and ground-truth behaviours are mapped before comparison (Section~\ref{drivelm:app:metrics_behavior}).
+
 \subsection{GPT Score Evaluation Prompt and Autoregressive Context Formatting}\label{app:supp:gpt_prompt}
 
 Below we record (i) the autoregressive graph-context prompt constructed by DriveLM-Agent when querying child nodes along directed edges $e=(u,v)\in E$, (ii) the rule-based cascade prompts used for zero-shot transfer to Waymo Open Dataset and unseen pedestrian categories in DriveLM-CARLA, and (iii) the exact evaluation prompt sent to \texttt{gpt-3.5-turbo} when computing the GPT Score metric in Table~\ref{drivelm:tab:vqa_more_metrics}.
 
+% NOTE: the section numbers inside this verbatim block are hard-coded; they refer to
+% Section 3.6.2 (Waymo zero-shot transfer) and Section 3.6.3 (DriveLM-CARLA pedestrians).
 \begin{footnotesize}
 \begin{verbatim}
 ==============================================================================
 1. Autoregressive Graph-Context Formatting in DriveLM-Agent
 ==============================================================================
-Input prompt to BLIP-2 / Flanagan-T5-XL or LLaMA-Adapter V2 for node v:
+Input prompt to BLIP-2 / Flan-T5-XL or LLaMA-Adapter V2 for node v:
   "Context:
    Q: <Question(u_1)> A: <Predicted_or_GT_Answer(u_1)>
    ...
@@ -114,7 +116,7 @@ Input prompt to BLIP-2 / Flanagan-T5-XL or LLaMA-Adapter V2 for node v:
 ==============================================================================
 2. Zero-Shot Cross-Domain and Unseen-Object Cascade Prompts
 ==============================================================================
-Waymo Open Dataset zero-shot cascade (Section 3.6.3):
+Waymo Open Dataset zero-shot cascade (Section 3.6.2):
   Step 1 (P1): "What are the objects in the front view?"
   Step 2 (P2, triggered if Step 1 detects 'car', 'truck', or 'pedestrian'):
     "What is the moving status of the <detected_class> in the front view?"
@@ -123,7 +125,7 @@ Waymo Open Dataset zero-shot cascade (Section 3.6.3):
   Step 4 (B):
     Append (Step 1, Step 2, Step 3) QAs as context to the Stage B query.
 
-DriveLM-CARLA unseen-pedestrian cascade (Section 3.6.4):
+DriveLM-CARLA unseen-pedestrian cascade (Section 3.6.3):
   Step 1 (Presence check):
     "Is there a person in the scene?"
   Step 2a (If Step 1 answer is 'Yes'):
